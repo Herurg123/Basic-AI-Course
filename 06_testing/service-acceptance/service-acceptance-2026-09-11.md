@@ -37,27 +37,27 @@ Governance v1.3 имеет приоритет над историческими 
 
 ## 3. Test environment
 
-Живые параметры среды будут заполняться только по фактическим наблюдениям владельца во время пошагового OWNER-OBSERVED прогона.
-
 | Parameter | Observed |
 |---|---|
 | Date | 2026-09-11 |
-| Local time | pending per test |
-| Connection | NOT TESTED |
-| Russian ordinary connection | NOT TESTED |
-| VPN | NOT TESTED |
-| Browser/device | NOT TESTED |
-| Alice account | NOT TESTED |
-| Alice Plus / boosts | NOT TESTED |
+| Local time | same owner run; per-action timestamps not separately captured |
+| Connection | ordinary Russian connection |
+| Russian ordinary connection | OWNER-OBSERVED |
+| VPN | off |
+| Browser/device | Firefox / computer |
+| Alice account | anonymous / not logged in for A01–A05 |
+| Alice Plus / boosts | not applicable to anonymous A01–A05; no paid action used |
 | GigaChat account | NOT TESTED |
-| Paid entitlement | NOT TESTED |
+| Paid entitlement | no paid entitlement used in observed Alice route |
 | Tester | OWNER for live UI actions |
 
-Географическая проходимость не будет объявлена PASS, пока обязательные действия не выполнены на обычном российском соединении без VPN.
+Географическая часть A01–A05 выполнена на обычном российском соединении без VPN по сообщению владельца.
 
 ## 4. Accounts and entitlement state
 
-`NOT TESTED`. Требуется отдельно зафиксировать для каждого сервиса: fresh/free либо `FREE EXISTING ACCOUNT, NOT FRESH`, наличие Plus/Premium/boosts и отсутствие платной лицензии, меняющей обязательные функции.
+Для A01–A05 Алиса использовалась без авторизации. Это сильнее, чем проверка существующего бесплатного аккаунта для соответствующих функций, но не доказывает, что B7/B8/download также доступны анонимно. Если позднее потребуется login, состояние аккаунта будет зафиксировано отдельно как fresh/free либо `FREE EXISTING ACCOUNT, NOT FRESH`.
+
+GigaChat: `NOT TESTED`.
 
 ## 5. Official-source freshness check
 
@@ -81,22 +81,22 @@ Governance v1.3 имеет приоритет над историческими 
 
 ### Official source conflict
 
-Для GigaChat есть существенное расхождение: действующее пользовательское соглашение требует обязательной авторизации для использования Сервиса, а help-страница standalone-инструмента удаления фона заявляет, что регистрация не нужна. До живой проверки это фиксируется как `OFFICIAL SOURCE CONFLICT`; ни одна из сторон конфликта не превращается в LIVE/OWNER PASS автоматически.
+Для GigaChat есть существенное расхождение: действующее пользовательское соглашение требует обязательной авторизации для использования Сервиса, а help-страница standalone-инструмента удаления фона заявляет, что регистрация не нужна. До живой проверки это фиксируется как `OFFICIAL SOURCE CONFLICT`.
 
 ## 6. Alice test matrix
 
 | Test ID | Account | Action | Expected | Observed | Status | Evidence | Affected lessons | Notes |
 |---|---|---|---|---|---|---|---|---|
-| A01 | pending | открыть web и сделать простой текстовый запрос | чат доступен без обязательной оплаты | pending | NOT TESTED | — | M00-L01, M01-L01 | — |
-| A02 | pending | проверить фактическую обязательность login для text/B4/B7/B8/download | различить optional vs required login | pending | NOT TESTED | — | M00-L01–L03, M05-L02 | — |
-| A03 | pending | новый чат и повторный старт | новый диалог реально создается | pending | NOT TESTED | — | M00-L03 | — |
-| A04 | pending | DOCX fixture upload + вопрос по содержимому | файл прочитан, ответ относится к нему | pending | NOT TESTED | — | M00-L02 | — |
-| A05 | pending | PNG fixture upload + анализ | изображение распознано | pending | NOT TESTED | — | M00-L02 | — |
+| A01 | anonymous | открыть web и сделать простой текстовый запрос | чат доступен без обязательной оплаты | ответ получен без login | OWNER-OBSERVED-PASS | owner report | M00-L01, M01-L01 | Россия, VPN off, Firefox, computer |
+| A02 | anonymous | проверить фактическую обязательность login | различить optional vs required login | text, DOCX и PNG работают anonymous; встроенная кнопка нового чата требует login | OWNER-OBSERVED-PASS / PARTIAL FOR OTHER FUNCTIONS | owner report + screenshot for A05 | M00-L01–L03, M05-L02 | B7/B8/download ещё не проверены |
+| A03 | anonymous | новый чат и повторный старт | новый диалог реально создается | встроенный `Новый чат` запросил login; новая вкладка с `alice.yandex.ru` дала новый диалог и ответ | OWNER-OBSERVED-PASS WITH UI CAVEAT | owner report | M00-L03 | курс может использовать новую вкладку/прямую ссылку без обязательной регистрации |
+| A04 | anonymous | DOCX fixture upload + вопрос по содержимому | файл прочитан, ответ относится к нему | верно извлечено: после Альфы Бета, 12 условных дней | OWNER-OBSERVED-PASS | owner report | M00-L02 | fixture `AF-DOC-2026-0911` |
+| A05 | anonymous | PNG fixture upload + анализ | изображение распознано | верно распознаны `AF-IMG-314`, квадрат слева, круг справа; UI показал визуальные элементы | OWNER-OBSERVED-PASS | owner report + supplied screenshot | M00-L02 | screenshot visibly shows `Войти`, supporting anonymous state |
 | A06 | pending | живая B7 | новая картинка реально сгенерирована бесплатно | pending | NOT TESTED | — | M05-L02 | — |
 | A07 | pending | реальный edit существующего исходника | изменен именно исходник | pending | NOT TESTED | — | M05-L02 | — |
 | A08 | pending | скачать B7/B8 | результат реально сохранен | pending | NOT TESTED | — | M00-L03, M05-L02 | — |
-| A09 | pending | наблюдать лимиты/очередь/upsell | upsell не равен обязательной оплате | pending | NOT TESTED | — | M00, M05-L02 | — |
-| A10 | pending | child/parent route | legal route confirmed; functional route only if lawful account available | pending | DOC-CONFIRMED / FUNCTION NOT TESTED | official terms | M00-L01, release risk | no fake minor account |
+| A09 | pending | наблюдать лимиты/очередь/upsell | upsell не равен обязательной оплате | пока обязательной оплаты не возникало | IN PROGRESS | owner observations | M00, M05-L02 | финальный статус после B7/B8 |
+| A10 | pending | child/parent route | legal route confirmed; functional route only if lawful account available | normative route confirmed only | DOC-CONFIRMED / FUNCTION NOT TESTED | official terms | M00-L01, release risk | no fake minor account |
 
 ## 7. GigaChat test matrix
 
@@ -113,11 +113,11 @@ Governance v1.3 имеет приоритет над историческими 
 
 ## 8. Cross-cutting browser operations
 
-X01–X10: `NOT TESTED`. Включают прямую ссылку PRIMARY, новый чат, DOCX, PNG, внешний источник, поиск фрагмента, возврат, копирование, сохранение и предусмотренное переключение PRIMARY → BACKUP.
+Частично подтверждены: прямой PRIMARY web-route, повторный старт через новую вкладку, DOCX upload и PNG upload. X05–X10 и полный failover на BACKUP ещё `NOT TESTED`.
 
 ## 9. B10 technical route
 
-Официальные и проектные документы подтверждают только контракт. Фактическая цепочка `утверждение → отдельное основание → конкретный фрагмент → возврат → сопоставление` должна быть OWNER-OBSERVED. Статус: `NOT TESTED`.
+Фактическая цепочка `утверждение → отдельное основание → конкретный фрагмент → возврат → сопоставление` должна быть OWNER-OBSERVED. Статус: `NOT TESTED`.
 
 ## 10. Age / parent route
 
@@ -127,7 +127,7 @@ X01–X10: `NOT TESTED`. Включают прямую ссылку PRIMARY, н�
 
 ## 11. Free limits and observed queues
 
-Пока только `DOC-CONFIRMED`: у Алисы стандартные бесплатные лимиты и возможная временная деградация функций при нагрузке; у GigaChat договор позволяет Банку вводить лимиты без предварительного уведомления. Реальная очередь/лимит: `NOT TESTED`.
+A01–A05 прошли без платного барьера. Реальная очередь/лимит пока не наблюдались. Документально известны стандартные бесплатные лимиты Алисы и возможность временной деградации при нагрузке.
 
 ## 12. PRIMARY/BACKUP failover
 
@@ -144,18 +144,26 @@ X01–X10: `NOT TESTED`. Включают прямую ссылку PRIMARY, н�
 
 ## 14. Evidence index
 
-Пока живые evidence отсутствуют. Fixtures подготовлены отдельно как `ACCEPTANCE FIXTURE`, а не как course assets.
+1. OWNER report A01: simple text response received anonymously.
+2. OWNER report A03a: built-in new-chat action requested login.
+3. OWNER report A03b: new browser tab opened a fresh anonymous dialogue and returned an answer.
+4. OWNER report A04: DOCX fixture read correctly; control facts `Бета` and `12 условных дней` extracted.
+5. OWNER-supplied screenshot A05: UI visibly not logged in (`Войти`), response correctly identifies `AF-IMG-314`, square and circle, and shows visual elements.
+
+Fixtures are `ACCEPTANCE FIXTURE`, not course assets.
 
 ## 15. Deviations from Service Matrix
 
-На старте содержательной девиации не установлено. Найденный конфликт standalone-auth GigaChat уже был отмечен в SM v1.0 и остается предметом живого G07.
+No architecture-breaking deviation found so far. New observed nuance: Alice anonymous route supports text, DOCX and PNG analysis, and a fresh dialogue can be started by reopening the service in a new tab even though the built-in new-chat action requests login. This is an implementation/UI route detail, not yet a Service Matrix contract change.
 
 ## 16. Blocks / risks
 
-1. Interactive browser недоступен агенту: живые UI-факты могут подтверждаться только OWNER-OBSERVED.
-2. Географический PASS требует обычного российского соединения без VPN.
-3. Child functional route может остаться BLOCKED при отсутствии законного подходящего аккаунта.
-4. Алиса B4/B7/B8 может временно деградировать при высокой нагрузке; временный outage не равен архитектурному FAIL.
+1. Interactive browser недоступен агенту: живые UI-факты подтверждаются OWNER-OBSERVED.
+2. B7/B8/download for PRIMARY not yet tested.
+3. BACKUP GigaChat not yet tested.
+4. B10 not yet tested.
+5. Child functional route may remain blocked if no lawful suitable account is available.
+6. Alice B4/B7/B8 may temporarily degrade at high load; temporary outage is not automatically architecture FAIL.
 
 ## 17. Gate verdict
 
@@ -167,15 +175,15 @@ X01–X10: `NOT TESTED`. Включают прямую ссылку PRIMARY, н�
 
 ## 19. Retest conditions
 
-- повторить временно недоступный PRIMARY позже;
-- при outage проверить утвержденный BACKUP;
-- не покупать Plus/Boost ради прохождения acceptance;
-- при изменении сервисного контракта эскалировать до изменения SM/архитектуры.
+- repeat temporarily unavailable PRIMARY later;
+- on outage test approved BACKUP;
+- do not buy Plus/Boost for acceptance;
+- if service contract changes, escalate to SM/architecture delta rather than silently adapting.
 
 ## 20. Date / tester / evidence level
 
 - Date: 2026-09-11
 - Authoring agent: Service Acceptance Lead
 - Live UI tester: OWNER
-- Current highest live evidence: none yet
+- Current highest live evidence: OWNER-OBSERVED-PASS
 - Current documentary evidence: DOC-CONFIRMED
