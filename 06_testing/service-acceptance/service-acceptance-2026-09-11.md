@@ -24,7 +24,7 @@
 | Browser/device | Firefox / computer |
 | Alice | anonymous for A01–A05; existing account for A06–A08 |
 | Alice entitlement | `FREE EXISTING ACCOUNT, NOT FRESH`; Plus/boosts offered as upsell, not required |
-| GigaChat | anonymous for G01a–G07 functional checks; first-ever GigaChat login then completed via Sber ID/phone |
+| GigaChat | anonymous functional observations first; first-ever GigaChat login then completed via Sber ID/phone |
 | GigaChat entitlement | fresh GigaChat service use; no paid entitlement required or observed |
 | Tester | OWNER for live UI actions |
 
@@ -34,7 +34,7 @@
 
 **Alice.** Text, new-session workaround, DOCX and PNG worked anonymous. B7 generation required login. After normal login on an existing non-fresh account, B7, real B8 edit and download completed without payment. Screenshots showed Plus/boost purchase offers rather than an already-required paid plan; no paid action was used.
 
-**GigaChat.** Anonymous web chat supported text, new chat, DOCX, PNG, B7 and B8/background edit + download. Separate login route was also tested: Sber ID, +7 phone entry, first-use agreement, then GigaChat opened. Owner reported this was the first GigaChat use on the account. No payment or subscription barrier appeared.
+**GigaChat.** Anonymous web UI functionally supported text, new chat, DOCX, PNG, B7 and B8/background edit + download. Because the current user agreement states mandatory authorization, these anonymous capabilities are classified as **`OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT`** and are not promoted into the normative course route. The separate authorized route was also tested: Sber ID, +7 phone entry, first-use agreement, then GigaChat opened. Owner reported this was the first GigaChat use on the account. No payment or subscription barrier appeared.
 
 ## 5. Official-source freshness check
 
@@ -58,7 +58,7 @@ Checked 2026-09-11 against current official sources.
 
 ### Official source conflict
 
-The GigaChat agreement states mandatory authorization, while current owner-observed web behavior allowed anonymous text, new chat, DOCX, PNG, image generation, background edit and download. The standalone background tool also opened without login. This remains `OFFICIAL SOURCE CONFLICT`: live functionality is recorded as observed; it does not rewrite the legal text.
+The GigaChat agreement states mandatory authorization, while current owner-observed web behavior allowed anonymous text, new chat, DOCX, PNG, image generation, background edit and download. The standalone background tool also opened without login. Anonymous behavior is therefore **`OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT`** plus `OFFICIAL SOURCE CONFLICT`: it is evidence about current UI behavior, not permission to rewrite the legal or normative route.
 
 ## 6. Alice test matrix
 
@@ -79,14 +79,14 @@ The GigaChat agreement states mandatory authorization, while current owner-obser
 
 | Test ID | Account | Action | Expected | Observed | Status | Evidence | Affected lessons | Notes |
 |---|---|---|---|---|---|---|---|---|
-| G01 | anonymous + fresh GigaChat service use | access + login route | free route; login feasible by Russian phone/Sber ID | anonymous chat worked; +7/Sber ID login later succeeded; first-use agreement accepted; service opened | OWNER-OBSERVED-PASS | owner reports/screenshots | M00-L01 | no OTP/phone data stored in report |
-| G02 | anonymous | new chat | new dialog works | new chat created and answered; old anonymous chat is discarded unless user logs in | OWNER-OBSERVED-PASS WITH UI CAVEAT | owner screenshots | M00-L03 | history-loss warning must be taught |
-| G03 | anonymous | DOCX fixture | document read free | file consent dialog shown; Beta/12 days extracted correctly | OWNER-OBSERVED-PASS WITH CONSENT CAVEAT | owner screenshots | M00-L02 | consent says no personal/secret data |
-| G04 | anonymous | PNG fixture | image analysis | `AF-IMG-314`, square left, circle right | OWNER-OBSERVED-PASS | owner screenshot | M00-L02 | — |
-| G05 | anonymous | B7 generation | real image generated free | image generated free | OWNER-OBSERVED-PASS | owner report | M05-L02 | no login/payment |
-| G06 | anonymous | BACKUP B8 background edit + download | edit existing source and save | background changed to light yellow, source code/shapes/labels preserved; file downloaded free | OWNER-OBSERVED-PASS | owner screenshot/report | M05-L02 | narrow B8 contract satisfied |
-| G07 | anonymous | standalone auth discrepancy | observe actual auth requirement | catalog/background route opened and continued in browser without login | OWNER-OBSERVED-PASS / OFFICIAL SOURCE CONFLICT REMAINS | owner screenshots/report | M05-L02 | functional observation does not override agreement text |
-| G08 | anonymous + logged-in verification | paid barrier after minimal set | no mandatory subscription | text/DOCX/PNG/B7/B8/download completed free; login also completed without payment | OWNER-OBSERVED-PASS | accumulated owner evidence | M00, M05-L02 | — |
+| G01 | anonymous observation + fresh authorized GigaChat service use | access + login route | free route; login feasible by Russian phone/Sber ID | anonymous chat worked; +7/Sber ID login later succeeded; first-use agreement accepted; service opened | OWNER-OBSERVED-PASS | owner reports/screenshots | M00-L01 | normative route retains login; anonymous access is outside current contract |
+| G02 | anonymous | new chat | new dialog works | new chat created and answered; old anonymous chat is discarded unless user logs in | OWNER-OBSERVED-PASS WITH UI CAVEAT | owner screenshots | M00-L03 | `OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT` for anonymous mode |
+| G03 | anonymous | DOCX fixture | document read free | file consent dialog shown; Beta/12 days extracted correctly | OWNER-OBSERVED-PASS WITH CONSENT CAVEAT | owner screenshots | M00-L02 | anonymous function is outside current contract; consent says no personal/secret data |
+| G04 | anonymous | PNG fixture | image analysis | `AF-IMG-314`, square left, circle right | OWNER-OBSERVED-PASS | owner screenshot | M00-L02 | anonymous function is outside current contract |
+| G05 | anonymous | B7 generation | real image generated free | image generated free | OWNER-OBSERVED-PASS | owner report | M05-L02 | anonymous function is outside current contract; no payment |
+| G06 | anonymous | BACKUP B8 background edit + download | edit existing source and save | background changed to light yellow, source code/shapes/labels preserved; file downloaded free | OWNER-OBSERVED-PASS | owner screenshot/report | M05-L02 | narrow B8 contract satisfied; anonymous mode itself is outside current contract |
+| G07 | anonymous | standalone auth discrepancy | observe actual auth requirement | catalog/background route opened and continued in browser without login | OWNER-OBSERVED-PASS / OFFICIAL SOURCE CONFLICT REMAINS | owner screenshots/report | M05-L02 | `OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT` |
+| G08 | anonymous functional observations + authorized login check | paid barrier after minimal set | no mandatory subscription | text/DOCX/PNG/B7/B8/download observed free; authorized login also completed without payment | OWNER-OBSERVED-PASS WITH EVIDENCE NOTE | accumulated owner evidence | M00, M05-L02 | production BACKUP remains the authorized route; anonymous observations are not promoted to contract |
 
 ## 8. Cross-cutting browser operations
 
@@ -103,7 +103,7 @@ The GigaChat agreement states mandatory authorization, while current owner-obser
 | X09 | save/download result | OWNER-OBSERVED-PASS |
 | X10 | switch PRIMARY → BACKUP without artificial failure | OWNER-OBSERVED-PASS |
 
-X10 evidence: Alice conclusion copied into GigaChat; GigaChat accepted it and continued the task.
+X10 evidence: Alice conclusion copied into GigaChat after the Giga login flow; GigaChat accepted it and continued the task.
 
 ## 9. B10 technical route
 
@@ -125,7 +125,7 @@ No queue or hard free-limit was hit during this run. Alice showed optional Plus/
 
 ## 12. PRIMARY/BACKUP failover
 
-`OWNER-OBSERVED-PASS` for the approved service pair. Both PRIMARY and BACKUP independently completed the required minimum. X10 additionally proved operational switching from Alice to GigaChat without fabricating a service outage.
+`OWNER-OBSERVED-PASS` for the approved service pair. PRIMARY completed the required minimum. BACKUP capabilities and login were separately owner-observed, and X10 proved continuation in GigaChat after the login flow. The course must retain the authorized Giga route because anonymous functionality is `OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT`.
 
 ## 13. Mapping to Lesson IDs
 
@@ -150,19 +150,19 @@ Fixtures used: `ACCEPTANCE_FIXTURE_document.docx`, `ACCEPTANCE_FIXTURE_image.png
 
 The acceptance confirms the existing **functional contract** of Service Matrix v1.0: PRIMARY remains Alice, BACKUP remains GigaChat, B10 remains an external-source browser route, PRIMARY B8 remains real edit, BACKUP B8 remains narrow background edit.
 
-Observed UI/auth nuances are recorded as dated dynamic evidence rather than a normative route change:
+Observed UI/auth nuances are dated dynamic evidence rather than a normative route change:
 
 1. Alice anonymous text/DOCX/PNG work; B7 requires ordinary login; built-in anonymous `Новый чат` asks login, while a new direct tab starts a fresh dialog.
-2. Giga web currently allows more anonymous functionality than the agreement text states.
+2. Giga web currently allows more anonymous functionality than the agreement text states. This is **`OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT`**.
 3. Giga file upload shows a personal-data/secret-content consent warning.
 4. Giga anonymous new chat discards the previous anonymous dialog/history.
 
-**Service Matrix decision:** no v1.1 is created solely for these observations. Per project rule, v1.0 remains normative because the approved route and architecture did not change. If a required capability, paid/geo/age condition or PRIMARY/BACKUP assignment changes, a substantive SM revision is required.
+**Service Matrix decision:** no v1.1 is created solely for these observations. Per project rule, v1.0 remains normative because the approved route and architecture did not change. The production BACKUP keeps the verified Sber ID/phone login route. If a required capability, paid/geo/age condition or PRIMARY/BACKUP assignment changes, a substantive SM revision is required.
 
 ## 16. Blocks / risks
 
 - `BLOCKED — CHILD FUNCTIONAL TEST NOT PERFORMED`: nonblocking for current adult/general vertical slice, blocking for any claim of independent minor completion.
-- `OFFICIAL SOURCE CONFLICT`: Giga agreement requires auth while observed web route allows anonymous use. Must remain visible; do not state that the legal requirement disappeared.
+- `OFFICIAL SOURCE CONFLICT`: Giga agreement requires auth while observed web route allows anonymous use. Anonymous behavior is `OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT`; do not teach it as the normative route.
 - Free quotas/load can change; recheck before production screenshots/video and before publication.
 - UI labels/placement are dynamic and should not be elevated into architecture.
 
@@ -172,7 +172,7 @@ Observed UI/auth nuances are recorded as dated dynamic evidence rather than a no
 
 All blocking PRIMARY, BACKUP, B10 and cross-cutting functional requirements were owner-observed on ordinary Russian connection without VPN, foreign card or required payment.
 
-Nonblocking observations are explicit: Alice login boundary for B7; Alice anonymous new-chat UI caveat; Giga anonymous-history loss; Giga file-consent dialog; Giga legal/auth conflict; child functional route not tested; free limits/load remain dynamic.
+Nonblocking observations are explicit: Alice login boundary for B7; Alice anonymous new-chat UI caveat; Giga anonymous capabilities are outside current contract; Giga anonymous-history loss; Giga file-consent dialog; Giga legal/auth conflict; child functional route not tested; free limits/load remain dynamic.
 
 The separate pre-PR adversarial audit in [`adversarial-audit-2026-09-11.md`](adversarial-audit-2026-09-11.md) challenged all 16 required failure hypotheses and approved the result for PR preparation.
 
@@ -180,7 +180,7 @@ The separate pre-PR adversarial audit in [`adversarial-audit-2026-09-11.md`](adv
 
 After this acceptance result is merged to `main`, the project may proceed to the interface-dependent M00–M01 production vertical slice. Do not start full-course production, M02–M08, Stepik publication or broad asset production as a consequence of this gate alone.
 
-Production instructions must include the observed caveats: Alice login boundary for B7, Alice anonymous new-chat workaround, Giga anonymous-history loss, Giga file-consent dialog, and optional-vs-required paid offers.
+Production instructions must include the observed Alice caveats and must use the **authorized GigaChat BACKUP route** rather than relying on anonymous behavior that conflicts with the current agreement wording.
 
 ## 19. Retest conditions
 
