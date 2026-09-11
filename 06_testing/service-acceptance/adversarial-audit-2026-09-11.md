@@ -36,11 +36,13 @@
 - GigaChat satisfies BACKUP PASS: text, login, DOCX, PNG, B7, narrow B8/background edit, free route.
 - B10 route is observed end to end.
 - X01–X10 are observed end to end.
-- Giga anonymous behavior is more permissive than the current agreement wording. This is `OFFICIAL SOURCE CONFLICT`, not a reason to rewrite legal terms.
+- Giga anonymous behavior is more permissive than the current agreement wording. It is **`OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT`** plus `OFFICIAL SOURCE CONFLICT`; it is not a reason to rewrite legal terms or the normative BACKUP route.
 
 ## Service Matrix decision
 
-**No Service Matrix v1.1 is required for this acceptance.** The approved functional contract is confirmed: the same PRIMARY/BACKUP roles and required functions remain valid. Newly observed anonymous Giga capabilities and Alice UI/auth nuances are dynamic operational evidence, not an architecture change. They are recorded in the dated acceptance report instead of silently rewriting Service Matrix v1.0.
+**No Service Matrix v1.1 is required for this acceptance.** The approved functional contract is confirmed: the same PRIMARY/BACKUP roles and required functions remain valid.
+
+The normative Giga BACKUP remains the tested **authorized** route through Sber ID/phone. Anonymous Giga functionality is recorded only as **`OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT`** because it is broader than the current contract and conflicts with the agreement wording.
 
 A future SM revision is required only if a required route changes materially, for example if B4/B7/B8, paid access, geo access, age/legal route, or PRIMARY/BACKUP assignment changes.
 
@@ -48,8 +50,9 @@ A future SM revision is required only if a required route changes materially, fo
 
 1. Alice built-in `Новый чат` requested login in anonymous mode; reopening the direct web route in a new tab created a fresh working dialog.
 2. Alice B7 required ordinary login, but no Plus/boost/payment.
-3. Giga anonymous new chat discards the previous anonymous dialog/history unless the user logs in.
-4. Giga file upload shows an explicit personal-data/secret-content consent warning.
-5. Giga agreement says auth is mandatory while current web behavior allowed anonymous use; do not state that the legal requirement disappeared.
-6. Child functional route is not tested and cannot be advertised as an independent minor route.
-7. Free quotas/load remain dynamic and require retest before final screenshots/video/publication.
+3. Giga anonymous text/file/image/B7/B8 behavior is `OBSERVED CAPABILITY — OUTSIDE CURRENT CONTRACT`; production BACKUP should use the verified login route.
+4. Giga anonymous new chat discards the previous anonymous dialog/history unless the user logs in.
+5. Giga file upload shows an explicit personal-data/secret-content consent warning.
+6. Giga agreement says auth is mandatory while current web behavior allowed anonymous use; do not state that the legal requirement disappeared.
+7. Child functional route is not tested and cannot be advertised as an independent minor route.
+8. Free quotas/load remain dynamic and require retest before final screenshots/video/publication.
