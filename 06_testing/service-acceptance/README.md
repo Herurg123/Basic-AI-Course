@@ -7,6 +7,7 @@
 - Дата: 2026-09-11
 - Ветка: `testing/service-acceptance-2026-09-11`
 - Основной отчет: [`service-acceptance-2026-09-11.md`](service-acceptance-2026-09-11.md)
+- Авторская проверка: [`author-check-2026-09-11.md`](author-check-2026-09-11.md)
 - Adversarial audit: [`adversarial-audit-2026-09-11.md`](adversarial-audit-2026-09-11.md)
 - Статус gate: **PASS WITH EXPLICIT NONBLOCKING OBSERVATIONS**
 
