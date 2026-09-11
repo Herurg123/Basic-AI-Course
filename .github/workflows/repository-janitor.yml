@@ -1,0 +1,403 @@
+name: Repository Janitor
+
+on:
+  schedule:
+    # Ежедневно в 03:37 UTC. Не ставим на начало часа, чтобы уменьшить риск задержек очереди.
+    - cron: '37 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: repository-janitor
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Безопасная уборка веток
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Проверить ветки и выполнить безопасную уборку
+        # actions/github-script v9.0.0 pinned to an immutable commit SHA.
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          # Первые семь запусков физически ничего не удаляют.
+          DRY_RUNS: '7'
+
+          # Для ветки, связанной со смёрженным PR в default branch.
+          MERGED_GRACE_HOURS: '24'
+
+          # Для ветки без подходящего merged PR, у которой ahead_by == 0.
+          NO_PR_GRACE_DAYS: '7'
+
+          # Только эти рабочие пространства имён вообще могут стать кандидатами на автоудаление.
+          ALLOWED_PREFIXES: 'architecture/,bootstrap/,governance/,housekeeping/,production/,setup/'
+
+          # Дополнительные точные имена вечных веток через запятую. Default branch защищается отдельно всегда.
+          KEEP_BRANCHES: ''
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          retries: 2
+          script: |
+            const fs = require('fs');
+
+            const { owner, repo } = context.repo;
+            const repoFullName = `${owner}/${repo}`;
+            const now = Date.now();
+
+            const dryRuns = Number.parseInt(process.env.DRY_RUNS || '7', 10);
+            const mergedGraceHours = Number.parseInt(process.env.MERGED_GRACE_HOURS || '24', 10);
+            const noPrGraceDays = Number.parseInt(process.env.NO_PR_GRACE_DAYS || '7', 10);
+            const runNumber = Number.parseInt(process.env.GITHUB_RUN_NUMBER || '', 10);
+
+            // Если номер запуска почему-либо недоступен или некорректен, fail-safe режим только DRY-RUN.
+            const dryRun = !Number.isFinite(runNumber) || runNumber <= dryRuns;
+
+            const allowedPrefixes = (process.env.ALLOWED_PREFIXES || '')
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean);
+
+            const configuredKeepBranches = (process.env.KEEP_BRANCHES || '')
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean);
+
+            const results = [];
+            const errors = [];
+            let fatalError = null;
+            let defaultBranch = null;
+            let branchCount = 0;
+
+            const md = (value) => String(value ?? '')
+              .replaceAll('\\', '\\\\')
+              .replaceAll('|', '\\|')
+              .replaceAll('`', "'")
+              .replaceAll('\n', ' ')
+              .replaceAll('\r', ' ');
+
+            const shortSha = (sha) => sha ? String(sha).slice(0, 12) : '—';
+            const ageHours = (iso) => (now - new Date(iso).getTime()) / 3_600_000;
+
+            const record = (name, sha, decision, reason) => {
+              results.push({ name, sha, decision, reason });
+            };
+
+            const isSameRepoHead = (pr, branchName) =>
+              pr?.head?.ref === branchName && pr?.head?.repo?.full_name === repoFullName;
+
+            async function liveSafetyCheck(branchName, expectedSha) {
+              // Повторная проверка непосредственно перед удалением закрывает TOCTOU-гонки.
+              const currentBranch = await github.rest.repos.getBranch({
+                owner,
+                repo,
+                branch: branchName,
+              });
+
+              if (currentBranch.data.protected) {
+                return { ok: false, reason: 'ветка стала protected до удаления' };
+              }
+
+              const currentRef = await github.rest.git.getRef({
+                owner,
+                repo,
+                ref: `heads/${branchName}`,
+              });
+
+              const liveSha = currentRef.data.object.sha;
+              if (liveSha !== expectedSha) {
+                return {
+                  ok: false,
+                  reason: `SHA изменился во время проверки: ${shortSha(expectedSha)} → ${shortSha(liveSha)}`,
+                };
+              }
+
+              const [openFrom, openInto] = await Promise.all([
+                github.rest.pulls.list({
+                  owner,
+                  repo,
+                  state: 'open',
+                  head: `${owner}:${branchName}`,
+                  per_page: 100,
+                }),
+                github.rest.pulls.list({
+                  owner,
+                  repo,
+                  state: 'open',
+                  base: branchName,
+                  per_page: 100,
+                }),
+              ]);
+
+              if (openFrom.data.length > 0) {
+                return { ok: false, reason: 'перед удалением появился открытый PR из этой ветки' };
+              }
+
+              if (openInto.data.length > 0) {
+                return { ok: false, reason: 'перед удалением появился открытый PR с этой веткой как base' };
+              }
+
+              return { ok: true };
+            }
+
+            async function deleteOrDryRun(branchName, sha, reason) {
+              if (dryRun) {
+                record(branchName, sha, 'КАНДИДАТ (DRY-RUN)', `${reason}; удаление заблокировано защитным dry-run`);
+                return;
+              }
+
+              const live = await liveSafetyCheck(branchName, sha);
+              if (!live.ok) {
+                record(branchName, sha, 'СОХРАНЕНА', live.reason);
+                return;
+              }
+
+              await github.rest.git.deleteRef({
+                owner,
+                repo,
+                ref: `heads/${branchName}`,
+              });
+
+              record(branchName, sha, 'УДАЛЕНА', reason);
+            }
+
+            try {
+              const repoResponse = await github.rest.repos.get({ owner, repo });
+              defaultBranch = repoResponse.data.default_branch;
+
+              const keepBranches = new Set([defaultBranch, ...configuredKeepBranches]);
+
+              const branches = await github.paginate(github.rest.repos.listBranches, {
+                owner,
+                repo,
+                per_page: 100,
+              });
+              branchCount = branches.length;
+
+              const openPrs = await github.paginate(github.rest.pulls.list, {
+                owner,
+                repo,
+                state: 'open',
+                per_page: 100,
+              });
+
+              const closedPrs = await github.paginate(github.rest.pulls.list, {
+                owner,
+                repo,
+                state: 'closed',
+                sort: 'updated',
+                direction: 'desc',
+                per_page: 100,
+              });
+
+              for (const branch of branches) {
+                const branchName = branch.name;
+                const sha = branch.commit.sha;
+
+                try {
+                  if (keepBranches.has(branchName)) {
+                    const why = branchName === defaultBranch
+                      ? 'default branch: удаление запрещено безусловно'
+                      : 'ветка явно указана в KEEP_BRANCHES';
+                    record(branchName, sha, 'СОХРАНЕНА', why);
+                    continue;
+                  }
+
+                  if (branch.protected) {
+                    record(branchName, sha, 'СОХРАНЕНА', 'protected branch');
+                    continue;
+                  }
+
+                  if (!allowedPrefixes.some((prefix) => branchName.startsWith(prefix))) {
+                    record(branchName, sha, 'СОХРАНЕНА', 'имя не входит в разрешённые префиксы автоудаления');
+                    continue;
+                  }
+
+                  const openFrom = openPrs.filter((pr) => isSameRepoHead(pr, branchName));
+                  if (openFrom.length > 0) {
+                    record(branchName, sha, 'СОХРАНЕНА', `есть открытый PR из ветки: #${openFrom.map((pr) => pr.number).join(', #')}`);
+                    continue;
+                  }
+
+                  const openInto = openPrs.filter((pr) => pr?.base?.ref === branchName);
+                  if (openInto.length > 0) {
+                    record(branchName, sha, 'СОХРАНЕНА', `ветка используется как base открытого PR: #${openInto.map((pr) => pr.number).join(', #')}`);
+                    continue;
+                  }
+
+                  const mergedIntoDefault = closedPrs
+                    .filter((pr) => isSameRepoHead(pr, branchName))
+                    .filter((pr) => pr.merged_at && pr?.base?.ref === defaultBranch)
+                    .sort((a, b) => new Date(b.merged_at) - new Date(a.merged_at));
+
+                  if (mergedIntoDefault.length > 0) {
+                    const mergedPr = mergedIntoDefault[0];
+
+                    if (mergedPr.head.sha !== sha) {
+                      record(
+                        branchName,
+                        sha,
+                        'СОХРАНЕНА',
+                        `после merge PR #${mergedPr.number} SHA ветки изменился; merged head ${shortSha(mergedPr.head.sha)}, текущий ${shortSha(sha)}`,
+                      );
+                      continue;
+                    }
+
+                    const hoursSinceMerge = ageHours(mergedPr.merged_at);
+                    if (!Number.isFinite(hoursSinceMerge) || hoursSinceMerge < mergedGraceHours) {
+                      record(
+                        branchName,
+                        sha,
+                        'СОХРАНЕНА',
+                        `PR #${mergedPr.number} смёржен в ${defaultBranch}, но не прошёл карантин ${mergedGraceHours} ч`,
+                      );
+                      continue;
+                    }
+
+                    await deleteOrDryRun(
+                      branchName,
+                      sha,
+                      `неизменённый head смёрженного PR #${mergedPr.number} в ${defaultBranch}; карантин ${mergedGraceHours} ч пройден`,
+                    );
+                    continue;
+                  }
+
+                  // Ветка без подходящего merged PR удаляется только при доказанном отсутствии уникальных коммитов.
+                  const comparison = await github.request('GET /repos/{owner}/{repo}/compare/{basehead}', {
+                    owner,
+                    repo,
+                    basehead: `${defaultBranch}...${branchName}`,
+                  });
+
+                  const aheadBy = Number(comparison.data.ahead_by);
+                  if (!Number.isFinite(aheadBy) || aheadBy !== 0) {
+                    const suffix = Number.isFinite(aheadBy) ? `ahead_by=${aheadBy}` : 'ahead_by неизвестен';
+                    record(branchName, sha, 'СОХРАНЕНА', `нет merged PR в ${defaultBranch}; ${suffix}`);
+                    continue;
+                  }
+
+                  const commitResponse = await github.rest.repos.getCommit({
+                    owner,
+                    repo,
+                    ref: sha,
+                  });
+
+                  const commitDate = commitResponse.data.commit.committer?.date
+                    || commitResponse.data.commit.author?.date;
+
+                  if (!commitDate) {
+                    record(branchName, sha, 'СОХРАНЕНА', 'не удалось надёжно определить возраст последнего commit');
+                    continue;
+                  }
+
+                  const daysSinceCommit = ageHours(commitDate) / 24;
+                  if (!Number.isFinite(daysSinceCommit) || daysSinceCommit < noPrGraceDays) {
+                    record(
+                      branchName,
+                      sha,
+                      'СОХРАНЕНА',
+                      `ahead_by=0, но не прошёл карантин ${noPrGraceDays} дн. для веток без подходящего merged PR`,
+                    );
+                    continue;
+                  }
+
+                  await deleteOrDryRun(
+                    branchName,
+                    sha,
+                    `нет уникальных коммитов относительно ${defaultBranch} (ahead_by=0); карантин ${noPrGraceDays} дн. пройден`,
+                  );
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : String(error);
+                  errors.push({ branch: branchName, message });
+                  record(branchName, sha, 'ОШИБКА — СОХРАНЕНА', `проверка завершилась ошибкой: ${message}`);
+                }
+              }
+            } catch (error) {
+              fatalError = error instanceof Error ? error : new Error(String(error));
+            }
+
+            const deleted = results.filter((r) => r.decision === 'УДАЛЕНА');
+            const candidates = results.filter((r) => r.decision === 'КАНДИДАТ (DRY-RUN)');
+            const kept = results.filter((r) => r.decision === 'СОХРАНЕНА' || r.decision === 'ОШИБКА — СОХРАНЕНА');
+
+            const lines = [];
+            lines.push('# Repository Janitor: сводка');
+            lines.push('');
+            lines.push(`- **Режим:** ${dryRun ? 'DRY-RUN — удаление физически заблокировано' : 'рабочий режим — удаление разрешено только после всех проверок'}`);
+            lines.push(`- **Номер запуска workflow:** ${Number.isFinite(runNumber) ? runNumber : 'не определён'}`);
+            lines.push(`- **Защитный период:** первые ${dryRuns} запусков всегда DRY-RUN`);
+            lines.push(`- **Default branch:** ${md(defaultBranch || 'не удалось определить')}`);
+            lines.push(`- **Найдено веток:** ${branchCount}`);
+            lines.push(`- **Удалено:** ${deleted.length}`);
+            lines.push(`- **Кандидатов на удаление в DRY-RUN:** ${candidates.length}`);
+            lines.push(`- **Сохранено:** ${kept.length}`);
+            lines.push(`- **Ошибок по отдельным веткам:** ${errors.length}`);
+            lines.push('');
+
+            if (fatalError) {
+              lines.push('## Критическая ошибка');
+              lines.push('');
+              lines.push(`Ничего дополнительно не удаляется. Причина: ${md(fatalError.message)}`);
+              lines.push('');
+            }
+
+            lines.push('## Что найдено и какое решение принято');
+            lines.push('');
+            lines.push('| Ветка | SHA | Решение | Причина |');
+            lines.push('|---|---|---|---|');
+            if (results.length === 0) {
+              lines.push('| — | — | — | Нет данных |');
+            } else {
+              for (const item of results) {
+                lines.push(`| \`${md(item.name)}\` | \`${md(shortSha(item.sha))}\` | ${md(item.decision)} | ${md(item.reason)} |`);
+              }
+            }
+            lines.push('');
+
+            if (deleted.length > 0) {
+              lines.push('## Удалено');
+              lines.push('');
+              for (const item of deleted) {
+                lines.push(`- \`${md(item.name)}\`: ${md(item.reason)}`);
+              }
+              lines.push('');
+            }
+
+            if (candidates.length > 0) {
+              lines.push('## Что было бы удалено после окончания DRY-RUN');
+              lines.push('');
+              for (const item of candidates) {
+                lines.push(`- \`${md(item.name)}\`: ${md(item.reason)}`);
+              }
+              lines.push('');
+            }
+
+            if (kept.length > 0) {
+              lines.push('## Что сохранено');
+              lines.push('');
+              for (const item of kept) {
+                lines.push(`- \`${md(item.name)}\`: ${md(item.reason)}`);
+              }
+              lines.push('');
+            }
+
+            if (errors.length > 0) {
+              lines.push('## Ошибки');
+              lines.push('');
+              for (const item of errors) {
+                lines.push(`- \`${md(item.branch)}\`: ${md(item.message)}`);
+              }
+              lines.push('');
+            }
+
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`);
+
+            if (fatalError) {
+              core.setFailed(`Repository Janitor остановлен: ${fatalError.message}`);
+            } else if (errors.length > 0) {
+              core.setFailed(`Repository Janitor сохранил ветки с ошибками проверки: ${errors.length}`);
+            }
