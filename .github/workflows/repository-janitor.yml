@@ -4,7 +4,6 @@ on:
   schedule:
     # Ежедневно в 03:37 UTC. Не ставим на начало часа, чтобы уменьшить риск задержек очереди.
     - cron: '37 3 * * *'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -17,7 +16,7 @@ concurrency:
 jobs:
   cleanup:
     name: Безопасная уборка веток
-    # Жёсткий замок: даже workflow_dispatch из другой ветки или копия workflow в fork не получают права на уборку.
+    # Жёсткий замок: workflow работает только в каноническом репозитории и только из main.
     if: github.repository == 'Herurg123/Basic-AI-Course' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -27,7 +26,7 @@ jobs:
         # actions/github-script v9.0.0 pinned to an immutable, verified commit SHA.
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
-          # Первые семь запусков физически ничего не удаляют.
+          # Первые семь ежедневных запусков физически ничего не удаляют.
           DRY_RUNS: '7'
 
           # Для ветки, связанной со смёрженным PR в main.
@@ -361,7 +360,7 @@ jobs:
             lines.push('# Repository Janitor: сводка');
             lines.push('');
             lines.push(`- **Режим:** ${dryRun ? 'DRY-RUN — удаление физически заблокировано' : 'рабочий режим — удаление разрешено только после всех проверок'}`);
-            lines.push(`- **Номер запуска workflow:** ${Number.isFinite(runNumber) ? runNumber : 'не определён'}`);
+            lines.push(`- **Номер ежедневного запуска workflow:** ${Number.isFinite(runNumber) ? runNumber : 'не определён'}`);
             lines.push(`- **Защитный период:** первые ${dryRuns} запусков всегда DRY-RUN`);
             lines.push(`- **Аварийный FORCE_DRY_RUN:** ${forceDryRun ? 'включён' : 'выключен'}`);
             lines.push(`- **Default branch:** ${md(defaultBranch || 'не удалось определить')}`);
