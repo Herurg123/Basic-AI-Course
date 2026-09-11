@@ -1,0 +1,48 @@
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Office lock / temporary files
+~$*
+
+# Editors and IDEs (local settings only)
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Local environment / credential files
+.env
+.env.*
+!.env.example
+
+# Tool caches, scratch space and temporary generated output
+.cache/
+.tmp/
+tmp/
+temp/
+scratch/
+render/
+renders/
+exports/tmp/
+downloads/tmp/
+*.log
+*.bak
+*.orig
+*.rej
+
+# Intentionally NOT ignored globally:
+# *.docx, *.pdf, *.png, *.jpg, *.csv, *.xlsx
+# Some of these formats may be deliberate approved assets or release exports.
