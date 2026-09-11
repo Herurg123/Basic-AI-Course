@@ -1,7 +1,7 @@
 # Service Acceptance — 2026-09-11
 
-**Gate status:** `IN PROGRESS — candidate PASS WITH EXPLICIT NONBLOCKING OBSERVATIONS; adversarial audit/PR not yet complete`  
-**Evidence mode available in this chat:** `OWNER-OBSERVED` for live UI actions; `DOC-CONFIRMED` for official-source facts. Interactive Computer Use is unavailable, therefore no UI action is labeled `LIVE-PASS`.
+**Gate status:** `PASS WITH EXPLICIT NONBLOCKING OBSERVATIONS`  
+**Evidence mode:** `OWNER-OBSERVED` for live UI actions; `DOC-CONFIRMED` for official-source facts. Interactive Computer Use was unavailable, therefore no UI action is labeled `LIVE-PASS`.
 
 ## 1. Purpose
 
@@ -148,31 +148,37 @@ Fixtures used: `ACCEPTANCE_FIXTURE_document.docx`, `ACCEPTANCE_FIXTURE_image.png
 
 ## 15. Deviations from Service Matrix
 
-Observed behavior requires a documented service-matrix delta, not a silent rewrite:
+The acceptance confirms the existing **functional contract** of Service Matrix v1.0: PRIMARY remains Alice, BACKUP remains GigaChat, B10 remains an external-source browser route, PRIMARY B8 remains real edit, BACKUP B8 remains narrow background edit.
 
-1. Alice anonymous text/DOCX/PNG are available; B7 requires login; B8/download work after ordinary login. Built-in anonymous `Новый чат` asks login, but opening a new direct tab creates a fresh anonymous dialog.
-2. GigaChat current web behavior is substantially more permissive than the agreement text: anonymous text, new chat, DOCX, PNG, B7, background edit and download all worked. The legal/auth conflict remains explicit.
-3. Giga file upload shows a specific consent warning about personal data/secrets.
-4. Giga anonymous new chat deletes the previous anonymous dialog/history.
+Observed UI/auth nuances are recorded as dated dynamic evidence rather than a normative route change:
 
-These are dynamic operational findings. They do not change the approved architecture: PRIMARY remains Alice; BACKUP remains GigaChat; B8 backup remains narrow background edit.
+1. Alice anonymous text/DOCX/PNG work; B7 requires ordinary login; built-in anonymous `Новый чат` asks login, while a new direct tab starts a fresh dialog.
+2. Giga web currently allows more anonymous functionality than the agreement text states.
+3. Giga file upload shows a personal-data/secret-content consent warning.
+4. Giga anonymous new chat discards the previous anonymous dialog/history.
+
+**Service Matrix decision:** no v1.1 is created solely for these observations. Per project rule, v1.0 remains normative because the approved route and architecture did not change. If a required capability, paid/geo/age condition or PRIMARY/BACKUP assignment changes, a substantive SM revision is required.
 
 ## 16. Blocks / risks
 
 - `BLOCKED — CHILD FUNCTIONAL TEST NOT PERFORMED`: nonblocking for current adult/general vertical slice, blocking for any claim of independent minor completion.
-- `OFFICIAL SOURCE CONFLICT`: Giga agreement requires auth while observed web route allows anonymous use. Must remain visible in instructions/SM; do not state that the legal requirement disappeared.
+- `OFFICIAL SOURCE CONFLICT`: Giga agreement requires auth while observed web route allows anonymous use. Must remain visible; do not state that the legal requirement disappeared.
 - Free quotas/load can change; recheck before production screenshots/video and before publication.
 - UI labels/placement are dynamic and should not be elevated into architecture.
 
 ## 17. Gate verdict
 
-**Candidate verdict before audit: `PASS WITH EXPLICIT NONBLOCKING OBSERVATIONS`.**
+**`PASS WITH EXPLICIT NONBLOCKING OBSERVATIONS`.**
 
-Reason: all blocking PRIMARY, BACKUP, B10 and cross-cutting functional requirements were owner-observed on ordinary Russian connection without VPN, foreign card or required payment. The only unperformed functional route is child/parent execution, which the current project manifest does not permit us to promise independently until tested.
+All blocking PRIMARY, BACKUP, B10 and cross-cutting functional requirements were owner-observed on ordinary Russian connection without VPN, foreign card or required payment.
+
+Nonblocking observations are explicit: Alice login boundary for B7; Alice anonymous new-chat UI caveat; Giga anonymous-history loss; Giga file-consent dialog; Giga legal/auth conflict; child functional route not tested; free limits/load remain dynamic.
+
+The separate pre-PR adversarial audit in [`adversarial-audit-2026-09-11.md`](adversarial-audit-2026-09-11.md) challenged all 16 required failure hypotheses and approved the result for PR preparation.
 
 ## 18. Production implications
 
-If adversarial audit confirms this verdict, the project may proceed to the interface-dependent M00–M01 production vertical slice. Do not start full-course production, M02–M08, Stepik publication or broad asset production as a consequence of this gate alone.
+After this acceptance result is merged to `main`, the project may proceed to the interface-dependent M00–M01 production vertical slice. Do not start full-course production, M02–M08, Stepik publication or broad asset production as a consequence of this gate alone.
 
 Production instructions must include the observed caveats: Alice login boundary for B7, Alice anonymous new-chat workaround, Giga anonymous-history loss, Giga file-consent dialog, and optional-vs-required paid offers.
 
@@ -191,4 +197,5 @@ Temporary outage must be recorded and BACKUP tested; do not purchase Plus/Boost 
 - Documentary evidence: `DOC-CONFIRMED`
 - Interactive-agent evidence: none
 - Branch: `testing/service-acceptance-2026-09-11`
-- Current state: awaiting adversarial audit, service-matrix delta decision and PR workflow
+- Pre-PR adversarial audit: `ОДОБРЕНО`
+- Gate: `PASS WITH EXPLICIT NONBLOCKING OBSERVATIONS`
