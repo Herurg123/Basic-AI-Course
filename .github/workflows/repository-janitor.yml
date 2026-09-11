@@ -17,28 +17,36 @@ concurrency:
 jobs:
   cleanup:
     name: Безопасная уборка веток
+    # Жёсткий замок: даже workflow_dispatch из другой ветки или копия workflow в fork не получают права на уборку.
+    if: github.repository == 'Herurg123/Basic-AI-Course' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
       - name: Проверить ветки и выполнить безопасную уборку
-        # actions/github-script v9.0.0 pinned to an immutable commit SHA.
+        # actions/github-script v9.0.0 pinned to an immutable, verified commit SHA.
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
           # Первые семь запусков физически ничего не удаляют.
           DRY_RUNS: '7'
 
-          # Для ветки, связанной со смёрженным PR в default branch.
+          # Для ветки, связанной со смёрженным PR в main.
           MERGED_GRACE_HOURS: '24'
 
           # Для ветки без подходящего merged PR, у которой ahead_by == 0.
           NO_PR_GRACE_DAYS: '7'
 
+          # За один запуск нельзя удалить больше этого количества веток даже при полном выполнении критериев.
+          MAX_DELETIONS_PER_RUN: '5'
+
           # Только эти рабочие пространства имён вообще могут стать кандидатами на автоудаление.
           ALLOWED_PREFIXES: 'architecture/,bootstrap/,governance/,housekeeping/,production/,setup/'
 
-          # Дополнительные точные имена вечных веток через запятую. Default branch защищается отдельно всегда.
+          # Дополнительные точные имена вечных веток через запятую. main защищается отдельно всегда.
           KEEP_BRANCHES: ''
+
+          # Аварийный рубильник: Repository variable REPOSITORY_JANITOR_FORCE_DRY_RUN=true запрещает удаления.
+          FORCE_DRY_RUN: ${{ vars.REPOSITORY_JANITOR_FORCE_DRY_RUN }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           retries: 2
@@ -52,10 +60,12 @@ jobs:
             const dryRuns = Number.parseInt(process.env.DRY_RUNS || '7', 10);
             const mergedGraceHours = Number.parseInt(process.env.MERGED_GRACE_HOURS || '24', 10);
             const noPrGraceDays = Number.parseInt(process.env.NO_PR_GRACE_DAYS || '7', 10);
+            const maxDeletionsPerRun = Number.parseInt(process.env.MAX_DELETIONS_PER_RUN || '5', 10);
             const runNumber = Number.parseInt(process.env.GITHUB_RUN_NUMBER || '', 10);
+            const forceDryRun = String(process.env.FORCE_DRY_RUN || '').toLowerCase() === 'true';
 
-            // Если номер запуска почему-либо недоступен или некорректен, fail-safe режим только DRY-RUN.
-            const dryRun = !Number.isFinite(runNumber) || runNumber <= dryRuns;
+            // Если номер запуска некорректен, включается fail-safe DRY-RUN.
+            const dryRun = forceDryRun || !Number.isFinite(runNumber) || runNumber <= dryRuns;
 
             const allowedPrefixes = (process.env.ALLOWED_PREFIXES || '')
               .split(',')
@@ -72,6 +82,7 @@ jobs:
             let fatalError = null;
             let defaultBranch = null;
             let branchCount = 0;
+            let deletionsPerformed = 0;
 
             const md = (value) => String(value ?? '')
               .replaceAll('\\', '\\\\')
@@ -150,6 +161,21 @@ jobs:
                 return;
               }
 
+              if (!Number.isFinite(maxDeletionsPerRun) || maxDeletionsPerRun < 1) {
+                record(branchName, sha, 'СОХРАНЕНА', 'некорректный MAX_DELETIONS_PER_RUN: fail-safe запрет удаления');
+                return;
+              }
+
+              if (deletionsPerformed >= maxDeletionsPerRun) {
+                record(
+                  branchName,
+                  sha,
+                  'СОХРАНЕНА',
+                  `достигнут предохранительный лимит ${maxDeletionsPerRun} удалений за один запуск`,
+                );
+                return;
+              }
+
               const live = await liveSafetyCheck(branchName, sha);
               if (!live.ok) {
                 record(branchName, sha, 'СОХРАНЕНА', live.reason);
@@ -162,6 +188,7 @@ jobs:
                 ref: `heads/${branchName}`,
               });
 
+              deletionsPerformed += 1;
               record(branchName, sha, 'УДАЛЕНА', reason);
             }
 
@@ -169,7 +196,13 @@ jobs:
               const repoResponse = await github.rest.repos.get({ owner, repo });
               defaultBranch = repoResponse.data.default_branch;
 
-              const keepBranches = new Set([defaultBranch, ...configuredKeepBranches]);
+              // Проектная инструкция жёстко определяет main как каноническую ветку.
+              // Любое расхождение считается инфраструктурной ошибкой, а не поводом выбирать другой base автоматически.
+              if (defaultBranch !== 'main') {
+                throw new Error(`default branch = ${defaultBranch}; ожидался main. Удаление полностью заблокировано.`);
+              }
+
+              const keepBranches = new Set(['main', defaultBranch, ...configuredKeepBranches]);
 
               const branches = await github.paginate(github.rest.repos.listBranches, {
                 owner,
@@ -200,8 +233,8 @@ jobs:
 
                 try {
                   if (keepBranches.has(branchName)) {
-                    const why = branchName === defaultBranch
-                      ? 'default branch: удаление запрещено безусловно'
+                    const why = branchName === 'main'
+                      ? 'каноническая main: удаление запрещено безусловно'
                       : 'ветка явно указана в KEEP_BRANCHES';
                     record(branchName, sha, 'СОХРАНЕНА', why);
                     continue;
@@ -229,13 +262,13 @@ jobs:
                     continue;
                   }
 
-                  const mergedIntoDefault = closedPrs
+                  const mergedIntoMain = closedPrs
                     .filter((pr) => isSameRepoHead(pr, branchName))
-                    .filter((pr) => pr.merged_at && pr?.base?.ref === defaultBranch)
+                    .filter((pr) => pr.merged_at && pr?.base?.ref === 'main')
                     .sort((a, b) => new Date(b.merged_at) - new Date(a.merged_at));
 
-                  if (mergedIntoDefault.length > 0) {
-                    const mergedPr = mergedIntoDefault[0];
+                  if (mergedIntoMain.length > 0) {
+                    const mergedPr = mergedIntoMain[0];
 
                     if (mergedPr.head.sha !== sha) {
                       record(
@@ -253,7 +286,7 @@ jobs:
                         branchName,
                         sha,
                         'СОХРАНЕНА',
-                        `PR #${mergedPr.number} смёржен в ${defaultBranch}, но не прошёл карантин ${mergedGraceHours} ч`,
+                        `PR #${mergedPr.number} смёржен в main, но не прошёл карантин ${mergedGraceHours} ч`,
                       );
                       continue;
                     }
@@ -261,7 +294,7 @@ jobs:
                     await deleteOrDryRun(
                       branchName,
                       sha,
-                      `неизменённый head смёрженного PR #${mergedPr.number} в ${defaultBranch}; карантин ${mergedGraceHours} ч пройден`,
+                      `неизменённый head смёрженного PR #${mergedPr.number} в main; карантин ${mergedGraceHours} ч пройден`,
                     );
                     continue;
                   }
@@ -270,13 +303,13 @@ jobs:
                   const comparison = await github.request('GET /repos/{owner}/{repo}/compare/{basehead}', {
                     owner,
                     repo,
-                    basehead: `${defaultBranch}...${branchName}`,
+                    basehead: `main...${branchName}`,
                   });
 
                   const aheadBy = Number(comparison.data.ahead_by);
                   if (!Number.isFinite(aheadBy) || aheadBy !== 0) {
                     const suffix = Number.isFinite(aheadBy) ? `ahead_by=${aheadBy}` : 'ahead_by неизвестен';
-                    record(branchName, sha, 'СОХРАНЕНА', `нет merged PR в ${defaultBranch}; ${suffix}`);
+                    record(branchName, sha, 'СОХРАНЕНА', `нет подходящего merged PR в main; ${suffix}`);
                     continue;
                   }
 
@@ -308,7 +341,7 @@ jobs:
                   await deleteOrDryRun(
                     branchName,
                     sha,
-                    `нет уникальных коммитов относительно ${defaultBranch} (ahead_by=0); карантин ${noPrGraceDays} дн. пройден`,
+                    `нет уникальных коммитов относительно main (ahead_by=0); карантин ${noPrGraceDays} дн. пройден`,
                   );
                 } catch (error) {
                   const message = error instanceof Error ? error.message : String(error);
@@ -330,8 +363,10 @@ jobs:
             lines.push(`- **Режим:** ${dryRun ? 'DRY-RUN — удаление физически заблокировано' : 'рабочий режим — удаление разрешено только после всех проверок'}`);
             lines.push(`- **Номер запуска workflow:** ${Number.isFinite(runNumber) ? runNumber : 'не определён'}`);
             lines.push(`- **Защитный период:** первые ${dryRuns} запусков всегда DRY-RUN`);
+            lines.push(`- **Аварийный FORCE_DRY_RUN:** ${forceDryRun ? 'включён' : 'выключен'}`);
             lines.push(`- **Default branch:** ${md(defaultBranch || 'не удалось определить')}`);
             lines.push(`- **Найдено веток:** ${branchCount}`);
+            lines.push(`- **Лимит реальных удалений за запуск:** ${Number.isFinite(maxDeletionsPerRun) ? maxDeletionsPerRun : 'некорректное значение — удаления запрещены'}`);
             lines.push(`- **Удалено:** ${deleted.length}`);
             lines.push(`- **Кандидатов на удаление в DRY-RUN:** ${candidates.length}`);
             lines.push(`- **Сохранено:** ${kept.length}`);
