@@ -54,16 +54,17 @@ Workflow жёстко разрешён только для репозитори�
 В `main` утверждены:
 
 - структура репозитория и workflow;
-- манифест курса v1.2;
+- [манифест курса v1.3](00_governance/manifest/manifest-v1.3.md), который точечно обновляет полный базовый текст v1.2;
 - инструкция проекта v1.3;
 - карта компетенций v1.1;
-- матрица сервисов v1.0;
+- [матрица сервисов v1.1](01_architecture/service-matrix/service-matrix-v1.1.md), которая точечно обновляет полный базовый текст v1.0;
+- [общая архитектура курса v1.1](01_architecture/course-architecture/course-architecture-v1.1.md), которая сохраняет 9 модулей и 21 Lesson ID и снимает age functional testing из внутренних gates;
 - [стандарт сценария урока v1.1](01_architecture/lesson-standard/lesson-standard-v1.1.md) и `lesson-template.md`;
-- [общая архитектура курса v1.0](01_architecture/course-architecture/course-architecture-v1.0.md): 9 модулей, 21 Lesson ID;
-- [полная Матрица покрытия v1.0](01_architecture/coverage-matrix/coverage-matrix-v1.0.md): все 19 компетенций, упражнения, проверки, доказательства, сервисы, риски и Asset ID;
+- [полная Матрица покрытия v1.0](01_architecture/coverage-matrix/coverage-matrix-v1.0.md): все 19 компетенций, упражнения, проверки, доказательства, сервисы, риски и Asset ID; нижележащие возрастные формулировки читаются с учётом Манифеста v1.3 и Архитектуры v1.1;
 - [Карта следующих уровней v1.0](01_architecture/next-levels/next-levels-v1.0.md): граница завершенной бесплатной базы и дальнейшего усложнения; будущие продукты пока являются гипотезами;
 - [решение по завершению F1](00_governance/decision-log/2026-09-10-f1-completion.md);
-- [проектные карточки 21 урока v1.0](04_course/README.md) и их [сводный аудит](04_course/lesson-cards-v1.0-summary.md): производственный контракт перед написанием полноценных уроков;
-- [Service Acceptance 2026-09-11](06_testing/service-acceptance/service-acceptance-2026-09-11.md): **PASS WITH EXPLICIT NONBLOCKING OBSERVATIONS**. На обычном российском соединении без VPN наблюдаемо подтверждены PRIMARY Алиса, BACKUP GigaChat, B10 и X01–X10 без обязательной оплаты. Функциональный child/parent route не тестировался и не может использоваться как основание для обещания самостоятельного прохождения несовершеннолетним.
+- [решение D-2026-09-11-AGE](00_governance/decision-log/2026-09-11-age-platform-boundary.md): возраст является внешним условием ИИ-платформы, а не внутренним gate курса; «понятно подростку» означает уровень сложности, а не гарантию доступа;
+- [проектные карточки 21 урока v1.0](04_course/README.md), их [сводный аудит](04_course/lesson-cards-v1.0-summary.md) и [возрастной addendum](04_course/lesson-cards-v1.0-age-policy-addendum.md);
+- [Service Acceptance 2026-09-11](06_testing/service-acceptance/service-acceptance-2026-09-11.md): **PASS WITH EXPLICIT NONBLOCKING OBSERVATIONS**. PRIMARY Алиса, BACKUP GigaChat, B10 и X01–X10 подтверждены без обязательной оплаты. Историческая строка `BLOCKED — CHILD FUNCTIONAL TEST NOT PERFORMED` после D-2026-09-11-AGE не является текущим блокером проекта.
 
 Следующий производственный этап — первый интерфейсно-зависимый вертикальный срез **M00–M01** на основе подтверждённого сервисного маршрута. Полный курс, M02–M08, финальная Stepik-разметка, пилот, бета и публичный выпуск остаются отдельными последующими стадиями и не разрешаются одним фактом прохождения Service Acceptance.
