@@ -18,6 +18,7 @@
 ### Подготовка среды
 - [`stepik-staging-checklist.md`](stepik-staging-checklist.md) — проверка private Stepik staging.
 - [`service-preflight-checklist.md`](service-preflight-checklist.md) — краткий preflight PRIMARY/BACKUP и обязательных функций.
+- [`recovery-readiness.md`](recovery-readiness.md) — author-only реестр готовых recovery и правило запрета импровизированного зачётного re-check.
 
 ### Проведение
 - [`pilot-runbook.md`](pilot-runbook.md) — последовательность подготовки и волн.
@@ -52,4 +53,4 @@
 
 ## Перед Wave 0
 
-Пакет должен пройти отдельный branch → PR → critic → merge. Затем должны быть готовы private Stepik staging, consent/data-minimization, moderator rehearsal и service preflight. Только после этого начинается первый human session.
+Пакет должен пройти отдельный branch → PR → critic → merge. Затем должны быть готовы private Stepik staging, consent/data-minimization, moderator rehearsal, recovery readiness и service preflight. Только после этого начинается первый human session.
