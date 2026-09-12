@@ -2,22 +2,42 @@
 
 Рабочие и утверждённые материалы модулей и уроков курса.
 
-## Production vertical slice M00–M01
+## Произведённые production batches
 
-Первый произведённый вертикальный срез содержит пять ученических уроков, пять планов переноса в Stepik и 11 Asset ID. `author-notes.md` для M01-L02 является только авторским ключом и не входит в ученический маршрут.
+### M00–M01
 
-### M00. Подготовьте безопасное рабочее место
+Первый вертикальный срез содержит пять ученических уроков, пять Stepik-планов и 11 Asset ID. `author-notes.md` для M01-L02 является только авторским ключом и не входит в ученический маршрут.
 
 - [M00-L01 — ученический урок](M00/M00-L01/lesson.md) · [Stepik plan](M00/M00-L01/stepik-plan.md)
 - [M00-L02 — ученический урок](M00/M00-L02/lesson.md) · [Stepik plan](M00/M00-L02/stepik-plan.md)
 - [M00-L03 — ученический урок](M00/M00-L03/lesson.md) · [Stepik plan](M00/M00-L03/stepik-plan.md)
-
-### M01. Получите и проверьте первую пользу
-
 - [M01-L01 — ученический урок](M01/M01-L01/lesson.md) · [Stepik plan](M01/M01-L01/stepik-plan.md)
 - [M01-L02 — ученический урок](M01/M01-L02/lesson.md) · [Stepik plan](M01/M01-L02/stepik-plan.md)
 
-Производственная сводка: [vertical-slice-m00-m01-production-summary.md](vertical-slice-m00-m01-production-summary.md).
+Сводка: [vertical-slice-m00-m01-production-summary.md](vertical-slice-m00-m01-production-summary.md).
+
+### M02–M03
+
+Второй production batch содержит четыре ученических урока, четыре Stepik-плана и шесть зарезервированных Asset ID. Для M03-L02 отдельный transfer-asset второго интерфейса ведётся по собственной production-инструкции и не подменяет содержательную самостоятельность.
+
+- [M02-L01 — ученический урок](M02/M02-L01/lesson.md) · [Stepik plan](M02/M02-L01/stepik-plan.md)
+- [M02-L02 — ученический урок](M02/M02-L02/lesson.md) · [Stepik plan](M02/M02-L02/stepik-plan.md)
+- [M03-L01 — ученический урок](M03/M03-L01/lesson.md) · [Stepik plan](M03/M03-L01/stepik-plan.md)
+- [M03-L02 — ученический урок](M03/M03-L02/lesson.md) · [Stepik plan](M03/M03-L02/stepik-plan.md)
+
+Сводка: [vertical-slice-m02-m03-production-summary.md](vertical-slice-m02-m03-production-summary.md).
+
+### M04–M05
+
+Третий production batch содержит пять ученических уроков, пять Stepik-планов и десять ранее зарезервированных Asset ID. M04 выводит privacy-решение и работу по собственному материалу на самостоятельность; M05 отделяет подготовительную визуальную практику от живых B7/B8.
+
+- [M04-L01 — ученический урок](M04/M04-L01/lesson.md) · [Stepik plan](M04/M04-L01/stepik-plan.md)
+- [M04-L02 — ученический урок](M04/M04-L02/lesson.md) · [Stepik plan](M04/M04-L02/stepik-plan.md)
+- [M04-L03 — ученический урок](M04/M04-L03/lesson.md) · [Stepik plan](M04/M04-L03/stepik-plan.md)
+- [M05-L01 — ученический урок](M05/M05-L01/lesson.md) · [Stepik plan](M05/M05-L01/stepik-plan.md)
+- [M05-L02 — ученический урок](M05/M05-L02/lesson.md) · [Stepik plan](M05/M05-L02/stepik-plan.md)
+
+Сводка: [vertical-slice-m04-m05-production-summary.md](vertical-slice-m04-m05-production-summary.md).
 
 ## Проектные карточки v1.0
 
@@ -80,4 +100,6 @@
 
 ## Граница этапа
 
-Service Acceptance 2026-09-11 завершён, production vertical slice M00–M01 произведён и прошёл отдельный критический аудит перед merge. Следующий разрешённый отдельный этап — пилот M00–M01 на 3–5 настоящих новичках. M02–M08 production, массовое производство, финальная Stepik-публикация, бета и публичный release до результатов пилота не начинаются.
+Service Acceptance 2026-09-11 завершён. По `D-2026-09-11-PILOT-DEFER` отсутствие human pilot M00–M01 больше не блокирует production последующих модулей, поэтому M00–M05 произведены отдельными batch.
+
+Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. Production может продолжаться следующими утверждёнными batch: M06, затем M07–M08. До human evidence нельзя считать подтверждёнными людьми длительность, понятность или самостоятельность прохождения.
