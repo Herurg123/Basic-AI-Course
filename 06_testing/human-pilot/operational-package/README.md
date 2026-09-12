@@ -1,6 +1,8 @@
 # Operational Human Pilot Package
 
-**Статус:** рабочий package для реализации утверждённой Human Pilot Architecture v1.0. До отдельного критического аудита и merge не используется с реальными участниками.
+**Статус:** `APPROVED / MERGED` через PR #35. Пакет является каноническим operational-слоем утверждённой Human Pilot Architecture v1.0.
+
+**Wave 0 readiness:** `NOT READY / NOT YET VERIFIED` до фактического закрытия staging, moderator rehearsal, consent/data setup, recovery readiness и service preflight.
 
 **Human validation:** `NOT PERFORMED`.
 
@@ -55,4 +57,14 @@
 
 ## Перед Wave 0
 
-Пакет должен пройти отдельный branch → PR → critic → merge. Затем должны быть готовы private Stepik staging, consent/data-minimization, moderator rehearsal, recovery readiness и service preflight. Только после этого начинается первый human session.
+PR #35 прошёл отдельный adversarial critic после исправления двух найденных operational gaps и смёржен в `main`. Следовательно, package production завершён.
+
+До первого human session всё равно должны быть **фактически** готовы и проверены:
+
+- private Stepik staging;
+- consent/data-minimization в реальной организационной среде;
+- moderator rehearsal;
+- recovery readiness;
+- актуальный service preflight.
+
+Пока эти пункты не закрыты evidence, Wave 0 не получает `READY`, а human validation остаётся `NOT PERFORMED`.
