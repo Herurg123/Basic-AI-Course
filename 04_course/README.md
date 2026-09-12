@@ -131,4 +131,4 @@
 
 Service Acceptance 2026-09-11 завершён. По `D-2026-09-11-PILOT-DEFER` отсутствие human pilot не блокировало production M02–M08.
 
-Production M07–M08 подготовлен и передаётся в отдельный независимый audit. Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. До human evidence нельзя считать подтверждёнными людьми длительность, понятность или самостоятельность прохождения.
+Production M07–M08 смёржен в `main` через PR #29 после независимого adversarial-аудита финального HEAD с verdict `APPROVED WITH POLISH`; CRITICAL = 0, NONCRITICAL BLOCKING = 0. Все production batches M00–M08 теперь находятся в `main`. Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. Следующий отдельный gate — **`FULL CUMULATIVE M00–M08 AUDIT`**; human pilot и Stepik publication в этом проходе не запускались.
