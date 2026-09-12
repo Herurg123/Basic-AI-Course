@@ -1,4 +1,48 @@
-# Human pilot architecture — состояние работы и продолжение
+# Контрольная точка human pilot — продолжение после остановки
+
+**Обновлено:** 12 сентября 2026 года.  
+**Рабочая ветка:** `testing/human-pilot-architecture-v1`.  
+**Повторно проверенный main:** `4950b2af453136468cae3f2f93134a85cb37dde0`; git fetch и GitHub API согласуются.
+
+## CP03 — читать сначала
+
+Пока здесь разрабатывались четыре документа, main получил **другую уже утверждённую архитектуру и готовый operational package** через PR #33–36. Промпт прямо отдаёт приоритет main. Поэтому этот каталог сохраняется как **ARCHIVED WORKING DRAFT / SUPERSEDED BY MAIN**, без утверждения и без применения к участникам.
+
+Действующий статус: `HUMAN PILOT DESIGNED / OPERATIONAL PACKAGE APPROVED / NOT YET PERFORMED`. Human validation = `NOT PERFORMED`; Wave 0 = `NOT READY / NOT YET VERIFIED`.
+
+**Не продолжать старый план «дописать архитектуру → создать формы».** Он уже выполнен в каноническом проекте. Не переносить наши 4+6, H0–H3 и N/T/C/S в текущий пакет. См. [сверку решений](RECONCILIATION.md).
+
+### Канонические точки входа
+
+- [AGENTS.md](https://github.com/Herurg123/Basic-AI-Course/blob/main/AGENTS.md), особенно Human Pilot / Human Validation.
+- [Утверждённая архитектура](https://github.com/Herurg123/Basic-AI-Course/blob/main/06_testing/human-pilot/human-pilot-architecture-v1.0.md).
+- [Operational package](https://github.com/Herurg123/Basic-AI-Course/tree/main/06_testing/human-pilot/operational-package) и [runbook](https://github.com/Herurg123/Basic-AI-Course/blob/main/06_testing/human-pilot/operational-package/pilot-runbook.md).
+- [Текущий статус](https://github.com/Herurg123/Basic-AI-Course/blob/main/06_testing/human-pilot/README.md).
+
+### Что сделано после CP02
+
+- Завершены четыре авторских документа: архитектура, Blueprint будущих форм, реестр 12 гипотез, Gate. Уроки/компетенции не менялись. Человеческих результатов нет.
+- Повторная проверка main обнаружила PR #33–36. Прочитаны новые AGENTS, утверждённая архитектура, indexes, staging checklist и runbook. Составлена карта различий.
+- Дублирующий архитектурный PR не открывается: уже утверждённые решения имеют приоритет. Передаётся явный handoff. Отдельный критик этого черновика не запускался; существующее review main не выдаётся за review наших файлов.
+- CP03 сохраняет полный пакет четырёх черновиков, README, этот журнал и RECONCILIATION. Его SHA брать из истории коммита, содержащего этот файл, без самоссылочного SHA внутри файла.
+
+### Следующий этап
+
+Исходное задание заканчивается дизайном и PR/handoff; оно не разрешает запуск пилота, набор, приглашения или публикацию. Следующий отдельный этап — **фактическая readiness-проверка Wave 0** по уже готовому package: private Stepik staging; consent/data setup и роли; moderator rehearsal N/P/T/C/S; recovery readiness; свежий service preflight.
+
+В этом сеансе нет проверенного идентификатора Stepik-сборки, результатов smoke-check, назначенной команды или данных участников. Не считать их отсутствующими вообще: они лишь не предоставлены и не проверены здесь. Без evidence не заполнять READY/PASS в шаблонах.
+
+### Как возобновить после лимита
+
+1. Проверить свежие main и историю PR. Если main снова изменился, читать новый статус, а не полагаться на SHA выше.
+2. Прочитать текущие AGENTS и operational README/runbook. Не производить пакет заново без нового основания.
+3. Использовать этот каталог только как архив неутверждённых предложений. Новое содержательное изменение требует отдельного обоснования и branch → PR → critic.
+4. Продолжать с первого фактически незакрытого readiness-пункта в рамках следующего задания. Реальные приватные данные участников в GitHub не помещать.
+5. После значимого этапа обновить журнал и проверить remote commit. Не восстанавливать отсутствующие человеческие наблюдения предположениями.
+
+---
+
+# История CP01–CP02 — прежний план ниже уже не действует
 
 Дата начала: 2026-09-12. Репозиторий: `Herurg123/Basic-AI-Course`.
 Рабочая ветка: `testing/human-pilot-architecture-v1`.
