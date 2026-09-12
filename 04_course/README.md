@@ -39,6 +39,17 @@
 
 Сводка: [vertical-slice-m04-m05-production-summary.md](vertical-slice-m04-m05-production-summary.md).
 
+### M06
+
+Четвёртый production batch содержит четыре ученических урока, четыре Stepik-плана и восемь ранее зарезервированных Asset ID. M06 переводит Verify → Apply от поддержанной практики разных оснований к самостоятельному смешанному зачёту A1/A2/B9–B12/C1–C3.
+
+- [M06-L01 — ученический урок](M06/M06-L01/lesson.md) · [Stepik plan](M06/M06-L01/stepik-plan.md)
+- [M06-L02 — ученический урок](M06/M06-L02/lesson.md) · [Stepik plan](M06/M06-L02/stepik-plan.md)
+- [M06-L03 — ученический урок](M06/M06-L03/lesson.md) · [Stepik plan](M06/M06-L03/stepik-plan.md)
+- [M06-L04 — ученический урок](M06/M06-L04/lesson.md) · [Stepik plan](M06/M06-L04/stepik-plan.md) · [author notes](M06/M06-L04/author-notes.md)
+
+Сводка: [vertical-slice-m06-production-summary.md](vertical-slice-m06-production-summary.md).
+
 ### Точечный fix M03-L02 / M04-L02 / M05-L02
 
 После принятия `D-2026-09-12-STEPIK-FLOW` подготовлен отдельный production fix: рекомендательный Stepik-flow и recovery для M03-L02/M05-L02, фактически выполняемое evidence B3 для M04-L02 и синхронизация текущего статуса `M03-L02-A03 = READY` в operational-файлах урока.
@@ -108,6 +119,6 @@
 
 ## Граница этапа
 
-Service Acceptance 2026-09-11 завершён. По `D-2026-09-11-PILOT-DEFER` отсутствие human pilot M00–M01 больше не блокирует production последующих модулей, поэтому M00–M05 произведены отдельными batch.
+Service Acceptance 2026-09-11 завершён. По `D-2026-09-11-PILOT-DEFER` отсутствие human pilot M00–M01 больше не блокирует production последующих модулей, поэтому M00–M06 произведены отдельными batch.
 
-Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. Production может продолжаться следующими утверждёнными batch: M06, затем M07–M08. До human evidence нельзя считать подтверждёнными людьми длительность, понятность или самостоятельность прохождения.
+Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. Production может продолжаться следующим утверждённым batch M07–M08. До human evidence нельзя считать подтверждёнными людьми длительность, понятность или самостоятельность прохождения.
