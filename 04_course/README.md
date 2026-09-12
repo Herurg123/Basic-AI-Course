@@ -39,6 +39,14 @@
 
 Сводка: [vertical-slice-m04-m05-production-summary.md](vertical-slice-m04-m05-production-summary.md).
 
+### Точечный fix M03-L02 / M04-L02 / M05-L02
+
+После принятия `D-2026-09-12-STEPIK-FLOW` подготовлен отдельный production fix: рекомендательный Stepik-flow и recovery для M03-L02/M05-L02, фактически выполняемое evidence B3 для M04-L02 и синхронизация текущего статуса `M03-L02-A03 = READY` в operational-файлах урока.
+
+Сводка fix-batch: [m03-m05-stepik-flow-fix-summary.md](m03-m05-stepik-flow-fix-summary.md).
+
+Этот fix-batch не является cumulative audit M00–M05 и сам по себе не объявляет M00–M05 окончательно принятыми.
+
 ## Проектные карточки v1.0
 
 Канонический производственный слой перед написанием полных уроков: 21 `lesson-card.md` по утверждённым Lesson ID. Карточки не являются ученическими текстами, финальными заданиями, скриншотами или Stepik-экранами.
