@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="720" viewBox="0 0 1100 720" role="img" aria-labelledby="title desc">
   <title id="title">Учебный скриншот заметки о встрече</title>
-  <desc id="desc">Полностью вымышленная заметка с временем встречи, темой, именем, телефоном, email и внутренним кодом.</desc>
+  <desc id="desc">Полностью вымышленная заметка с временем встречи, темой, учебным именем, заведомо фиктивным телефоном, email и внутренним кодом.</desc>
   <rect width="1100" height="720" fill="#f3f4f6"/>
   <rect x="140" y="70" width="820" height="580" rx="22" fill="#ffffff" stroke="#c7cbd1" stroke-width="3"/>
   <rect x="140" y="70" width="820" height="72" rx="22" fill="#e8ebef"/>
@@ -11,9 +11,9 @@
   <text x="200" y="304" font-family="Arial, sans-serif" font-size="26" fill="#30343a">Комната: 4B</text>
   <text x="200" y="350" font-family="Arial, sans-serif" font-size="26" fill="#30343a">Тема: обсудить структуру учебного буклета</text>
   <line x1="200" y1="390" x2="900" y2="390" stroke="#d8dadd" stroke-width="2"/>
-  <text x="200" y="442" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Участник: Иван Петров</text>
-  <text x="200" y="486" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Email: ivan.petrov@example.test</text>
-  <text x="200" y="530" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Телефон: +7 900 000-00-00</text>
-  <text x="200" y="574" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Внутренний код проекта: ОРБИТА-27</text>
+  <text x="200" y="442" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Участник: Учебный Участник</text>
+  <text x="200" y="486" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Email: participant@example.test</text>
+  <text x="200" y="530" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Телефон: +7 000 000-00-00</text>
+  <text x="200" y="574" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Внутренний код проекта: ОРБИТА-27-TEST</text>
   <text x="550" y="625" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#7a7f85">Asset M04-L02-A02 · fictional training data</text>
 </svg>
