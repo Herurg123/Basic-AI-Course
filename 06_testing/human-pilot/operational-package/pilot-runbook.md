@@ -103,7 +103,7 @@ Device environment includes at minimum:
 
 A participant who starts and stops remains in `started` and has `NOT REACHED` downstream outcomes. Do not erase them from the wave.
 
-If fewer than 6 participants complete enough of the route to provide the required evidence, recruit additional fresh participants. Replacements increase `started`; they do not replace the historical row of the person who stopped.
+Если менее 6 участников завершили **полный планируемый маршрут M00→M08**, нужно набрать дополнительных fresh participants, пока не будет шести full-course participants для Wave 1. Replacements увеличивают `started`; они не заменяют историческую строку человека, который остановился, и его `NOT REACHED` outcomes сохраняются.
 
 ### During discovery
 
