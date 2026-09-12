@@ -73,8 +73,11 @@ Workflow жёстко разрешён только для репозитори�
 - [production M06](04_course/vertical-slice-m06-production-summary.md): четыре ученических урока, четыре Stepik-плана и восемь Asset ID; M06-L04 закрывает самостоятельные A1/A2/B9–B12/C1–C3 с post-action rubric и re-check при содержательном загрязнении попытки;
 - [production M07–M08](04_course/vertical-slice-m07-m08-production-summary.md): три ученических урока, три Stepik-плана и шесть ранее зарезервированных Asset ID; независимый adversarial-аудит PR #29 завершён с verdict `APPROVED WITH POLISH`, CRITICAL = 0, NONCRITICAL BLOCKING = 0;
 - model-based synthetic pre-pilot отчёты для M00–M08, которые не являются human validation;
-- [FULL CUMULATIVE AUDIT M00–M08](90_reviews/full-cumulative-audit-m00-m08-2026-09-12.md) на `main` @ `de0c7cbd9b9ec60440a378675482de0af134c47e`: **PASS / CLEAN**, CRITICAL = 0, NONCRITICAL BLOCKING = 0, POLISH = 3. Предыдущий `CUM-01` закрыт после fix PR #31.
+- [FULL CUMULATIVE AUDIT M00–M08](90_reviews/full-cumulative-audit-m00-m08-2026-09-12.md) на `main` @ `de0c7cbd9b9ec60440a378675482de0af134c47e`: **PASS / CLEAN**, CRITICAL = 0, NONCRITICAL BLOCKING = 0, POLISH = 3. Предыдущий `CUM-01` закрыт после fix PR #31;
+- [Human Pilot Architecture v1.0](06_testing/human-pilot/human-pilot-architecture-v1.0.md): утверждённый protocol для реальных новичков с sample/waves, N/P/T/C/S intervention taxonomy, contamination/recovery, F1 protocol, evidence, severity, PASS/FAIL и retest rules; PR #33 прошёл отдельный adversarial critic pass с `CRITICAL = 0`, `NONCRITICAL BLOCKING = 0`.
 
-Полный cumulative production gate M00–M08 пройден. Human pilot на настоящих новичках **ещё не проведён** и теперь является следующим обязательным gate до beta / публичного выпуска. Human validation остаётся `NOT PERFORMED`.
+Полный cumulative production gate M00–M08 пройден. **Human Pilot Architecture утверждена, но сам human pilot ещё не проведён.** Текущий статус: `HUMAN PILOT DESIGNED / NOT YET PERFORMED`; human validation остаётся `NOT PERFORMED`.
 
-Базовая production-цепочка M00–M08 собрана и прошла повторный FULL CUMULATIVE AUDIT после исправления CUM-01. Это разрешает переход к **HUMAN PILOT / HUMAN VALIDATION**, но не означает готовность к публичному выпуску. Stepik publication этим аудитом не запускалась.
+Следующий обязательный deliverable — operational pilot package: screener, consent, moderator/observer forms, intervention/timing/evidence logs, F1 observation form, issue/retest tracking, data-minimization rules, service preflight и private Stepik staging checklist. Этот пакет также проходит обычный branch → PR → critic → merge workflow до Wave 0.
+
+После утверждения operational package последовательность такая: Wave 0 → Wave 1 → подтверждённые fixes → Wave 2 / retest → итоговый human-validation verdict. Только после human validation возможен переход к closed beta; public release и финальные динамические Stepik/service checks остаются последующими gates.
