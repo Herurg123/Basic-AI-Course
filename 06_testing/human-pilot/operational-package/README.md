@@ -27,10 +27,11 @@
 - [`observer-form.md`](observer-form.md) — форма наблюдения на участника/сессию.
 - [`f1-observation-form.md`](f1-observation-form.md) — отдельная строгая форма F1.
 
-### Журналы
+### Evidence и журналы
+- [`evidence-aggregation-rules.md`](evidence-aggregation-rules.md) — правила составного B10/C2 и запрет PASS по неполному evidence.
 - [`intervention-log.csv`](intervention-log.csv) — все вмешательства N/P/T/C/S.
 - [`session-timing-log.csv`](session-timing-log.csv) — active/wait/break/admin/recovery/F1 timing.
-- [`check-evidence-sheet.csv`](check-evidence-sheet.csv) — результаты independent checks.
+- [`check-evidence-sheet.csv`](check-evidence-sheet.csv) — результаты independent/contributing checks.
 - [`issue-log.csv`](issue-log.csv) — findings `HP-<wave>-NN`.
 - [`fix-retest-tracker.csv`](fix-retest-tracker.csv) — fix → required retest → fresh confirmation.
 
@@ -50,6 +51,7 @@
 8. Content-only pilot без Stepik staging не может получить полный Human Pilot PASS.
 9. Dropout/stop не удаляется из данных и не переклассифицируется как «не участвовал» после старта.
 10. Компенсация/благодарность участнику, если она используется, не зависит от completion или PASS.
+11. Составные B10 и C2 не получают PASS по одной поздней строке: требуется весь набор evidence из Coverage Matrix.
 
 ## Перед Wave 0
 
