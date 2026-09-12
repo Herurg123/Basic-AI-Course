@@ -18,6 +18,7 @@ Human validation остаётся `NOT PERFORMED`: реальные human sessio
 
 - [`human-pilot-architecture-v1.0.md`](human-pilot-architecture-v1.0.md) — утверждённые sample, waves, moderator/intervention rules, contamination/recovery, evidence, F1 protocol, severity, PASS/FAIL и retest rules; утверждена через PR #33.
 - [`operational-package/`](operational-package/) — утверждённый через PR #35 набор для реального проведения Wave 0/Wave 1/Wave 2: screener, consent, staging/preflight, moderator/observer/F1 forms, logs, recovery/evidence rules, issue/retest tracking и report templates.
+- [`readiness/wave0-readiness-2026-09-12.md`](readiness/wave0-readiness-2026-09-12.md) — фактический readiness record перед первой human session; текущий verdict `NOT READY / OWNER ACTION REQUIRED`.
 
 ## До Wave 0
 
