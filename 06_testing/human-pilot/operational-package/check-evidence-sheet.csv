@@ -1,0 +1,22 @@
+participant_id,wave,session,production_version,lesson_id,check_id,competency_dimension,level,attempt_no,temporal_evidence_Y_N_unknown,content_intervention_Y_N,technical_help_count,result_PASS_FAIL_PRACTICE_CONTAMINATED_NOT_REACHED_AMBIGUOUS,evidence_pointer,recovery_scenario_id,second_review_required_Y_N,issue_id,notes_safe
+,,,,M00-L03,M00-L03-C01,B0,2,,,,,,,,,,
+,,,,M03-L02,M03-L02-C01,B1,3,,,,,,,,,,
+,,,,M03-L02,M03-L02-C01,B2,3,,,,,,,,,,
+,,,,M03-L02,M03-L02-C01,B5,3,,,,,,,,,,
+,,,,M03-L02,M03-L02-C01,B6,3,,,,,,,,,,
+,,,,M03-L02,M03-L02-C02,C2-prior-interface-recognition,contributing-practice,,,,,,,,,,Required contributing evidence for final C2 in M06-L04-C03
+,,,,M04-L02,M04-L02-C01,B3,3,,,,,,,,,,
+,,,,M04-L03,M04-L03-C01,B4,3,,,,,,,,,,
+,,,,M04-L03,M04-L03-C02,B10-material-partial,3-partial,,,,,,,,,,
+,,,,M05-L02,M05-L02-C01,B7,3,,,,,,,,,,
+,,,,M05-L02,M05-L02-C02,B8,3,,,,,,,,,,
+,,,,M06-L04,M06-L04-C01,A1,3,,,,,,,,,,
+,,,,M06-L04,M06-L04-C01,A2,3,,,,,,,,,,
+,,,,M06-L04,M06-L04-C01,B9,3,,,,,,,,,,
+,,,,M06-L04,M06-L04-C01,B10,3,,,,,,,,,,
+,,,,M06-L04,M06-L04-C01,B11,3,,,,,,,,,,
+,,,,M06-L04,M06-L04-C01,C1,3,,,,,,,,,,
+,,,,M06-L04,M06-L04-C02,B12,3,,,,,,,,,,
+,,,,M06-L04,M06-L04-C03,C2,3,,,,,,,,,,Final C2 requires this row plus clean M03-L02-C02 contributing evidence
+,,,,M06-L04,M06-L04-C03,C3,3,,,,,,,,,,
+,,,,M07-L02,M07-L02-C01,F1,3,,,,,,,,Y,,Use detailed F1 observation form

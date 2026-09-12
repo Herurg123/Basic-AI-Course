@@ -1,10 +1,10 @@
 # Human Pilot
 
-Этот каталог содержит архитектуру и будущие operational-материалы проверки курса на реальных пользователях нулевого уровня.
+Этот каталог содержит архитектуру и operational-материалы проверки курса на реальных пользователях нулевого уровня.
 
 ## Текущий статус
 
-`HUMAN PILOT DESIGNED / NOT YET PERFORMED` действует только после утверждения и merge архитектуры в `main`.
+`HUMAN PILOT DESIGNED / NOT YET PERFORMED`.
 
 До фактического прохождения предусмотренных human waves:
 
@@ -15,12 +15,13 @@
 
 ## Документы
 
-- [`human-pilot-architecture-v1.0.md`](human-pilot-architecture-v1.0.md) — sample, waves, moderator/intervention rules, contamination/recovery, evidence, F1 protocol, severity, PASS/FAIL и retest rules.
+- [`human-pilot-architecture-v1.0.md`](human-pilot-architecture-v1.0.md) — утверждённые sample, waves, moderator/intervention rules, contamination/recovery, evidence, F1 protocol, severity, PASS/FAIL и retest rules.
+- [`operational-package/`](operational-package/) — формы и инструкции для реального проведения Wave 0/Wave 1/Wave 2: screener, consent, staging/preflight, moderator/observer/F1 forms, logs, issue/retest tracking и report templates. До отдельного audit + merge package не используется с участниками.
 
-## Следующий deliverable после утверждения архитектуры
+## Порядок запуска
 
-Отдельный production-исполнитель создаёт operational pilot package: screener, consent, moderator guide, observer/evidence forms, intervention/timing logs, F1 form, issue/retest tracking, data-minimization rules и service preflight checklist.
+Operational package проходит обычный project workflow `branch → PR → critic → merge`. После его утверждения до Wave 0 должны быть готовы private Stepik staging, consent/data-minimization, moderator rehearsal и service preflight.
 
-Operational package проходит обычный project workflow `branch → PR → critic → merge` до запуска Wave 0.
+Далее: Wave 0 → Wave 1 → подтверждённые fixes → Wave 2/retest → итоговый human-validation verdict.
 
 Никакой документ в этом каталоге сам по себе не означает, что реальные участники уже прошли курс.

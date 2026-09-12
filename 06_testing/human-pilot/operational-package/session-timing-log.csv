@@ -1,0 +1,1 @@
+participant_id,wave,session,date,production_version,operational_package_version,device,route,session_start,session_end,active_learner_min,technical_service_wait_min,break_min,moderator_admin_min,recovery_retry_min,f1_min,start_lesson_id,end_lesson_id,completed_Y_N,stop_reason_code,notes_safe
