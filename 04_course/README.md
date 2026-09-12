@@ -50,6 +50,16 @@
 
 Сводка: [vertical-slice-m06-production-summary.md](vertical-slice-m06-production-summary.md).
 
+### M07–M08
+
+Финальный production batch содержит три ученических урока, три Stepik-плана и шесть ранее зарезервированных Asset ID. M07-L01 является только интегративной репетицией; M07-L02 содержит единственный финальный F1 INDEPENDENT level 3; M08-L01 идёт после завершённого F1 и использует только REUSE/reflection.
+
+- [M07-L01 — ученический урок](M07/M07-L01/lesson.md) · [Stepik plan](M07/M07-L01/stepik-plan.md) · [author notes](M07/M07-L01/author-notes.md)
+- [M07-L02 — ученический урок](M07/M07-L02/lesson.md) · [Stepik plan](M07/M07-L02/stepik-plan.md) · [author notes](M07/M07-L02/author-notes.md)
+- [M08-L01 — ученический урок](M08/M08-L01/lesson.md) · [Stepik plan](M08/M08-L01/stepik-plan.md)
+
+Сводка: [vertical-slice-m07-m08-production-summary.md](vertical-slice-m07-m08-production-summary.md).
+
 ### Точечный fix M03-L02 / M04-L02 / M05-L02
 
 После принятия `D-2026-09-12-STEPIK-FLOW` подготовлен отдельный production fix: рекомендательный Stepik-flow и recovery для M03-L02/M05-L02, фактически выполняемое evidence B3 для M04-L02 и синхронизация текущего статуса `M03-L02-A03 = READY` в operational-файлах урока.
@@ -119,6 +129,6 @@
 
 ## Граница этапа
 
-Service Acceptance 2026-09-11 завершён. По `D-2026-09-11-PILOT-DEFER` отсутствие human pilot M00–M01 больше не блокирует production последующих модулей, поэтому M00–M06 произведены отдельными batch.
+Service Acceptance 2026-09-11 завершён. По `D-2026-09-11-PILOT-DEFER` отсутствие human pilot не блокировало production M02–M08.
 
-Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. Production может продолжаться следующим утверждённым batch M07–M08. До human evidence нельзя считать подтверждёнными людьми длительность, понятность или самостоятельность прохождения.
+Production M07–M08 подготовлен и передаётся в отдельный независимый audit. Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. До human evidence нельзя считать подтверждёнными людьми длительность, понятность или самостоятельность прохождения.
