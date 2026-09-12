@@ -5,6 +5,10 @@
 ## Текущие материалы
 
 - [`service-acceptance/`](service-acceptance/) — Service Acceptance динамического сервисного маршрута.
-- [`synthetic-prepilot-m00-m01/synthetic-prepilot-2026-09-11.md`](synthetic-prepilot-m00-m01/synthetic-prepilot-2026-09-11.md) — model-based synthetic pre-pilot M00–M01. Это дополнительная симуляция, **не human pilot** и не замена обязательной проверке на 3–5 настоящих новичках.
+- [`synthetic-prepilot-m00-m01/synthetic-prepilot-2026-09-11.md`](synthetic-prepilot-m00-m01/synthetic-prepilot-2026-09-11.md) — model-based synthetic pre-pilot M00–M01.
+- [`synthetic-prepilot-m02-m03/synthetic-prepilot-2026-09-11.md`](synthetic-prepilot-m02-m03/synthetic-prepilot-2026-09-11.md) — model-based synthetic pre-pilot M02–M03.
+- [`synthetic-prepilot-m04-m05/synthetic-prepilot-2026-09-12.md`](synthetic-prepilot-m04-m05/synthetic-prepilot-2026-09-12.md) — model-based synthetic pre-pilot M04–M05.
 
-Human pilot M00–M01 пока не проведён.
+Все synthetic/model-based проверки являются дополнительной симуляцией и **не human pilot**. Они не заменяют обязательную проверку курса на настоящих новичках.
+
+Human pilot пока не проведён. Его отсутствие по `D-2026-09-11-PILOT-DEFER` не блокирует производство следующих batch, но human validation остаётся обязательным до beta / публичного выпуска.
