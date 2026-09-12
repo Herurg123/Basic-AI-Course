@@ -71,8 +71,9 @@ Workflow жёстко разрешён только для репозитори�
 - [production M02–M03](04_course/vertical-slice-m02-m03-production-summary.md): четыре ученических урока, четыре Stepik-плана и шесть Asset ID;
 - [production M04–M05](04_course/vertical-slice-m04-m05-production-summary.md): пять ученических уроков, пять Stepik-планов и десять Asset ID; M05-L02 сохраняет обязательные живые B7/B8;
 - [production M06](04_course/vertical-slice-m06-production-summary.md): четыре ученических урока, четыре Stepik-плана и восемь Asset ID; M06-L04 закрывает самостоятельные A1/A2/B9–B12/C1–C3 с post-action rubric и re-check при содержательном загрязнении попытки;
-- model-based synthetic pre-pilot отчёты для M00–M06, которые не являются human validation.
+- [production M07–M08](04_course/vertical-slice-m07-m08-production-summary.md): три ученических урока, три Stepik-плана и шесть ранее зарезервированных Asset ID; независимый adversarial-аудит PR #29 завершён с verdict `APPROVED WITH POLISH`, CRITICAL = 0, NONCRITICAL BLOCKING = 0;
+- model-based synthetic pre-pilot отчёты для M00–M08, которые не являются human validation.
 
-Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. По `D-2026-09-11-PILOT-DEFER` его отсутствие не блокирует production M07–M08.
+Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. По `D-2026-09-11-PILOT-DEFER` его отсутствие не блокировало production M07–M08.
 
-В рабочей ветке `production/m07-m08-batch-v1` подготовлен финальный production batch M07–M08: `M07-L01`, `M07-L02`, `M08-L01`, шесть ранее зарезервированных Asset ID, Stepik-планы, author-only safeguards и model-based synthetic pre-pilot. До merge это **не является утверждённым состоянием main**. Следующий gate для этого batch — независимый аудит; human validation по-прежнему `NOT PERFORMED`.
+Финальный production batch M07–M08 смёржен в `main` через PR #29 после независимого adversarial-аудита финального HEAD. Базовая production-цепочка M00–M08 теперь собрана; это не означает human validation или публичный выпуск. Следующий отдельный gate — **`FULL CUMULATIVE M00–M08 AUDIT`**. Human validation остаётся `NOT PERFORMED`; human pilot и Stepik publication в этом проходе не запускались.
