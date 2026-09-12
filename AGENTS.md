@@ -91,8 +91,8 @@
 
 ## Human Pilot / Human Validation
 
-- Действует [Human Pilot Architecture v1.0](06_testing/human-pilot/human-pilot-architecture-v1.0.md).
-- Текущий статус после PR #33: `HUMAN PILOT DESIGNED / NOT YET PERFORMED`; human validation = `NOT PERFORMED` до фактических сессий с реальными novice users.
+- Действуют [Human Pilot Architecture v1.0](06_testing/human-pilot/human-pilot-architecture-v1.0.md) и утверждённый [Operational Human Pilot Package](06_testing/human-pilot/operational-package/README.md).
+- Текущий статус после PR #33 и PR #35: `HUMAN PILOT DESIGNED / OPERATIONAL PACKAGE APPROVED / NOT YET PERFORMED`; human validation = `NOT PERFORMED` до фактических сессий с реальными novice users.
 - Model/synthetic pre-pilot, ИИ-симуляция или ещё один модельный аудит не считаются human validation.
 - Human pilot обязан допускать провал курса. Модератор не должен спасать level-3/F1 попытку содержательной подсказкой ради PASS.
 - `N/P/T/C/S` — обязательная taxonomy вмешательств: technical/interface help (`T`) логируется и допустима по контракту; substantive/content help (`C`) загрязняет текущую independent attempt и переводит её в `PRACTICE / CONTAMINATED`; safety stop (`S`) имеет приоритет над чистотой evidence.
@@ -101,5 +101,6 @@
 - `M07-L02-C01` остаётся единственным F1 INDEPENDENT level 3. Модератор может проверить только допустимость/посильность/безопасность задачи, но не выбирать задачу, маршрут, источник, правку или способ применения за ученика.
 - Content hint во время F1 аннулирует independent status этой задачи; для чистого F1 нужна другая новая реальная посильная задача.
 - Полный Human Pilot PASS требует наблюдения private Stepik staging; content-only прогон может дать максимум `PARTIAL — STEPIK UX NOT VALIDATED`.
-- После утверждения архитектуры следующий deliverable — operational pilot package. Он также проходит branch → PR → critic → merge до Wave 0 и не имеет права ослаблять PASS/FAIL, contamination, F1 или evidence rules.
+- Operational package уже прошёл branch → PR #35 → adversarial critic → merge и не должен производиться заново без нового основания. До Wave 0 нужно фактически подтвердить private Stepik staging, consent/data-minimization в рабочей среде, moderator rehearsal, recovery readiness и актуальный service preflight.
+- Пока readiness-пункты не подтверждены evidence, Wave 0 не считается `READY`; approval package сам по себе не является human validation.
 - Human Pilot PASS не равен closed beta и не разрешает автоматически public release. Closed beta и финальные динамические Stepik/service checks остаются последующими gates.
