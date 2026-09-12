@@ -88,3 +88,18 @@
 - Курс не обещает право доступа к конкретной ИИ-платформе пользователю определённого возраста и не создаёт отдельный child/parent route.
 - Возрастные ограничения, согласие законного представителя и иные условия доступа применяет сама сторонняя платформа; курс не учит их обходить.
 - Age functional testing не является внутренним Lesson/Service Acceptance/release-gate, если проект отдельно не примет новое решение обещать гарантированный маршрут конкретной возрастной группе.
+
+## Human Pilot / Human Validation
+
+- Действует [Human Pilot Architecture v1.0](06_testing/human-pilot/human-pilot-architecture-v1.0.md).
+- Текущий статус после PR #33: `HUMAN PILOT DESIGNED / NOT YET PERFORMED`; human validation = `NOT PERFORMED` до фактических сессий с реальными novice users.
+- Model/synthetic pre-pilot, ИИ-симуляция или ещё один модельный аудит не считаются human validation.
+- Human pilot обязан допускать провал курса. Модератор не должен спасать level-3/F1 попытку содержательной подсказкой ради PASS.
+- `N/P/T/C/S` — обязательная taxonomy вмешательств: technical/interface help (`T`) логируется и допустима по контракту; substantive/content help (`C`) загрязняет текущую independent attempt и переводит её в `PRACTICE / CONTAMINATED`; safety stop (`S`) имеет приоритет над чистотой evidence.
+- Post-hoc объяснение не создаёт отсутствующее прошлое действие и не восстанавливает independence после content hint.
+- B3 проверяется фактическим privacy-действием **до** transfer; B8 — реальным edit существующего исходника, не regeneration; B10 — реальным открытым/сопоставленным основанием, не self-check/второй моделью; B12/F1 — фактическим применением результата, не ответом, оставшимся в чате.
+- `M07-L02-C01` остаётся единственным F1 INDEPENDENT level 3. Модератор может проверить только допустимость/посильность/безопасность задачи, но не выбирать задачу, маршрут, источник, правку или способ применения за ученика.
+- Content hint во время F1 аннулирует independent status этой задачи; для чистого F1 нужна другая новая реальная посильная задача.
+- Полный Human Pilot PASS требует наблюдения private Stepik staging; content-only прогон может дать максимум `PARTIAL — STEPIK UX NOT VALIDATED`.
+- После утверждения архитектуры следующий deliverable — operational pilot package. Он также проходит branch → PR → critic → merge до Wave 0 и не имеет права ослаблять PASS/FAIL, contamination, F1 или evidence rules.
+- Human Pilot PASS не равен closed beta и не разрешает автоматически public release. Closed beta и финальные динамические Stepik/service checks остаются последующими gates.
