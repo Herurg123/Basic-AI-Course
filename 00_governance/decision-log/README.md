@@ -8,3 +8,5 @@
 
 - [D-2026-09-10-F1 — завершение реальной задачи в F1](2026-09-10-f1-completion.md).
 - [D-2026-09-11-AGE — возраст как внешнее условие ИИ-платформы](2026-09-11-age-platform-boundary.md).
+- [D-2026-09-11-PILOT-DEFER — отсрочка human pilot до завершения production batch](2026-09-11-pilot-defer.md).
+- [D-2026-09-12-STEPIK-FLOW — ограничения Stepik и рекомендательное управление последовательностью](2026-09-12-stepik-advisory-sequencing.md).
