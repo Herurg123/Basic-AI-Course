@@ -18,7 +18,8 @@ M00–M06, архитектура, competency placement, PRIMARY/BACKUP, 9 мо�
 - `lesson.md`;
 - `stepik-plan.md`;
 - `author-notes.md`;
-- `M07-L01-A01.md`;
+- `M07-L01-A01.md` — канонический master одного утверждённого Asset ID;
+- `M07-L01-A01-part1.md` и `M07-L01-A01-part2.md` — staged learner-facing views того же A01, **не новые Asset ID**;
 - `M07-L01-A02.md`.
 
 ### M07-L02
@@ -62,8 +63,8 @@ M00–M06, архитектура, competency placement, PRIMARY/BACKUP, 9 мо�
 
 | Lesson | Result | Concrete evidence |
 |---|---|---|
-| M07-L01 | `PASS` | A01 is one safe integrated task; A02 has no order; E02 reveals only changed condition; C01 requires actual educational application and explanation; lesson says rehearsal, not final |
-| M07-L02 | `PASS` | A01 gives task classes only; learner chooses own task; lesson permits technical help only; A03 is post-action/nonprocedural; A02 requires temporal evidence, completion and B12; author notes define contamination recovery and critical false-PASS |
+| M07-L01 | `PASS` | A01 is one safe integrated task and its new-failure block is staged after E01; A02 has no order; E02 reveals only changed condition; C01 requires actual educational application and explanation; lesson says rehearsal, not final |
+| M07-L02 | `PASS` | A01 gives task classes only; learner chooses own task; lesson permits technical help only; no pre-attempt form enumerates F1 dimensions; A03 is post-action/nonprocedural; A02 requires temporal evidence, completion and B12; author notes define contamination recovery and critical false-PASS |
 | M08-L01 | `PASS` | lesson starts after completed F1, explicitly states base complete; only REUSE; A01 defines complexity boundary by task, not brand; no service/purchase/course promise |
 
 ## 6. Course-level regression check
@@ -81,7 +82,7 @@ Result: `PASS`.
 ### M07-L01
 - hidden algorithm in A02: not found;
 - all skills artificially forced: not found;
-- E02 next step leaked: not found;
+- E02 next step leaked: not found; staged view prevents premature reveal in normal Stepik flow;
 - F1 falsely closed: explicitly prevented;
 - result allowed to remain in chat: prevented by C01;
 - template-following sufficient: no.
@@ -89,6 +90,7 @@ Result: `PASS`.
 ### M07-L02
 - ready-made task: no;
 - options menu that becomes solution: no;
+- pre-attempt evidence prompt as hidden algorithm: removed; only natural trace is requested;
 - rubric/evidence form as workflow: no;
 - content hint leaves level 3 intact: no, contamination rule explicit;
 - retroactive temporal evidence: rejected;
