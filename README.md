@@ -72,8 +72,9 @@ Workflow жёстко разрешён только для репозитори�
 - [production M04–M05](04_course/vertical-slice-m04-m05-production-summary.md): пять ученических уроков, пять Stepik-планов и десять Asset ID; M05-L02 сохраняет обязательные живые B7/B8;
 - [production M06](04_course/vertical-slice-m06-production-summary.md): четыре ученических урока, четыре Stepik-плана и восемь Asset ID; M06-L04 закрывает самостоятельные A1/A2/B9–B12/C1–C3 с post-action rubric и re-check при содержательном загрязнении попытки;
 - [production M07–M08](04_course/vertical-slice-m07-m08-production-summary.md): три ученических урока, три Stepik-плана и шесть ранее зарезервированных Asset ID; независимый adversarial-аудит PR #29 завершён с verdict `APPROVED WITH POLISH`, CRITICAL = 0, NONCRITICAL BLOCKING = 0;
-- model-based synthetic pre-pilot отчёты для M00–M08, которые не являются human validation.
+- model-based synthetic pre-pilot отчёты для M00–M08, которые не являются human validation;
+- [FULL CUMULATIVE AUDIT M00–M08](90_reviews/full-cumulative-audit-m00-m08-2026-09-12.md) на `main` @ `de0c7cbd9b9ec60440a378675482de0af134c47e`: **PASS / CLEAN**, CRITICAL = 0, NONCRITICAL BLOCKING = 0, POLISH = 3. Предыдущий `CUM-01` закрыт после fix PR #31.
 
-Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. По `D-2026-09-11-PILOT-DEFER` его отсутствие не блокировало production M07–M08.
+Полный cumulative production gate M00–M08 пройден. Human pilot на настоящих новичках **ещё не проведён** и теперь является следующим обязательным gate до beta / публичного выпуска. Human validation остаётся `NOT PERFORMED`.
 
-Финальный production batch M07–M08 смёржен в `main` через PR #29 после независимого adversarial-аудита финального HEAD. Базовая production-цепочка M00–M08 теперь собрана; это не означает human validation или публичный выпуск. Следующий отдельный gate — **`FULL CUMULATIVE M00–M08 AUDIT`**. Human validation остаётся `NOT PERFORMED`; human pilot и Stepik publication в этом проходе не запускались.
+Базовая production-цепочка M00–M08 собрана и прошла повторный FULL CUMULATIVE AUDIT после исправления CUM-01. Это разрешает переход к **HUMAN PILOT / HUMAN VALIDATION**, но не означает готовность к публичному выпуску. Stepik publication этим аудитом не запускалась.

@@ -32,7 +32,7 @@
 Третий production batch содержит пять ученических уроков, пять Stepik-планов и десять ранее зарезервированных Asset ID. M04 выводит privacy-решение и работу по собственному материалу на самостоятельность; M05 отделяет подготовительную визуальную практику от живых B7/B8.
 
 - [M04-L01 — ученический урок](M04/M04-L01/lesson.md) · [Stepik plan](M04/M04-L01/stepik-plan.md)
-- [M04-L02 — ученический урок](M04/M04-L02/lesson.md) · [Stepik plan](M04/M04-L02/stepik-plan.md)
+- [M04-L02 — ученический урок](M04/M04-L02/lesson.md) · [Stepik plan](M04/M04-L02/stepik-plan.md) · [author notes](M04/M04-L02/author-notes.md)
 - [M04-L03 — ученический урок](M04/M04-L03/lesson.md) · [Stepik plan](M04/M04-L03/stepik-plan.md)
 - [M05-L01 — ученический урок](M05/M05-L01/lesson.md) · [Stepik plan](M05/M05-L01/stepik-plan.md)
 - [M05-L02 — ученический урок](M05/M05-L02/lesson.md) · [Stepik plan](M05/M05-L02/stepik-plan.md)
@@ -67,6 +67,12 @@
 Сводка fix-batch: [m03-m05-stepik-flow-fix-summary.md](m03-m05-stepik-flow-fix-summary.md).
 
 Этот fix-batch не является cumulative audit M00–M05 и сам по себе не объявляет M00–M05 окончательно принятыми.
+
+### Cumulative fix M04-L02
+
+После первого FULL CUMULATIVE AUDIT M00–M08 найден единственный NONCRITICAL BLOCKING finding `CUM-01`: для загрязнённой содержательной подсказкой B3 level-3 попытки M04-L02 не был заранее подготовлен честный production recovery.
+
+Fix PR #31 добавил hidden author-only recovery `R1` под тем же `M04-L02-C01`, не меняя Lesson/Exercise/Check/Asset ID. Повторный FULL CUMULATIVE AUDIT на `main` @ `de0c7cbd9b9ec60440a378675482de0af134c47e` завершён verdict **PASS / CLEAN**: CRITICAL = 0, NONCRITICAL BLOCKING = 0. Полный отчёт: [`../90_reviews/full-cumulative-audit-m00-m08-2026-09-12.md`](../90_reviews/full-cumulative-audit-m00-m08-2026-09-12.md).
 
 ## Проектные карточки v1.0
 
@@ -131,4 +137,6 @@
 
 Service Acceptance 2026-09-11 завершён. По `D-2026-09-11-PILOT-DEFER` отсутствие human pilot не блокировало production M02–M08.
 
-Production M07–M08 смёржен в `main` через PR #29 после независимого adversarial-аудита финального HEAD с verdict `APPROVED WITH POLISH`; CRITICAL = 0, NONCRITICAL BLOCKING = 0. Все production batches M00–M08 теперь находятся в `main`. Human pilot на настоящих новичках **ещё не проведён** и остаётся обязательным до beta / публичного выпуска. Следующий отдельный gate — **`FULL CUMULATIVE M00–M08 AUDIT`**; human pilot и Stepik publication в этом проходе не запускались.
+Все production batches M00–M08 находятся в `main`. После merge fix PR #31 повторный **FULL CUMULATIVE M00–M08 AUDIT** завершён verdict `PASS / CLEAN`; CRITICAL = 0, NONCRITICAL BLOCKING = 0. Human validation остаётся `NOT PERFORMED`.
+
+**Следующий обязательный gate — HUMAN PILOT / HUMAN VALIDATION.** До него курс не считается подтверждённым на реальных новичках и не готов к beta / публичному выпуску. Stepik publication в cumulative audit не запускалась.
