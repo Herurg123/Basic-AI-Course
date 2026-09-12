@@ -56,7 +56,7 @@ Workflow жёстко разрешён только для репозитори�
 - структура репозитория и workflow;
 - [манифест курса v1.3](00_governance/manifest/manifest-v1.3.md), который точечно обновляет полный базовый текст v1.2;
 - инструкция проекта v1.3;
-- карта компетенций v1.1;
+- [карта компетенций v1.2](01_architecture/competency-map/competency-map-v1.2.md), которая точечно обновляет полный базовый текст v1.1 и приводит возрастную границу к D-2026-09-11-AGE;
 - [матрица сервисов v1.1](01_architecture/service-matrix/service-matrix-v1.1.md), которая точечно обновляет полный базовый текст v1.0;
 - [общая архитектура курса v1.1](01_architecture/course-architecture/course-architecture-v1.1.md), которая сохраняет 9 модулей и 21 Lesson ID и снимает age functional testing из внутренних gates;
 - [стандарт сценария урока v1.1](01_architecture/lesson-standard/lesson-standard-v1.1.md) и `lesson-template.md`;
