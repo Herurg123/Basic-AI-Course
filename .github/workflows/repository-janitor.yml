@@ -39,7 +39,7 @@ jobs:
           MAX_DELETIONS_PER_RUN: '5'
 
           # Только эти рабочие пространства имён вообще могут стать кандидатами на автоудаление.
-          ALLOWED_PREFIXES: 'architecture/,bootstrap/,governance/,housekeeping/,production/,setup/'
+          ALLOWED_PREFIXES: 'architecture/,audit/,bootstrap/,governance/,housekeeping/,production/,setup/,testing/'
 
           # Дополнительные точные имена вечных веток через запятую. main защищается отдельно всегда.
           KEEP_BRANCHES: ''
