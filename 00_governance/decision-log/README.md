@@ -11,3 +11,4 @@
 - [D-2026-09-11-PILOT-DEFER — отсрочка human pilot до завершения production batch](2026-09-11-pilot-defer.md).
 - [D-2026-09-12-STEPIK-FLOW — ограничения Stepik и рекомендательное управление поведением](2026-09-12-stepik-advisory-sequencing.md).
 - [D-2026-09-13-LEARNER-UX — понятный ученический язык, прямые ссылки и нейтральный след самостоятельной работы](2026-09-13-learner-ux-evidence.md).
+- [D-2026-09-13-RATIONALE-BEFORE-ACTION — ученик понимает «зачем» до осмысленного действия](2026-09-13-rationale-before-action.md).
