@@ -10,3 +10,4 @@
 - [D-2026-09-11-AGE — возраст как внешнее условие ИИ-платформы](2026-09-11-age-platform-boundary.md).
 - [D-2026-09-11-PILOT-DEFER — отсрочка human pilot до завершения production batch](2026-09-11-pilot-defer.md).
 - [D-2026-09-12-STEPIK-FLOW — ограничения Stepik и рекомендательное управление поведением](2026-09-12-stepik-advisory-sequencing.md).
+- [D-2026-09-13-LEARNER-UX — понятный ученический язык, прямые ссылки и нейтральный след самостоятельной работы](2026-09-13-learner-ux-evidence.md).
