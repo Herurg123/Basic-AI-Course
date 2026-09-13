@@ -74,6 +74,25 @@
 
 Fix PR #31 добавил hidden author-only recovery `R1` под тем же `M04-L02-C01`, не меняя Lesson/Exercise/Check/Asset ID. Повторный FULL CUMULATIVE AUDIT на `main` @ `de0c7cbd9b9ec60440a378675482de0af134c47e` завершён verdict **PASS / CLEAN**: CRITICAL = 0, NONCRITICAL BLOCKING = 0. Полный отчёт: [`../90_reviews/full-cumulative-audit-m00-m08-2026-09-12.md`](../90_reviews/full-cumulative-audit-m00-m08-2026-09-12.md).
 
+### UX fix для абсолютного новичка — 13 сентября 2026 года
+
+После отдельного полного UX-аудита learner-facing маршрута владелец принял [`D-2026-09-13-LEARNER-UX`](../00_governance/decision-log/2026-09-13-learner-ux-evidence.md).
+
+Fix batch:
+
+- переводит learner-facing тексты на простой русский язык без необходимости понимать внутренние ID и production-термины;
+- даёт прямые ссылки на Алису AI, GigaChat и заранее заданные материалы непосредственно в месте действия;
+- сохраняет исключение: готовая ссылка на правильный источник не выдаётся, если самостоятельный выбор источника сам является проверяемым навыком;
+- заменяет скрытую обязанность угадать специальный evidence-form на нейтральный natural trace + допустимое post-action пояснение уже наблюдаемой работы;
+- делает recovery learner-facing в M03-L02, M04-L02, M05-L02 и M06-L04;
+- явно вводит четыре статуса проверки;
+- добавляет DOCX fallback для абсолютного новичка без Word/LibreOffice;
+- вводит бесплатный Stepik evidence-route без обязательной платной загрузки файлов и обязательной teacher grading.
+
+Сводка: [ux-novice-fix-summary-2026-09-13.md](ux-novice-fix-summary-2026-09-13.md). Общая ученическая памятка: [stepik/how-to-save-practice.md](stepik/how-to-save-practice.md).
+
+Этот UX fix не меняет 9 модулей, 21 Lesson ID, состав компетенций, privacy-before-transfer, обязательную живую генерацию/редактирование изображения, проверку существенного по реальному основанию и F1 как завершённую собственную реальную задачу.
+
 ## Проектные карточки v1.0
 
 Канонический производственный слой перед написанием полных уроков: 21 `lesson-card.md` по утверждённым Lesson ID. Карточки не являются ученическими текстами, финальными заданиями, скриншотами или Stepik-экранами.
@@ -139,4 +158,6 @@ Service Acceptance 2026-09-11 завершён. По `D-2026-09-11-PILOT-DEFER` 
 
 Все production batches M00–M08 находятся в `main`. После merge fix PR #31 повторный **FULL CUMULATIVE M00–M08 AUDIT** завершён verdict `PASS / CLEAN`; CRITICAL = 0, NONCRITICAL BLOCKING = 0. Human validation остаётся `NOT PERFORMED`.
 
-**Следующий обязательный gate — HUMAN PILOT / HUMAN VALIDATION.** До него курс не считается подтверждённым на реальных новичках и не готов к beta / публичному выпуску. Stepik publication в cumulative audit не запускалась.
+UX fix 2026-09-13 не является human validation и не заменяет проверку на реальных новичках.
+
+**Следующий обязательный gate — private Stepik Wave 0 readiness → HUMAN PILOT / HUMAN VALIDATION.** До него курс не считается подтверждённым на реальных новичках и не готов к beta / публичному выпуску.
