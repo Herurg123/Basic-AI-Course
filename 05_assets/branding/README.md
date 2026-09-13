@@ -1,42 +1,44 @@
-# Branding assets
+# Брендинг курса
 
-## Course logo v1
+## Логотип курса v1
 
-**Status:** OWNER-SELECTED / current production logo  
-**Selected:** 13 September 2026  
-**Target file:** `course-logo-v1.png`
+**Статус:** выбран владельцем / текущий production-логотип  
+**Дата выбора:** 13 сентября 2026 года  
+**Целевой файл:** `course-logo-v1.png`
 
-### Meaning
+### Смысл
 
-The mark combines three ideas:
+Знак объединяет три идеи:
 
-- a speech bubble / dialogue with AI;
-- a simplified AI / neural-circuit symbol;
-- a bold check mark meaning a completed, usable result.
+- диалог с ИИ через форму речевого облака;
+- упрощённый символ ИИ / нейронной схемы;
+- крупную галочку как знак завершённого и пригодного к использованию результата.
 
-This matches the course positioning: AI is treated as a practical tool for solving real tasks, not as a collection of «ideal prompts» or a catalogue of services.
+Это соответствует позиционированию курса: ИИ рассматривается как практический инструмент для решения реальных задач, а не как коллекция «идеальных промптов» или каталог сервисов.
 
-### Visual requirements
+### Визуальные требования
 
-- simple silhouette with no small critical details;
-- remains legible at Stepik catalogue-card size;
-- works on both light and dark backgrounds;
-- no embedded course title in the icon;
-- current palette: cyan / blue base with a warm yellow check-mark accent.
+- простой силуэт без мелких критичных деталей;
+- читаемость в размере карточки каталога Stepik;
+- работа как на светлом, так и на тёмном фоне;
+- отсутствие встроенного названия курса внутри значка;
+- текущая палитра: голубой / синий как основа и тёплая жёлтая галочка как акцент.
 
-### Stepik visual check
+### Визуальная проверка в Stepik
 
-On 13.09.2026 the owner checked the selected logo in the Stepik draft course card and promo-page preview. The icon remained clearly readable against both the light editor interface and the dark promo header. This is a visual owner check, not a substitute for later staging/device functional checks.
+13.09.2026 владелец проверил выбранный логотип в черновой карточке курса Stepik и в предпросмотре промостраницы. Значок остался хорошо читаемым как на светлом фоне интерфейса редактора, так и на тёмном фоне верхнего блока промостраницы.
 
-### Files
+Это визуальная проверка владельцем, а не замена последующих staging/device functional checks в рамках Human Pilot.
 
-- `course-logo-v1.png` — master raster logo, transparent PNG, current source size 1254×1254 px.
-- `stepik/course-logo-230x230.png` — optional derived Stepik-sized export; if created, it must be regenerated from the master and must not be edited independently.
+### Файлы
 
-### Provenance
+- `course-logo-v1.png` — основной растровый логотип с прозрачностью, PNG, исходный размер 1254×1254 px.
+- `stepik/course-logo-230x230.png` — необязательная производная версия под размер Stepik; если она создаётся, то только из master-файла и не редактируется независимо.
 
-The logo was generated specifically for this course with an AI image-generation tool and selected by the project owner. It is not copied from competitor-course logos; competitor screenshots were used only as market-context references when choosing a visually distinct direction.
+### Происхождение
 
-### Change rule
+Логотип сгенерирован специально для этого курса инструментом генерации изображений на основе ИИ и выбран владельцем проекта. Он не копирует логотипы конкурирующих курсов; скриншоты конкурентов использовались только как контекст рынка при выборе визуально отличимого направления.
 
-Do not replace `course-logo-v1.png` silently. A materially different logo is a new branding version and should be recorded as such. Platform-specific resized exports are derived assets and do not become independent masters.
+### Правило изменения
+
+`course-logo-v1.png` нельзя молча заменять другим изображением. Существенно иной знак считается новой версией брендинга и должен фиксироваться отдельно. Платформенные уменьшенные версии являются производными assets и не становятся самостоятельными master-файлами.
