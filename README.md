@@ -59,7 +59,7 @@ Workflow жёстко разрешён только для репозитори�
 - [карта компетенций v1.2](01_architecture/competency-map/competency-map-v1.2.md), которая точечно обновляет полный базовый текст v1.1 и приводит возрастную границу к D-2026-09-11-AGE;
 - [матрица сервисов v1.1](01_architecture/service-matrix/service-matrix-v1.1.md), которая точечно обновляет полный базовый текст v1.0;
 - [общая архитектура курса v1.1](01_architecture/course-architecture/course-architecture-v1.1.md), которая сохраняет 9 модулей и 21 Lesson ID и снимает age functional testing из внутренних gates;
-- [стандарт сценария урока v1.1](01_architecture/lesson-standard/lesson-standard-v1.1.md) и `lesson-template.md`;
+- [стандарт сценария урока v1.2](01_architecture/lesson-standard/lesson-standard-v1.2.md), который точечно дополняет базовую [v1.1](01_architecture/lesson-standard/lesson-standard-v1.1.md) правилом «зачем до нового осмысленного действия», и `lesson-template.md`;
 - [полная Матрица покрытия v1.0](01_architecture/coverage-matrix/coverage-matrix-v1.0.md): все 19 компетенций, упражнения, проверки, доказательства, сервисы, риски и Asset ID; нижележащие возрастные формулировки читаются с учётом Манифеста v1.3 и Архитектуры v1.1;
 - [Карта следующих уровней v1.0](01_architecture/next-levels/next-levels-v1.0.md): граница завершенной бесплатной базы и дальнейшего усложнения; будущие продукты пока являются гипотезами;
 - [решение по завершению F1](00_governance/decision-log/2026-09-10-f1-completion.md);
@@ -67,6 +67,7 @@ Workflow жёстко разрешён только для репозитори�
 - [решение D-2026-09-11-PILOT-DEFER](00_governance/decision-log/2026-09-11-pilot-defer.md): human pilot M00–M01 остаётся обязательным до beta / публичного выпуска, но его отсутствие больше не блокирует production M02–M08; synthetic/model-based проверки не считаются human validation;
 - [решение D-2026-09-12-STEPIK-FLOW](00_governance/decision-log/2026-09-12-stepik-advisory-sequencing.md): ограничения навигации Stepik не подменяются фиктивным hard gate; learner получает понятную рекомендацию и recovery-route;
 - [решение D-2026-09-13-LEARNER-UX](00_governance/decision-log/2026-09-13-learner-ux-evidence.md): learner-facing слой использует простой язык и прямые ссылки, independent evidence строится на естественном следе работы без скрытой формы, а recovery физически доступен ученику;
+- [решение D-2026-09-13-RATIONALE-BEFORE-ACTION](00_governance/decision-log/2026-09-13-rationale-before-action.md): перед новым смысловым действием новичок получает краткое объяснение, зачем действие нужно, без раскрытия решения самостоятельной задачи;
 - [проектные карточки 21 урока v1.0](04_course/README.md), их [сводный аудит](04_course/lesson-cards-v1.0-summary.md) и [возрастной addendum](04_course/lesson-cards-v1.0-age-policy-addendum.md);
 - [Service Acceptance 2026-09-11](06_testing/service-acceptance/service-acceptance-2026-09-11.md): **PASS WITH EXPLICIT NONBLOCKING OBSERVATIONS**. PRIMARY Алиса, BACKUP GigaChat, B10 и X01–X10 подтверждены без обязательной оплаты. Историческая строка `BLOCKED — CHILD FUNCTIONAL TEST NOT PERFORMED` после D-2026-09-11-AGE не является текущим блокером проекта;
 - [production M00–M01](04_course/vertical-slice-m00-m01-production-summary.md): пять ученических уроков, пять Stepik-планов и 11 Asset ID;
