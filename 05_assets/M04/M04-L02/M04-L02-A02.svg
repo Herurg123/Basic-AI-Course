@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="720" viewBox="0 0 1100 720" role="img" aria-labelledby="title desc">
-  <title id="title">Учебный скриншот заметки о встрече</title>
+  <title id="title">Учебная заметка о встрече</title>
   <desc id="desc">Полностью вымышленная заметка с временем встречи, темой, учебным именем, заведомо фиктивным телефоном, email и внутренним кодом.</desc>
   <rect width="1100" height="720" fill="#f3f4f6"/>
   <rect x="140" y="70" width="820" height="580" rx="22" fill="#ffffff" stroke="#c7cbd1" stroke-width="3"/>
@@ -15,5 +15,5 @@
   <text x="200" y="486" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Email: participant@example.test</text>
   <text x="200" y="530" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Телефон: +7 000 000-00-00</text>
   <text x="200" y="574" font-family="Arial, sans-serif" font-size="24" fill="#454a50">Внутренний код проекта: ОРБИТА-27-TEST</text>
-  <text x="550" y="625" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#7a7f85">Asset M04-L02-A02 · fictional training data</text>
+  <text x="550" y="625" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#7a7f85">Учебный материал · все данные вымышлены</text>
 </svg>
