@@ -46,7 +46,7 @@ def _flat_live_lessons(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _accepted_live_titles(lesson: dict[str, Any]) -> set[str]:
-    """Допустимые точные заголовки: канон и существующий Stepik-формат со стабильным ID."""
+    """Допустимые точные заголовки: канон и Stepik-формат со стабильным canonical ID."""
     canonical_id = str(lesson["canonical_id"])
     title = str(lesson["title"])
     return {title, f"{canonical_id} — {title}"}
@@ -76,6 +76,13 @@ def _drifted_id_candidates(lesson: dict[str, Any], live: list[dict[str, Any]]) -
     ]
 
 
+def _exact_position(module: dict[str, Any], lesson: dict[str, Any], live: dict[str, Any]) -> bool:
+    return (
+        live.get("section_position") == module["position"]
+        and live.get("unit_position") == lesson["position"]
+    )
+
+
 def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     canonical = {lesson["canonical_id"]: (module, lesson) for module, lesson in _canonical_lessons(manifest)}
     live = _flat_live_lessons(snapshot)
@@ -103,7 +110,7 @@ def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tupl
                 )
             continue
         match = matches[0]
-        if match.get("section_position") != module["position"] or match.get("unit_position") != lesson["position"]:
+        if not _exact_position(module, lesson, match):
             blockers.append(
                 f"golden:{canonical_id}: совпал канонический заголовок, но позиция section/unit отличается от канона"
             )
@@ -177,11 +184,7 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
             continue
         if len(matches) == 1:
             match = matches[0]
-            exact_position = (
-                match.get("section_position") == module["position"]
-                and match.get("unit_position") == lesson["position"]
-            )
-            if not exact_position:
+            if not _exact_position(module, lesson, match):
                 result.blockers.append(
                     f"ambiguous-existing:{canonical_id}: канонический заголовок существует, но позиция не совпадает с каноном"
                 )
@@ -196,11 +199,32 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
                 }
             )
             continue
-        if drifted:
+
+        if len(drifted) > 1:
             result.blockers.append(
-                f"title-drift:{canonical_id}: найден lesson со стабильным ID в заголовке, но текст заголовка отличается от канона"
+                f"duplicate-id:{canonical_id}: найдено {len(drifted)} lessons с одинаковым стабильным canonical ID в заголовке"
             )
             continue
+        if len(drifted) == 1:
+            match = drifted[0]
+            if not _exact_position(module, lesson, match):
+                result.blockers.append(
+                    f"ambiguous-title-drift:{canonical_id}: стабильный ID найден, но позиция section/unit не совпадает с каноном"
+                )
+                continue
+            result.operations.append(
+                {
+                    "action": "SKIP_STALE_TITLE",
+                    "module": module["canonical_id"],
+                    "lesson": canonical_id,
+                    "stepik_lesson_id": match.get("lesson_id"),
+                    "current_title": match.get("lesson_title"),
+                    "expected_title": f"{canonical_id} — {lesson['title']}",
+                    "reason": "stable canonical ID + exact position identify existing skeleton; title update is deferred to an explicit write phase",
+                }
+            )
+            continue
+
         result.operations.append(
             {
                 "action": "PLANNED_CREATE",
@@ -210,7 +234,8 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
             }
         )
 
-    # Даже при корректном распознавании golden массовая запись не разрешается этой фазой.
+    # Live dry-run всё ещё не разрешает запись. CLI снимет этот фазовый blocker только после
+    # успешной проверки сохранённого golden profile.
     result.blockers.append("needs-golden-profile")
     return result
 
