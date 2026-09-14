@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -32,7 +33,24 @@ def _live_lesson(snapshot: dict[str, Any], lesson_id: int) -> tuple[dict[str, An
     return None
 
 
-def validate_golden_profile(profile: dict[str, Any], snapshot: dict[str, Any]) -> list[str]:
+def _manifest_lesson(manifest: dict[str, Any], canonical_id: str) -> dict[str, Any] | None:
+    for module in manifest.get("modules", []):
+        for lesson in module.get("lessons", []):
+            if lesson.get("canonical_id") == canonical_id:
+                return lesson
+    return None
+
+
+def _text_sha256(item: dict[str, Any]) -> str:
+    text = item.get("step_source", {}).get("block", {}).get("text") or ""
+    return hashlib.sha256(str(text).encode("utf-8")).hexdigest()
+
+
+def validate_golden_profile(
+    profile: dict[str, Any],
+    snapshot: dict[str, Any],
+    manifest: dict[str, Any] | None = None,
+) -> list[str]:
     blockers: list[str] = []
     course = snapshot.get("course", {})
     if course.get("id") != profile.get("course_id"):
@@ -43,6 +61,16 @@ def validate_golden_profile(profile: dict[str, Any], snapshot: dict[str, Any]) -
 
     expected_free_answer_source = profile.get("observed_conventions", {}).get("free_answer_source", {})
     for canonical_id, expected in profile.get("golden_lessons", {}).items():
+        if manifest is not None:
+            canonical = _manifest_lesson(manifest, canonical_id)
+            if canonical is None:
+                blockers.append(f"golden-profile:{canonical_id}: lesson отсутствует в derived manifest")
+            elif len(canonical.get("steps", [])) != expected.get("plan_rows"):
+                blockers.append(
+                    f"golden-profile:{canonical_id}: Stepik-plan rows изменились: ожидалось {expected.get('plan_rows')}, "
+                    f"получено {len(canonical.get('steps', []))}"
+                )
+
         live = _live_lesson(snapshot, int(expected["stepik_lesson_id"]))
         if live is None:
             blockers.append(
@@ -69,6 +97,11 @@ def validate_golden_profile(profile: dict[str, Any], snapshot: dict[str, Any]) -
             blockers.append(
                 f"golden-profile:{canonical_id}: ожидалось {expected.get('step_count')} steps, найдено {len(steps)}"
             )
+
+        expected_hashes = expected.get("step_text_sha256", [])
+        actual_hashes = [_text_sha256(item) for item in steps]
+        if expected_hashes and actual_hashes != expected_hashes:
+            blockers.append(f"golden-profile:{canonical_id}: learner-visible HTML golden lesson изменился")
 
         for item in steps:
             source = item.get("step_source", {}).get("block", {}).get("source", {})
