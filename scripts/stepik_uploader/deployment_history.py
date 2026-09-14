@@ -31,6 +31,29 @@ def _canonical_json(value: dict[str, Any]) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
 
 
+def _safe_token(value: str) -> str:
+    return re.sub(r"[^a-z0-9-]+", "-", value.lower()).strip("-") or "unknown"
+
+
+def _workflow_context() -> dict[str, str | None]:
+    server = os.getenv("GITHUB_SERVER_URL")
+    repo = os.getenv("GITHUB_REPOSITORY")
+    run_id = os.getenv("GITHUB_RUN_ID")
+    run_url = f"{server}/{repo}/actions/runs/{run_id}" if server and repo and run_id else None
+    return {
+        "run_id": run_id,
+        "run_attempt": os.getenv("GITHUB_RUN_ATTEMPT"),
+        "run_url": run_url,
+    }
+
+
+def _attempt_token() -> str:
+    workflow = _workflow_context()
+    run_id = workflow.get("run_id") or "local"
+    attempt = workflow.get("run_attempt") or "1"
+    return _safe_token(f"run-{run_id}-attempt-{attempt}")
+
+
 def stable_event_id(
     *,
     course_id: int,
@@ -67,7 +90,7 @@ def stable_record_id(event_id: str, phase: str, operation_id: str | None = None)
     suffix = f"-{operation_id}" if operation_id else ""
     raw = f"{event_id}|{phase}|{operation_id or ''}"
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
-    safe_phase = re.sub(r"[^a-z0-9-]+", "-", phase.lower()).strip("-")
+    safe_phase = _safe_token(phase)
     return f"{safe_phase}{suffix}-{digest}"
 
 
@@ -126,19 +149,16 @@ def event_identity_from_environment(
         baseline_fingerprint=baseline_fingerprint,
         pending_first_sha=pending_first_sha,
     )
-    server = os.getenv("GITHUB_SERVER_URL")
-    repo = os.getenv("GITHUB_REPOSITORY")
-    run_id = os.getenv("GITHUB_RUN_ID")
-    run_url = f"{server}/{repo}/actions/runs/{run_id}" if server and repo and run_id else None
+    workflow = _workflow_context()
     return EventIdentity(
         event_id=event_id,
         course_id=int(course_id),
         object_id=object_id,
         kind=kind,
         source_sha=source_sha,
-        workflow_run_id=run_id,
-        workflow_run_attempt=os.getenv("GITHUB_RUN_ATTEMPT"),
-        workflow_run_url=run_url,
+        workflow_run_id=workflow["run_id"],
+        workflow_run_attempt=workflow["run_attempt"],
+        workflow_run_url=workflow["run_url"],
         desired_fingerprint=desired_fingerprint,
         baseline_fingerprint_before=baseline_fingerprint,
         pending_first_sha=pending_first_sha,
@@ -165,11 +185,7 @@ class MemoryHistoryStore:
 
 
 class GitHubHistoryStore:
-    """Append-only operational history in a dedicated derived Git branch.
-
-    The branch is never a learner-facing source. Each logical transition is a separate
-    immutable JSON file. Existing records may only be re-submitted byte-for-byte.
-    """
+    """Append-only operational history in a dedicated derived Git branch."""
 
     def __init__(
         self,
@@ -240,7 +256,7 @@ class GitHubHistoryStore:
     def _path(self, event_id: str, record_id: str) -> str:
         if not re.fullmatch(r"evt-[0-9a-f]{32}", event_id):
             raise DeploymentHistoryError("Некорректный event_id")
-        if not re.fullmatch(r"[a-z0-9-]{8,160}", record_id):
+        if not re.fullmatch(r"[a-z0-9-]{8,180}", record_id):
             raise DeploymentHistoryError("Некорректный record_id")
         return f"{HISTORY_PREFIX}/{event_id}/{record_id}.json"
 
@@ -333,11 +349,21 @@ class DeploymentRecorder:
 
     def _append(self, phase: str, payload: dict[str, Any], *, operation_id: str | None = None) -> dict[str, Any]:
         record_id = stable_record_id(self.identity.event_id, phase, operation_id)
+        current_workflow = _workflow_context()
+        relationship = None
+        if current_workflow.get("run_id") and current_workflow.get("run_id") != self.identity.workflow_run_id:
+            relationship = {
+                "type": "RETRY_OR_CONTINUATION_OF_EVENT",
+                "event_id": self.identity.event_id,
+                "origin_run_id": self.identity.workflow_run_id,
+            }
         record = {
             "history_schema_version": HISTORY_SCHEMA_VERSION,
             "record_id": record_id,
             "phase": phase,
             "identity": self.identity.as_dict(),
+            "recorded_by_workflow": current_workflow,
+            "event_relationship": relationship,
             **payload,
         }
         self.store.append(self.identity.event_id, record_id, record)
@@ -400,6 +426,17 @@ class DeploymentRecorder:
                 "target": target,
                 "fingerprint_before": fingerprint_before,
                 "expected_fingerprint_after": expected_fingerprint_after,
+                "external_write_started": False,
+            },
+            operation_id=operation_id,
+        )
+
+    def write_dispatch_started(self, *, operation_id: str) -> dict[str, Any]:
+        return self._append(
+            "WRITE_DISPATCH_STARTED",
+            {
+                "recorded_at": utc_now(),
+                "operation_id": operation_id,
                 "external_write_started": True,
             },
             operation_id=operation_id,
@@ -432,10 +469,11 @@ class DeploymentRecorder:
         )
 
     def readback_failed(self, *, operation_id: str | None, reason_code: str) -> dict[str, Any]:
+        suffix = operation_id or _attempt_token()
         return self._append(
             "READBACK_FAILED",
             {"recorded_at": utc_now(), "operation_id": operation_id, "read_back_result": "UNAVAILABLE", "reason_code": reason_code},
-            operation_id=operation_id,
+            operation_id=suffix,
         )
 
     def final_readback(
@@ -469,9 +507,11 @@ class DeploymentRecorder:
                 "external_write_started": not before_any_write,
                 "status": "FAILED",
             },
+            operation_id=_attempt_token(),
         )
 
     def recovery_classified(self, *, classification: str, reason_codes: Iterable[str]) -> dict[str, Any]:
+        token = f"{_safe_token(classification)}-{_attempt_token()}"
         return self._append(
             "RECOVERY_CLASSIFIED",
             {
@@ -479,9 +519,41 @@ class DeploymentRecorder:
                 "recovery_status": classification,
                 "reason_codes": sorted(set(str(value) for value in reason_codes)),
             },
+            operation_id=token,
+        )
+
+    def reconcile_classified(
+        self,
+        *,
+        classification: str,
+        action: str,
+        reason_codes: Iterable[str],
+        live_fingerprint: str,
+        baseline_fingerprint: str | None,
+        current_main_sha: str,
+        owner_approval_required: bool,
+    ) -> dict[str, Any]:
+        token = f"{_safe_token(classification)}-{_attempt_token()}"
+        return self._append(
+            "RECONCILE_CLASSIFIED",
+            {
+                "recorded_at": utc_now(),
+                "reconcile_status": classification,
+                "action": action,
+                "reason_codes": sorted(set(str(value) for value in reason_codes)),
+                "live_fingerprint": live_fingerprint,
+                "baseline_fingerprint": baseline_fingerprint,
+                "current_main_sha": current_main_sha,
+                "owner_approval_required": owner_approval_required,
+            },
+            operation_id=token,
         )
 
     def state_committed(self, *, baseline_after: dict[str, Any] | None, status: str, committed_at: str | None = None) -> dict[str, Any]:
+        if status not in {"APPLIED", "NOOP_CONFIRMED"}:
+            raise DeploymentHistoryError(f"Некорректный committed status: {status}")
+        if not isinstance(baseline_after, dict):
+            raise DeploymentHistoryError("MACHINE_STATE_COMMITTED требует baseline_after")
         return self._append(
             "MACHINE_STATE_COMMITTED",
             {
@@ -496,22 +568,29 @@ class DeploymentRecorder:
 def summarize_event(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
     ordered = list(records)
     phases = [str(record.get("phase")) for record in ordered]
-    writes = [record for record in ordered if record.get("phase") == "WRITE_INTENT"]
+    intents = [record for record in ordered if record.get("phase") == "WRITE_INTENT"]
+    dispatches = [record for record in ordered if record.get("phase") == "WRITE_DISPATCH_STARTED"]
     ambiguous = [record for record in ordered if record.get("phase") == "WRITE_AMBIGUOUS"]
     readback_failed = [record for record in ordered if record.get("phase") == "READBACK_FAILED"]
-    final = next((record for record in reversed(ordered) if record.get("phase") == "FINAL_READBACK_CONFIRMED"), None)
-    committed = next((record for record in reversed(ordered) if record.get("phase") == "MACHINE_STATE_COMMITTED"), None)
-    confirmed_ops = [record for record in ordered if record.get("phase") == "OP_READBACK_CONFIRMED"]
+    final = next((record for record in ordered if record.get("phase") == "FINAL_READBACK_CONFIRMED"), None)
+    committed = next((record for record in ordered if record.get("phase") == "MACHINE_STATE_COMMITTED"), None)
+    confirmed_ops = sorted(
+        (record for record in ordered if record.get("phase") == "OP_READBACK_CONFIRMED"),
+        key=lambda record: str(record.get("operation_id") or ""),
+    )
     last_confirmed = confirmed_ops[-1] if confirmed_ops else None
     return {
         "phases": phases,
-        "external_write_started": bool(writes),
-        "writes_started": len(writes),
+        "external_write_started": bool(dispatches),
+        "write_intents": len(intents),
+        "writes_started": len(dispatches),
         "ambiguous": bool(ambiguous),
         "readback_failed": bool(readback_failed),
         "final_readback_confirmed": final is not None,
         "final_fingerprint": None if final is None else final.get("fingerprint_after"),
+        "final_status": None if final is None else final.get("status"),
         "machine_state_committed": committed is not None,
+        "committed_baseline_after": None if committed is None else committed.get("baseline_after"),
         "last_confirmed_operation_fingerprint": None if last_confirmed is None else last_confirmed.get("fingerprint_after"),
         "confirmed_operation_count": len(confirmed_ops),
     }
