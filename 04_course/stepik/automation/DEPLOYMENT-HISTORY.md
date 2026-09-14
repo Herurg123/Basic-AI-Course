@@ -23,9 +23,9 @@ Issue body не превращается в бесконечный event log. Hu
 
 ## 3. Почему отдельная derived branch допустима
 
-Эта branch содержит только эксплуатационные evidence records, которые появляются во время live/recovery/reconcile runs и поэтому не могут проходить обычный content PR до внешней операции. Она не является конкурирующей версией проектных документов и не меняет `main`.
+History branch инициализируется от конкретного source SHA репозитория, поэтому технически содержит snapshot дерева репозитория на момент создания. Это snapshot **никогда не используется как источник курса**. Единственные штатные последующие mutations automation в этой branch ограничены эксплуатационными evidence records под `.stepik-deployment-history/events/`.
 
-Workflow имеет `contents: write` только в live job и код history store жёстко ограничивает запись branch `stepik-deployment-history-v1` и префиксом `.stepik-deployment-history/events/`.
+Таким образом branch не является конкурирующей версией проектных документов и не меняет `main`. Workflow имеет `contents: write` только в live job, а код history store жёстко фиксирует имя branch и evidence-prefix.
 
 Branch protection, rulesets и GitHub Environment этим контрактом не меняются.
 
@@ -53,6 +53,8 @@ Event identity хранит исходный GitHub Actions `run_id`, `run_attem
 
 - byte-equivalent payload считается idempotent retry;
 - другой payload = `STOP`, переписывать историю запрещено.
+
+Для `WRITE_INTENT` действует semantic-idempotency: повторный run может переиспользовать уже существующий intent только если operation ID, method, target и fingerprints полностью совпадают. Новый timestamp не создаёт вторую semantic operation.
 
 Основные phases:
 
@@ -99,7 +101,7 @@ Reconcile-only observation может существовать без `EVENT_STA
 - доказанный отказ без server-side commit → `WRITE_FAILED_KNOWN`;
 - timeout/network failure/HTTP 5xx/неоднозначный успешный ответ → `WRITE_AMBIGUOUS`.
 
-`WRITE_AMBIGUOUS` никогда не приводит к blind retry.
+`WRITE_AMBIGUOUS` никогда не приводит к blind retry. Новый dispatch после `WRITE_FAILED_KNOWN` также не маскируется под прежнюю попытку: history v1 требует отдельного owner-directed retry route/attempt identity.
 
 ## 7. Read-back evidence
 
@@ -125,7 +127,9 @@ HTTP success без read-back не является confirmed deployment.
 
 Перед записью `MACHINE_STATE_COMMITTED` automation обязана проверить, что status и baseline-after из фактически PATCH-нутого state точно совпадают с status и `actual_confirmed_state` из `FINAL_READBACK_CONFIRMED`. Нельзя отметить committed другой baseline только потому, что PATCH технически завершился успешно.
 
-Если Stepik уже подтверждён, а Issue PATCH не состоялся, event остаётся намеренно незавершённым. Следующий recovery может восстановить machine state без повторного Stepik write, но только при доказуемом совпадении свежего live fingerprint с `FINAL_READBACK_CONFIRMED`.
+Если Stepik уже подтверждён, а Issue PATCH не состоялся, event остаётся намеренно незавершённым. Следующий recovery может восстановить machine state без повторного Stepik write, но только при доказуемом совпадении fresh live fingerprint с `FINAL_READBACK_CONFIRMED` **и** допустимом current baseline provenance. Current baseline незавершённого event может быть только baseline-before этого event или уже подтверждённым final baseline; третье значение = `MACHINE_STATE_DIVERGED_DURING_EVENT` и owner decision.
+
+Если Issue PATCH фактически уже состоялся, но history commit упал, recovery не откатывает более новый `updated_at`: он сохраняет уже подтверждённый current state и завершает только недостающий history/state handshake.
 
 ## 9. Reconcile evidence
 
@@ -142,6 +146,8 @@ HTTP success без read-back не является confirmed deployment.
 - workflow identity текущего run.
 
 Reconcile-only records не превращаются в deployment event, пока не появился `EVENT_STARTED`.
+
+Для `STALE_MACHINE_BASELINE` используется только последний однозначно доказуемый `MACHINE_STATE_COMMITTED` объекта. Старый event, случайно совпавший с current live, не является достаточным evidence. Если несколько latest committed records с одинаковым временем дают разные fingerprints, состояние считается неоднозначным и fail-closed.
 
 ## 10. Что event обязан позволять определить
 
