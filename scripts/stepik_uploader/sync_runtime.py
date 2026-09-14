@@ -44,7 +44,7 @@ else:
     from .planner import plan_dry_run
     from .reconcile import classify_reconcile
     from .reporting import build_report, write_json
-    from .stepik_uploader.stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
+    from .stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
     from .sync_state import SyncStateError, assess_sync, baseline_for, close_lesson_pending, load_state, with_record
     from .writer import ContentWriteError, execute_content_sync_one
 
@@ -191,7 +191,7 @@ def main() -> int:
             raise ContentWriteError("Текущий pilot sync target попал в protected lesson")
         free_answer_source = profile.get("observed_conventions", {}).get("free_answer_source")
         if not isinstance(free_answer_source, dict):
-            raise ContentCompileError("В golden profile отсутствует free_answer_source")
+            raise ContentCompileError("В golden profile отсутствует free_answer source")
         compiled = compile_test_lesson(repo_root, free_answer_source=free_answer_source, lesson_id=TEST_LESSON_ID)
         expected_title = f"{TEST_LESSON_ID} — {lesson['title']}"
         live_lesson = _live_lesson(snapshot, module_position=int(module["position"]), lesson_position=int(lesson["position"]))
