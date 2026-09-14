@@ -256,7 +256,8 @@ class WriterHistoryTests(unittest.TestCase):
             recovery_expected_live_fingerprint=desired_live_fp,
         )
         self.assertTrue(result.verified)
-        self.assertEqual(result.operations, [])
+        self.assertEqual(result.operations, [{"action": "RECOVERY_FINALIZE_PRIOR_APPLIED", "stepik_writes": 0}])
+        self.assertEqual(client.update_count, 0)
         final = next(record for record in recorder.records(refresh=True) if record["phase"] == "FINAL_READBACK_CONFIRMED")
         self.assertEqual(final["status"], "APPLIED")
 
