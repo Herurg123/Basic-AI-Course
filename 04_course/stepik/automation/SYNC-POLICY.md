@@ -2,216 +2,146 @@
 
 **Статус:** production automation contract  
 **Курс Stepik:** `299189`  
-**Журнал deployment state:** GitHub Issue `#54`  
-**Источник содержания:** только актуальный `main`
+**Current machine state:** GitHub Issue `#54`  
+**Immutable deployment history:** derived branch `stepik-deployment-history-v1`  
+**Источник learner-facing содержания:** только актуальный `main`
 
 ## 1. Базовый принцип
 
-После merge в `main` workflow не выполняет Stepik write автоматически. Он только определяет потенциальный learner-facing impact и обновляет machine-readable deployment state в Issue `#54`.
+Merge в `main` не выполняет Stepik write автоматически. Он только определяет learner-facing impact и обновляет machine-readable PENDING в Issue `#54`.
 
-Live sync запускается отдельно владельцем. Перед любой записью он обязан подтвердить, что live Stepik всё ещё совпадает с последним подтверждённым baseline. Drift = STOP.
+Live sync запускается отдельным owner dispatch. Перед записью automation сверяет current `main`, live Stepik, confirmed baseline и незавершённую deployment history. Неоднозначность означает `STOP`.
 
-Issue `#54` хранит только deployment state и append-only журнал операций. Он не является источником содержания курса.
+Issue `#54` и deployment-history branch являются только эксплуатационным состоянием и не используются как источник содержания курса.
 
-## 2. Что остаётся закрытым
+## 2. Закрытые области
 
-До отдельного решения владельца:
-
-- M00-L01 и M00-L02 остаются golden `READ_ONLY`;
+- `M00-L01` и `M00-L02` остаются golden `READ_ONLY`;
 - общий bulk write закрыт;
-- автоматический `DELETE` запрещён;
-- структурные изменения steps, reorder и неподтверждённые metadata update не применяются автоматически;
-- Stepik course page не записывается этим контуром;
-- branch protection, rulesets, GitHub Environment и организация secrets не входят в этот контракт.
+- `DELETE` запрещён;
+- structural step changes, reorder и неподтверждённые metadata update не применяются обычным route;
+- Stepik course page пока не имеет write route;
+- automatic adoption/rebaseline неизвестного live state запрещён.
 
-## 3. Machine-readable sync state
+## 3. Три слоя состояния
 
-В body Issue `#54` находится единственный machine-readable JSON block между markers:
+Система разделяет:
 
-```text
-<!-- STEPIK_SYNC_STATE_V1_BEGIN -->
-...
-<!-- STEPIK_SYNC_STATE_V1_END -->
-```
+1. **Current machine state** в Issue `#54`: confirmed lesson baselines и активный PENDING.
+2. **Immutable deployment/recovery history**: append-only JSON evidence records в `stepik-deployment-history-v1`.
+3. **Human-readable comments Issue #54**: журнал результатов, blockers и owner decisions.
 
-Имя marker сохранено для миграционной совместимости. Актуальная внутренняя `schema_version` равна `2`.
+Current state отвечает на вопрос «что подтверждено сейчас». History отвечает на вопрос «что реально происходило и что можно доказать после сбоя». Comments помогают человеку, но не заменяют machine evidence.
 
-State содержит:
+Schema history: [`DEPLOYMENT-HISTORY.md`](DEPLOYMENT-HISTORY.md). Recovery/reconcile: [`RECOVERY-RECONCILE.md`](RECOVERY-RECONCILE.md).
 
-- `course_id`;
-- `updated_at`;
-- `lessons` — последние подтверждённые deployment baselines;
-- `pending.lessons` — текущий backlog уроков с Git changes, ещё не подтверждёнными в Stepik;
-- `pending.course_page` — отдельный pending object для Stepik course page либо `null`.
+## 4. Current machine state schema v2
 
-Существующий schema v1 читается fail-closed и нормализуется в v2 с пустым pending. После следующего успешного PATCH сохраняется schema v2.
+В body Issue `#54` находится один JSON block между markers `STEPIK_SYNC_STATE_V1_BEGIN/END`. Marker name сохранено для migration compatibility; внутренняя `schema_version=2`.
 
-## 4. Формат lesson pending
+State содержит `course_id`, `updated_at`, `lessons`, `pending.lessons` и отдельный `pending.course_page`.
 
-Для каждого canonical Lesson ID хранится один текущий pending object:
+На один canonical Lesson ID существует один active pending object. Повторный merge сохраняет `first_pending_*`, обновляет `latest_pending_*` и объединяет `source_paths/reason_codes`.
 
-```json
-{
-  "object_id": "M03-L02",
-  "kind": "lesson",
-  "status": "PENDING",
-  "reason_codes": ["direct-lesson-source", "shared-learner-dependency"],
-  "source_paths": ["04_course/M03/M03-L02/lesson.md"],
-  "first_pending_sha": "<40-char sha>",
-  "latest_pending_sha": "<40-char sha>",
-  "first_pending_at": "<UTC timestamp>",
-  "latest_pending_at": "<UTC timestamp>",
-  "confirmed_baseline_ref": null
-}
-```
+## 5. Закрытие pending
 
-Если у урока есть подтверждённый deployment baseline, `confirmed_baseline_ref` содержит ссылку `state_path=lessons.<Lesson ID>` и snapshot ключевых полей baseline: Stepik lesson ID, applied source SHA/time и fingerprint.
-
-Если подтверждённого baseline нет, значение равно `null`; automation не выдумывает baseline.
-
-Повторный merge того же уже pending-урока:
-
-- не создаёт вторую логическую очередь;
-- сохраняет `first_pending_sha` и `first_pending_at`;
-- обновляет `latest_pending_sha` и `latest_pending_at`;
-- объединяет `source_paths` и `reason_codes`.
-
-## 5. Course page pending
-
-`pending.course_page` имеет тот же жизненный цикл, но `kind=course_page` и `object_id=course-page`.
-
-Course page не смешивается с lesson backlog и не закрывается lesson sync.
-
-Пока для course page нет отдельного подтверждённого deployment baseline, `confirmed_baseline_ref` остаётся `null`.
-
-## 6. Когда pending закрывается
-
-Lesson pending удаляется из текущего backlog только после подтверждённого live read-back соответствующего объекта и результата:
+Lesson pending закрывается только после доказанного confirmed state:
 
 - `APPLIED`; или
 - `NOOP_CONFIRMED`.
 
-Простой запуск workflow, dry-run, status-check, комментарий или отсутствие планируемой записи pending не закрывают.
+Для нового deployment это требует durable `FINAL_READBACK_CONFIRMED`, после чего next state проходит обычный compare-before-PATCH guard Issue `#54`.
 
-Для текущего pilot sync M02-L01 `sync_runtime.py` формирует `sync-state.next.json` только после `result.verified == true`; APPLIED обновляет baseline и закрывает только M02-L01, NOOP_CONFIRMED закрывает только M02-L01 без фиктивной Stepik записи.
+`APPLIED` означает, что в рамках логического event был внешний Stepik write. Это остаётся `APPLIED`, если recovery-run лишь завершил final read-back после ранее подтверждённых step-writes.
 
-## 7. Dependency-aware impact
+`NOOP_CONFIRMED` означает, что логический event не выполнял Stepik write и fresh live уже совпадал с confirmed baseline/canonical state.
 
-Impact-detector использует `git diff --name-status -M`, поэтому различает added, modified, renamed и deleted paths.
+Dry-run, status, reconcile-only classification, HTTP success без read-back и partial state pending не закрывают.
 
-Для dependency mapping строятся два графа:
+## 6. Dependency-aware impact
 
-- before graph по предыдущему main SHA;
-- after graph по новому main SHA.
+Impact detector использует `git diff --name-status -M` и before/after dependency graph из repo-relative Markdown links canonical `lesson.md` и `stepik-plan.md`.
 
-Граф выводится из repo-relative Markdown links в канонических:
+Учитываются added, modified, renamed и deleted files. Direct learner content, lesson assets и course page классифицируются отдельно. Shared learner-facing dependency связывается с реальными consumers через graph, а не через второй ручной список.
 
-- `04_course/Mxx/Mxx-Lyy/lesson.md`;
-- `04_course/Mxx/Mxx-Lyy/stepik-plan.md`.
+`author-notes.md`, review-only материалы, tooling/scripts/tests/workflows и `04_course/stepik/automation/**` сами по себе learner PENDING не создают.
 
-Ручной второй список consumers не поддерживается.
+Unknown или ambiguous learner dependency = `STOP` без PATCH Issue.
 
-### Прямые классы impact
+## 7. Baseline и drift
 
-Всегда учитываются:
+Confirmed lesson baseline хранит canonical Lesson ID, Stepik lesson ID, applied source SHA/time, fingerprint, step IDs и source Git paths.
 
-- canonical `lesson.md`;
-- canonical `stepik-plan.md`;
-- `05_assets/Mxx/Mxx-Lyy/**` как lesson asset;
-- `04_course/stepik/course-page.md` как отдельный course-page object.
+Normal write разрешён, когда fresh live точно совпадает с baseline, а desired canonical state отличается поддерживаемым способом.
 
-### Shared learner-facing dependencies
+`live != baseline` сначала проходит history-backed reconcile:
 
-Repo-local dependency link из canonical lesson/plan связывает изменённый target с реальными Lesson ID.
+- доказанный automation residue может быть recovery case;
+- доказанный final automation write с отсутствующим state PATCH может быть state-only recovery;
+- unknown/manual origin остаётся `STOP_OWNER_DECISION`.
 
-Это покрывает, в частности, общие learner-facing Markdown-файлы в `04_course/stepik/`, например `how-to-save-practice.md`, а также переиспользованные assets другого урока.
+Совпадение `live == canonical` само по себе не доказывает происхождение и не разрешает auto-rebaseline.
 
-Для modified path используется объединение before/after mapping. Для rename учитываются old path из before graph и new path из after graph. Для delete используется before mapping; оставшаяся после delete ссылка на удалённый shared файл является blocker.
+## 8. Deployment history
 
-### Что не создаёт learner impact само по себе
+До каждого внешнего Stepik write durable history обязана получить `WRITE_INTENT`. Если evidence не сохранено, write запрещён.
 
-- `author-notes.md`;
-- review-only документы;
-- tooling/scripts/tests/workflows;
-- файлы `04_course/stepik/automation/**`.
+History связывает event с canonical object/kind, source SHA, workflow/run identity, state before, desired state, Stepik IDs, per-operation write intent/result/read-back, final read-back, failure/recovery reason и machine-state commit.
 
-Изменение этих файлов может запускать обычный CI, но не создаёт PENDING курса без фактической learner dependency.
+Timeout, network failure, HTTP 5xx или иной неизвестный server-side outcome = `WRITE_AMBIGUOUS`; blind retry запрещён.
 
-## 8. Unknown dependency = STOP
+## 9. Recovery и reconcile
 
-Любой изменённый shared learner-facing Markdown-файл в `04_course/stepik/` вне `automation/**` и вне `course-page.md` обязан иметь однозначно выводимый canonical consumer mapping.
+`sync-reconcile` является read-only route: читает live state и history, классифицирует ситуацию и ничего не записывает в Stepik.
 
-Если mapping отсутствует, impact job завершается с blocker `unknown-learner-facing-dependency` и не PATCH-ит Issue `#54`.
+Auto action допустим только когда происхождение доказуемо:
 
-При rename новый shared path также обязан иметь mapping в after graph. При delete остаточная canonical ссылка на удалённый path блокирует job.
+- final read-back доказан, state PATCH отсутствует, fresh live совпадает: state-only recovery, Stepik writes `0`;
+- partial prefix подтверждён per-operation read-back, fresh live совпадает с last confirmed intermediate fingerprint: continuation только remaining operations;
+- baseline/live совпадают: обычный guarded sync либо no-op.
 
-Это намеренный fail-closed режим: лучше красный deployment gate, чем пропущенное изменение learner-facing содержания.
+Owner decision обязателен при manual/unknown drift, ambiguous result, failed read-back без доказательства, structural/metadata divergence, golden lesson, conflicting events, missing baseline с неизвестным origin и adoption/rebaseline.
 
-## 9. Race protection Issue #54
+Новый `main` не меняет target уже начатого event. `event.source_sha != current main` блокирует старый recovery и не позволяет ему закрыть новый pending.
 
-Любой автоматический PATCH machine state выполняется только по схеме:
+## 10. Race protection
 
-1. прочитать текущий body Issue `#54`;
-2. извлечь и нормализовать expected machine state;
-3. вычислить следующий state локально;
-4. непосредственно перед PATCH снова прочитать Issue;
-5. извлечь current machine state;
-6. сравнить expected и current;
-7. PATCH разрешён только при точном совпадении;
-8. если state изменился, STOP без перезаписи.
+Current machine state PATCH выполняется только по схеме:
 
-Append-only комментарий добавляется только после успешного PATCH соответствующего state.
+`read expected → compute next → re-read current → compare → PATCH only if unchanged`.
 
-Тот же compare-before-patch используется после `sync-changed`, чтобы live run не затёр pending/baseline update другого процесса.
+После live deployment `MACHINE_STATE_COMMITTED` добавляется в immutable history только после успешного Issue PATCH.
 
-## 10. Baseline и drift
-
-Подтверждённый lesson baseline хранит как минимум:
-
-- canonical Lesson ID;
-- Stepik lesson ID;
-- applied source SHA;
-- applied timestamp;
-- applied fingerprint;
-- подтверждённые Stepik step IDs;
-- source Git paths, использованные компилятором.
-
-Write разрешается только когда live fingerprint точно совпадает с последним baseline и desired content отличается разрешённым способом.
-
-Если live Stepik отличается от baseline, automation не угадывает происхождение изменения и не перезаписывает его: `DRIFT_BLOCKED`.
+Если final Stepik read-back уже durable-зафиксирован, а PATCH не состоялся, следующий recovery может восстановить state без повторного Stepik write только при достаточном evidence.
 
 ## 11. Live safety
 
-Все live jobs подчиняются `LIVE-SAFETY.md`:
+Сохраняются:
 
-- current-main guard;
-- единый course mutex `stepik-live-course-299189`;
-- отсутствие автоматического write retry;
-- read-back после записи;
-- fail-closed guards до Stepik API.
+- fresh current-main guard;
+- единый mutex `stepik-live-course-299189`;
+- отсутствие blind automatic write retry;
+- durable write-ahead history;
+- per-operation и final read-back;
+- fail-closed unknown state/dependency;
+- запрет destructive recovery и `DELETE`.
 
-## 12. Журналирование
+Подробности: [`LIVE-SAFETY.md`](LIVE-SAFETY.md).
 
-Machine-readable block показывает текущее состояние.
+## 12. Human-readable journal
 
-Комментарии Issue `#54` остаются append-only историей событий, например:
+Comments Issue `#54` остаются append-only human log для PENDING, APPLIED, NOOP, RECOVERED_STATE, blockers и owner decisions.
 
-- baseline bootstrap;
-- PENDING detection/update;
-- read-only preflight;
-- APPLIED;
-- NOOP_CONFIRMED;
-- blockers и owner decisions, если они нужны для эксплуатации.
+Comment не является единственным доказательством deployment и не используется вместо machine state/history.
 
-Комментарий не заменяет machine state и не должен использоваться как единственный способ определить текущий pending backlog.
+## 13. Ownership matrix
 
-## 13. Следующий этап, который этим документом не реализуется
+Эксплуатационная ownership matrix находится в [`ownership-matrix.v1.json`](ownership-matrix.v1.json) и проверяется automated completeness test.
 
-Отдельно остаются:
+Она определяет source of truth, detection/initiation/execution ownership, approval, retry/partial/reconcile/rebaseline policy, mandatory STOP, evidence, state mutation и history event для обязательных классов событий.
 
-- полноценная deployment history как структурированный журнал;
-- recovery после partial write или state-patch failure;
-- baseline reconcile;
-- ownership matrix для типов изменений и ручных решений.
+Матрица не является вторым content manifest.
 
-Эти задачи не разблокируют общий bulk write автоматически и выполняются отдельным этапом.
+## 14. Что этот этап не разблокирует
+
+History/recovery/reconcile не разблокируют общий bulk write, course-page write, golden write, `DELETE` или автоматическое принятие неизвестного live state как baseline.
