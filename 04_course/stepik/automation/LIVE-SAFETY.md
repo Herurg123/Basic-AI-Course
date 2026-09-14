@@ -23,15 +23,15 @@ Guard работает fail-closed и разрешает live-фазу толь�
 
 Guard не является механизмом отмены уже начатого Stepik write. После прохождения guard live-операция выполняется как единая защищённая фаза; автоматическое прерывание write из-за нового commit в середине операции запрещено, потому что это повышает риск частично записанного состояния. Следующий deployment снова обязан пройти current-main guard и обычные baseline/drift checks.
 
-## 2. Единый live mutex на course ID
+## 2. Единый live mutex текущего production course
 
-Все production jobs, обращающиеся к реальному Stepik course, используют один job-level concurrency contract:
+Все production jobs, обращающиеся к реальному Stepik course `299189`, используют один фиксированный job-level concurrency contract:
 
 ```text
-stepik-live-course-${course_id}
+stepik-live-course-299189
 ```
 
-Для текущего курса это логически один mutex `stepik-live-course-299189`.
+Имя mutex намеренно не строится из пользовательского `course_id`. Иначе строки вроде `299189` и `0299189` могли бы попасть в разные concurrency groups, хотя после числового разбора указывали бы на один и тот же Stepik course.
 
 `cancel-in-progress` всегда `false`: новый read-only или write run не имеет права отменять уже начатую live-фазу.
 
@@ -39,9 +39,11 @@ stepik-live-course-${course_id}
 
 - live job workflow `Stepik Uploader`;
 - live job workflow `Stepik Bulk Status`;
-- будущие workflows этого же course ID, если они читают или пишут live Stepik.
+- будущие workflows этого же production course, если они читают или пишут live Stepik.
 
 Read-only inspect не выполняется параллельно с write. Два read-only live run тоже сериализуются. Это намеренно: preflight snapshot должен описывать одно устойчивое состояние курса, а не объект, который другой workflow меняет во время чтения.
+
+Если в проекте когда-либо появится второй production Stepik course, для него сначала вводится отдельный явно проверенный fixed mutex и target-validation contract. Пользовательский input не должен сам определять пространство блокировок.
 
 ## 3. Что не сериализуется
 
