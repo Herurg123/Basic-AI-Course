@@ -31,6 +31,7 @@ else:
 
 GOLDEN_PROFILE_PATH = Path("04_course/stepik/automation/golden-profile.v1.json")
 BLOCKED_SYNC_STATUSES = {
+    "BASELINE_BOOTSTRAP_REQUIRED",
     "BASELINE_MISSING_BLOCKED",
     "DRIFT_BLOCKED",
     "METADATA_UPDATE_BLOCKED",
@@ -131,7 +132,12 @@ def main() -> int:
         write_json(report_dir / "course-snapshot.json", snapshot)
         plan = plan_dry_run(manifest, snapshot)
         profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
-        profile_blockers = validate_golden_profile(profile, snapshot, manifest)
+        profile_blockers = validate_golden_profile(
+            profile,
+            snapshot,
+            manifest,
+            allow_course_publication_change=True,
+        )
         golden_status = mark_golden_profile_result(plan, profile_blockers)
         if golden_status != "confirmed" or plan.blockers:
             raise ContentWriteError(
@@ -164,6 +170,8 @@ def main() -> int:
         sync_payload = {
             "scope": "pilot-M02-L01-until-general-compiler-is-enabled",
             "canonical_id": TEST_LESSON_ID,
+            "course_is_public": snapshot.get("course", {}).get("is_public"),
+            "lesson_is_public": live_lesson.get("is_public"),
             "status": assessment.status,
             "desired_fingerprint": assessment.desired_fingerprint,
             "live_fingerprint": assessment.live_fingerprint,
