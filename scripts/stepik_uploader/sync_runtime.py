@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,7 @@ if __package__ in {None, ""}:
     from stepik_uploader.planner import plan_dry_run
     from stepik_uploader.reporting import build_report, write_json
     from stepik_uploader.stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
-    from stepik_uploader.sync_state import SyncStateError, assess_sync, baseline_for, load_state, with_record
+    from stepik_uploader.sync_state import SyncStateError, assess_sync, baseline_for, close_lesson_pending, load_state, with_record
     from stepik_uploader.writer import ContentWriteError, execute_content_sync_one
 else:
     from .api import StepikAPIError, StepikClient
@@ -26,7 +27,7 @@ else:
     from .planner import plan_dry_run
     from .reporting import build_report, write_json
     from .stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
-    from .sync_state import SyncStateError, assess_sync, baseline_for, load_state, with_record
+    from .sync_state import SyncStateError, assess_sync, baseline_for, close_lesson_pending, load_state, with_record
     from .writer import ContentWriteError, execute_content_sync_one
 
 GOLDEN_PROFILE_PATH = Path("04_course/stepik/automation/golden-profile.v1.json")
@@ -61,16 +62,18 @@ def _live_lesson(snapshot: dict[str, Any], *, module_position: int, lesson_posit
         raise ContentWriteError(f"Не найден единственный section position={module_position}")
     units = [u for u in sections[0].get("units", []) if u.get("position") == lesson_position]
     if len(units) != 1:
-        raise ContentWriteError(
-            f"Не найден единственный unit section={module_position} position={lesson_position}"
-        )
+        raise ContentWriteError(f"Не найден единственный unit section={module_position} position={lesson_position}")
     lesson = units[0].get("lesson")
     if not isinstance(lesson, dict):
         raise ContentWriteError("В unit отсутствует lesson")
     return lesson
 
 
-def _journal_markdown(*, source_sha_value: str, result: Any, record: dict[str, Any]) -> str:
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _journal_markdown(*, source_sha_value: str, result: Any, record: dict[str, Any], confirmed_at: str) -> str:
     run_url = ""
     if os.getenv("GITHUB_SERVER_URL") and os.getenv("GITHUB_REPOSITORY") and os.getenv("GITHUB_RUN_ID"):
         run_url = f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
@@ -78,24 +81,18 @@ def _journal_markdown(*, source_sha_value: str, result: Any, record: dict[str, A
     if updated_positions:
         heading = f"### APPLIED: `{TEST_LESSON_ID}` синхронизирован со Stepik"
         operation_line = f"- обновлённые позиции steps: `{updated_positions}`"
-        final_note = (
-            "Запись baseline выполнена только после успешного read-back. Следующее обновление разрешается лишь если "
-            "live Stepik всё ещё совпадает с этим fingerprint."
-        )
+        final_note = "Запись baseline и закрытие pending выполнены только после успешного read-back. Следующее обновление разрешается лишь если live Stepik всё ещё совпадает с этим fingerprint."
     else:
         heading = f"### NOOP_CONFIRMED: `{TEST_LESSON_ID}` уже синхронизирован"
         operation_line = "- Stepik writes: `0`"
-        final_note = (
-            "Live Stepik, текущий канон и подтверждённый baseline совпали. Никаких PUT/POST не отправлялось; "
-            "PENDING-запись этого source SHA не требует фактического обновления платформы."
-        )
+        final_note = "Live Stepik, текущий канон и подтверждённый baseline совпали. Никаких PUT/POST не отправлялось; pending этого объекта закрывается только вследствие подтверждённой проверки."
     lines = [
         heading,
         "",
         f"- source main SHA: `{source_sha_value}`",
         f"- Stepik lesson ID: `{result.lesson_id}`",
         operation_line,
-        f"- подтверждённый baseline/read-back: `{record['applied_at']}`",
+        f"- подтверждённый read-back: `{confirmed_at}`",
         f"- fingerprint: `{record['applied_fingerprint']}`",
     ]
     if run_url:
@@ -132,17 +129,10 @@ def main() -> int:
         write_json(report_dir / "course-snapshot.json", snapshot)
         plan = plan_dry_run(manifest, snapshot)
         profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
-        profile_blockers = validate_golden_profile(
-            profile,
-            snapshot,
-            manifest,
-            allow_course_publication_change=True,
-        )
+        profile_blockers = validate_golden_profile(profile, snapshot, manifest, allow_course_publication_change=True)
         golden_status = mark_golden_profile_result(plan, profile_blockers)
         if golden_status != "confirmed" or plan.blockers:
-            raise ContentWriteError(
-                "pre-sync live guards не пройдены: " + "; ".join(sorted(set(profile_blockers + plan.blockers)))
-            )
+            raise ContentWriteError("pre-sync live guards не пройдены: " + "; ".join(sorted(set(profile_blockers + plan.blockers))))
 
         module, lesson = _manifest_lesson(manifest, TEST_LESSON_ID)
         if lesson.get("golden_read_only") or lesson.get("independence_sensitive") or lesson.get("f1_sensitive"):
@@ -152,21 +142,11 @@ def main() -> int:
             raise ContentCompileError("В golden profile отсутствует free_answer_source")
         compiled = compile_test_lesson(repo_root, free_answer_source=free_answer_source, lesson_id=TEST_LESSON_ID)
         expected_title = f"{TEST_LESSON_ID} — {lesson['title']}"
-        live_lesson = _live_lesson(
-            snapshot,
-            module_position=int(module["position"]),
-            lesson_position=int(lesson["position"]),
-        )
+        live_lesson = _live_lesson(snapshot, module_position=int(module["position"]), lesson_position=int(lesson["position"]))
         state_path = args.sync_state if args.sync_state.is_absolute() else repo_root / args.sync_state
         state = load_state(state_path, course_id=args.course_id)
         baseline = baseline_for(state, TEST_LESSON_ID)
-        assessment = assess_sync(
-            canonical_id=TEST_LESSON_ID,
-            live_lesson=live_lesson,
-            expected_title=expected_title,
-            expected_steps=compiled,
-            baseline=baseline,
-        )
+        assessment = assess_sync(canonical_id=TEST_LESSON_ID, live_lesson=live_lesson, expected_title=expected_title, expected_steps=compiled, baseline=baseline)
         sync_payload = {
             "scope": "pilot-M02-L01-until-general-compiler-is-enabled",
             "canonical_id": TEST_LESSON_ID,
@@ -180,15 +160,7 @@ def main() -> int:
             "reasons": list(assessment.reasons),
         }
         write_json(report_dir / "sync-status.json", sync_payload)
-
-        report = build_report(
-            mode=args.mode,
-            source_sha=sha,
-            course_id=args.course_id,
-            manifest=manifest,
-            plan=plan,
-            read_objects=count_snapshot(snapshot),
-        )
+        report = build_report(mode=args.mode, source_sha=sha, course_id=args.course_id, manifest=manifest, plan=plan, read_objects=count_snapshot(snapshot))
         report["sync"] = sync_payload
         report["golden_profile_status"] = golden_status
 
@@ -224,26 +196,22 @@ def main() -> int:
         report["blockers"] = []
         report["verdict"] = "PASS" if result.verified else "BLOCKED"
 
-        if result.state_record is not None:
+        if result.state_record is not None and result.verified:
+            confirmed_at = _utc_now()
+            confirmation_status = "APPLIED" if report["updated"] > 0 else "NOOP_CONFIRMED"
+            next_state = state
             if report["updated"] > 0:
-                next_state = with_record(state, canonical_id=TEST_LESSON_ID, record=result.state_record)
-                write_json(report_dir / "sync-state.next.json", next_state)
+                next_state = with_record(next_state, canonical_id=TEST_LESSON_ID, record=result.state_record)
+            next_state = close_lesson_pending(next_state, canonical_id=TEST_LESSON_ID, confirmed_at=confirmed_at, confirmation_status=confirmation_status)
+            write_json(report_dir / "sync-state.next.json", next_state)
             (report_dir / "sync-journal.md").write_text(
-                _journal_markdown(source_sha_value=sha, result=result, record=result.state_record),
+                _journal_markdown(source_sha_value=sha, result=result, record=result.state_record, confirmed_at=confirmed_at),
                 encoding="utf-8",
             )
         write_json(report_dir / "run-report.json", report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if result.verified else 2
-    except (
-        CanonicalBuildError,
-        ContentCompileError,
-        ContentWriteError,
-        GoldenProfileError,
-        SyncStateError,
-        StepikAPIError,
-        RuntimeError,
-    ) as exc:
+    except (CanonicalBuildError, ContentCompileError, ContentWriteError, GoldenProfileError, SyncStateError, StepikAPIError, RuntimeError) as exc:
         report = {
             "course_id": args.course_id,
             "source_main_sha": sha,
