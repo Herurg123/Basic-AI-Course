@@ -57,11 +57,7 @@ def classify_reconcile(
     structural_divergence: bool = False,
     conflicting_event: bool = False,
 ) -> ReconcileDecision:
-    """Classify live/baseline/canonical/history without guessing provenance.
-
-    Auto actions are intentionally narrow. A matching live fingerprint alone never proves
-    provenance. Confirmed history is required to recover machine state automatically.
-    """
+    """Классифицирует live/baseline/canonical/history без догадок о происхождении."""
     if source_sha != current_main_sha:
         return _decision(
             "STALE_SOURCE_SHA",
@@ -181,6 +177,15 @@ def classify_reconcile(
             auto=False,
             owner=True,
             reasons=["partial-automation-residue", "subsequent-live-change"],
+        )
+
+    if summary.get("external_write_started"):
+        return _decision(
+            "WRITE_STARTED_WITHOUT_CONFIRMED_PREFIX",
+            "STOP_OWNER_DECISION",
+            auto=False,
+            owner=True,
+            reasons=["external-write-started", "no-confirmed-operation-state", "blind-retry-forbidden"],
         )
 
     if baseline_fingerprint is None:
