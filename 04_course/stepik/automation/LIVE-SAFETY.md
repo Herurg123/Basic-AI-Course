@@ -2,26 +2,28 @@
 
 **Статус:** production automation contract  
 **Курс Stepik:** `299189`  
-**Источник содержания:** только текущий HEAD `main`
+**Источник learner-facing содержания:** только текущий HEAD `main`
 
-Этот документ фиксирует инфраструктурные условия до обращения production workflow к реальному Stepik API. Он не меняет learner-facing содержание курса и не разблокирует общий bulk write.
+Этот документ фиксирует infrastructure guards для обращения production workflow к реальному Stepik API. Он не меняет learner-facing содержание и не разблокирует общий bulk write.
 
 ## 1. Current-main guard
 
-Любой актуальный production job, который собирается обратиться к реальному Stepik API, непосредственно перед live-фазой выполняет `scripts/stepik_uploader/live_guard.py`.
+Перед live-фазой production job запускает `scripts/stepik_uploader/live_guard.py`.
 
-Guard разрешает live-фазу только если одновременно:
+Guard разрешает live только если:
 
 - `GITHUB_REF == refs/heads/main`;
 - `GITHUB_SHA` является полным Git SHA;
-- GitHub API успешно возвращает текущий `refs/heads/main`;
-- remote HEAD `main` точно совпадает с `GITHUB_SHA` данного run.
+- GitHub API возвращает current `refs/heads/main`;
+- remote HEAD `main` точно совпадает с `GITHUB_SHA` run.
 
-Feature branch, устаревший SHA, недоступный GitHub API или неоднозначный ответ = STOP до Stepik API.
+Feature branch, stale SHA, недоступный API или неоднозначный ответ = `STOP` до Stepik API.
+
+Deployment/recovery event дополнительно навсегда связан со своим `source_sha`. Новый merge не меняет его target и не позволяет старому event закрыть новый pending.
 
 ## 2. Единый mutex курса
 
-Все актуальные live jobs курса `299189` используют один GitHub Actions concurrency group:
+Все live jobs курса `299189` используют один concurrency group:
 
 ```yaml
 concurrency:
@@ -29,92 +31,125 @@ concurrency:
   cancel-in-progress: false
 ```
 
-Mutex фиксирован по реальному course ID и не строится из пользовательского `inputs.course_id`.
+Mutex фиксирован по реальному course ID. Offline PR tests и structural dry-run этот mutex не держат.
 
-Это сериализует актуальные live workflows, включая Stepik Uploader и Stepik Bulk Status, и не позволяет двум штатным live job одновременно менять/проверять один курс.
+## 3. Current machine state и immutable history
 
-## 3. Offline CI не держит live mutex
-
-Unit tests, structural dry-run и обычный PR CI выполняются отдельно от live mutex и без Stepik credentials.
-
-Mutex применяется только к job, который действительно может перейти к live Stepik API. Человеческая привычка запирать вообще всё одним замком обычно заканчивается тем, что никто уже не помнит, зачем замок был нужен; здесь этого не делаем.
-
-## 4. Machine-readable deployment state
-
-Issue `#54` содержит единый machine-readable sync state согласно `SYNC-POLICY.md`:
+Issue `#54` содержит compact current state:
 
 - confirmed lesson baselines;
 - `pending.lessons`;
 - отдельный `pending.course_page`.
 
-Live sync читает state до Stepik-фазы и после успешного verified result повторно читает Issue перед PATCH.
+Отдельная derived branch `stepik-deployment-history-v1` хранит immutable deployment/recovery evidence. Она не используется как content source.
 
-Если machine state изменился между этими чтениями, PATCH запрещён. Run останавливается, чтобы не затереть более новое pending/baseline состояние.
+До каждого Stepik write должен быть durable `WRITE_INTENT`. Если history record сохранить нельзя, write запрещён.
 
-## 5. Pending closure после live check
+## 4. Write result classification
 
-Pending конкретного lesson object закрывается только после `result.verified == true` и одного из результатов:
+Write не ретраится автоматически.
 
-- `APPLIED`;
-- `NOOP_CONFIRMED`.
+- однозначный response, после которого read-back возможен, продолжает guarded flow;
+- known failure фиксируется как failed operation;
+- timeout, network failure, HTTP 5xx или иной неизвестный server-side outcome фиксируется как `WRITE_AMBIGUOUS`.
 
-APPLIED обновляет baseline только после read-back. NOOP_CONFIRMED не отправляет фиктивную запись и закрывает pending только потому, что live Stepik, current canonical content и baseline подтверждённо совпали.
+`WRITE_AMBIGUOUS` = `STOP` + read-only reconcile. Blind retry запрещён.
 
-Другие pending lessons и `pending.course_page` таким sync не затрагиваются.
+## 5. Read-back обязателен
 
-## 6. Никакого автоматического retry write
+HTTP success не является подтверждением deployment.
 
-После неуспешной или неоднозначной live операции автоматический write retry запрещён.
+После каждого write automation читает изменённый Stepik object и durable-записывает подтверждённый intermediate fingerprint.
 
-Следующий запуск сначала заново проверяет:
+После всех operations выполняется full lesson read-back. Baseline/pending разрешено менять только после `FINAL_READBACK_CONFIRMED`.
 
-- current main;
-- deployment baseline;
-- live Stepik fingerprint;
-- structural/golden guards.
+Failed/unavailable read-back не считается confirmed state.
 
-Причина проста: повторять внешний write после неизвестного partial result без reconcile означает превращать журнал deployment в художественную литературу.
+## 6. Partial-write recovery
 
-## 7. Read-back обязателен
+Recovery всегда сопоставляет четыре источника:
 
-Успешный HTTP status сам по себе не считается подтверждением применения.
+- event source `main` SHA;
+- current machine state;
+- fresh live Stepik;
+- immutable event history.
 
-После разрешённой записи automation читает live объект снова и сравнивает его с ожидаемым результатом. Baseline и закрытие pending разрешены только после успешного read-back.
+### Write не начинался
 
-## 8. DELETE и структурные изменения
+Если есть `EVENT_STARTED`, но нет `WRITE_INTENT`, automation может заново войти в normal route только при неизменных source/baseline/live guards.
 
-Автоматический `DELETE` запрещён.
+### Final write подтверждён, state PATCH отсутствует
 
-Не подтверждённые этим контуром изменения количества steps, reorder и lesson metadata блокируются. Текущий эксплуатационный write route остаётся узким и idempotent.
+Если history содержит `FINAL_READBACK_CONFIRMED`, `MACHINE_STATE_COMMITTED` отсутствует, source SHA актуален, а fresh live точно равен history-confirmed final fingerprint, разрешён `AUTO_RECOVER_MACHINE_STATE`.
 
-## 9. Golden и bulk ограничения
+Такой recovery выполняет **0 Stepik writes** и только восстанавливает baseline/pending через обычный Issue race guard.
 
-- M00-L01/M00-L02 остаются golden `READ_ONLY`;
-- M02-L01 остаётся pilot lesson с подтверждённым deployment baseline;
+### Partial prefix подтверждён
+
+Если per-operation read-back доказал prefix и fresh live точно равен last confirmed intermediate fingerprint, разрешено продолжить только remaining operations.
+
+Подтверждённые operations повторно не выполняются.
+
+### Unknown/ambiguous partial state
+
+Unconfirmed `WRITE_INTENT`, ambiguous response, failed read-back или live divergence после partial automation write = `STOP_OWNER_DECISION`.
+
+Automation не пытается угадать, какая часть live state принадлежит ей, а какая ручной правке.
+
+## 7. Idempotent recovery
+
+Logical event имеет stable `event_id`, а каждый transition deterministic `record_id`.
+
+Повтор identical history record является no-op. Попытка записать другой payload под тем же record ID блокируется.
+
+После `MACHINE_STATE_COMMITTED` повторный recovery не выполняет Stepik write и не создаёт второй логический deployment event для той же цели.
+
+## 8. Machine-state PATCH race
+
+Mutation current state выполняется только так:
+
+`read expected → compute next → re-read current → compare → PATCH only if unchanged`.
+
+Если state изменился между чтениями, PATCH запрещён.
+
+`MACHINE_STATE_COMMITTED` в history появляется только после успешного Issue PATCH. Если PATCH прошёл, а последующий history commit упал, повторный recovery обязан завершить handshake без повторного Stepik write.
+
+## 9. Pending closure
+
+Pending lesson закрывается только после доказанного `APPLIED` или `NOOP_CONFIRMED`.
+
+`APPLIED` обновляет baseline после final read-back. `NOOP_CONFIRMED` не выполняет фиктивный write.
+
+Другие lesson pending и `pending.course_page` не затрагиваются target sync/recovery.
+
+## 10. Reconcile
+
+`sync-reconcile` является read-only route. Он классифицирует mismatch между live, baseline, canonical и history, но сам не пишет в Stepik и не rebaseline-ит state.
+
+Auto-reconcile допустим только при доказуемом происхождении. Manual/unknown drift, conflicting events, golden lesson, structural/metadata divergence, missing baseline с неизвестным origin и auto-adoption case требуют owner decision.
+
+Совпадение `live == canonical` без доказанного event не разрешает автоматически принять live как baseline.
+
+## 11. DELETE, structure, golden и bulk
+
+- `DELETE` запрещён;
+- destructive rollback запрещён;
+- неподтверждённые изменения количества/порядка steps и metadata блокируются;
+- `M00-L01/M00-L02` остаются golden `READ_ONLY`;
+- `M02-L01` остаётся pilot lesson с confirmed baseline;
 - общий bulk write закрыт;
-- `Stepik Bulk Status` является read-only preflight и не превращается в bulk writer от одного успешного статуса.
+- Stepik Bulk Status остаётся read-only preflight.
 
-## 10. Push в main не выполняет Stepik write
+## 12. Push в main
 
-После merge/push в main dependency-aware impact job:
+Push/merge в `main` dependency-aware impact job не обращается к Stepik API. Он строит before/after graph и обновляет PENDING с compare-before-PATCH guard.
 
-- не использует Stepik credentials;
-- не обращается к Stepik API;
-- строит before/after dependency graph;
-- обновляет machine-readable PENDING в Issue `#54` с compare-before-patch race guard.
+Unknown learner-facing dependency = `STOP` и красный job.
 
-Неизвестная learner-facing dependency = STOP и красный job, а не молчаливое отсутствие pending.
+## 13. Fail-closed rule
 
-## 11. Что current-main guard и mutex не решают
+Если current-main guard, ownership, baseline comparison, history provenance, dependency mapping, write outcome, read-back или state race нельзя однозначно подтвердить, automation останавливается.
 
-Они не являются полным механизмом recovery после внешней partial write.
+Ни live Stepik, ни current baseline не переписываются по предположению.
 
-Если Stepik write уже состоялся, а последующий state PATCH не смог завершиться из-за race/сбоя, требуется отдельный reconcile. Полноценные partial-write recovery, deployment history, baseline reconcile и ownership matrix относятся к следующему этапу инфраструктуры.
-
-Также этот контракт не изменяет branch protection/rulesets/GitHub Environment/secrets. Такие организационные меры вводятся только по отдельному распоряжению владельца.
-
-## 12. Fail-closed при конфликте
-
-Если любой guard, baseline comparison, dependency mapping, read-back или state race нельзя однозначно подтвердить, automation останавливается.
-
-Ни актуальный Stepik content, ни Issue `#54` не перезаписываются «по наиболее вероятному варианту».
+Подробная state machine: [`RECOVERY-RECONCILE.md`](RECOVERY-RECONCILE.md). History schema: [`DEPLOYMENT-HISTORY.md`](DEPLOYMENT-HISTORY.md).
