@@ -167,8 +167,8 @@ class WriterHistoryTests(unittest.TestCase):
             recorder=recorder,
         )
         self.assertTrue(result.verified)
-        self.assertLess(client.trace.index("intent:step-1-101"), client.trace.index("write:101"))
-        self.assertLess(client.trace.index("intent:step-2-102"), client.trace.index("write:102"))
+        self.assertLess(client.trace.index("intent:step-0001-101"), client.trace.index("write:101"))
+        self.assertLess(client.trace.index("intent:step-0002-102"), client.trace.index("write:102"))
         summary = summarize_event(store.load(recorder.inner.identity.event_id))
         self.assertEqual(summary["writes_started"], 2)
         self.assertTrue(summary["final_readback_confirmed"])
@@ -223,23 +223,23 @@ class WriterHistoryTests(unittest.TestCase):
         desired_snapshot = snapshot_from(NEW_STEPS)
         desired_live_fp = live_lesson_fingerprint(desired_snapshot["sections"][0]["units"][0]["lesson"])
         recorder.write_intent(
-            operation_id="step-1-101",
+            operation_id="step-0001-101",
             method="PUT",
             target="step-sources/101",
             fingerprint_before=baseline(OLD_STEPS)["applied_fingerprint"],
             expected_fingerprint_after="sha256:" + "c" * 64,
         )
-        recorder.write_result(operation_id="step-1-101", status="COMPLETED")
-        recorder.operation_readback(operation_id="step-1-101", expected_fingerprint_after="sha256:" + "c" * 64)
+        recorder.write_result(operation_id="step-0001-101", status="COMPLETED")
+        recorder.operation_readback(operation_id="step-0001-101", expected_fingerprint_after="sha256:" + "c" * 64)
         recorder.write_intent(
-            operation_id="step-2-102",
+            operation_id="step-0002-102",
             method="PUT",
             target="step-sources/102",
             fingerprint_before="sha256:" + "c" * 64,
             expected_fingerprint_after=desired_live_fp,
         )
-        recorder.write_result(operation_id="step-2-102", status="COMPLETED")
-        recorder.operation_readback(operation_id="step-2-102", expected_fingerprint_after=desired_live_fp)
+        recorder.write_result(operation_id="step-0002-102", status="COMPLETED")
+        recorder.operation_readback(operation_id="step-0002-102", expected_fingerprint_after=desired_live_fp)
 
         client = FakeClient(NEW_STEPS)
         result = execute_content_sync_one(
