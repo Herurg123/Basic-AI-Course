@@ -67,12 +67,12 @@ def count_snapshot(snapshot: dict) -> int:
     return 1 + len(sections) + len(units) + len(lessons) + (2 * len(steps))
 
 
-def validate_saved_golden_profile(repo_root: Path, snapshot: dict) -> list[str]:
+def validate_saved_golden_profile(repo_root: Path, snapshot: dict, manifest: dict) -> list[str]:
     try:
         profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
     except GoldenProfileError as exc:
         return [f"golden-profile:{exc}"]
-    return validate_golden_profile(profile, snapshot)
+    return validate_golden_profile(profile, snapshot, manifest)
 
 
 def mark_golden_profile_result(plan: object, profile_blockers: list[str]) -> str:
@@ -147,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
     profile_blockers: list[str] = []
     golden_profile_status = "not-checked"
     if snapshot is not None:
-        profile_blockers = validate_saved_golden_profile(repo_root, snapshot)
+        profile_blockers = validate_saved_golden_profile(repo_root, snapshot, manifest)
         golden_profile_status = mark_golden_profile_result(plan, profile_blockers)
 
     if args.mode == "inspect":
