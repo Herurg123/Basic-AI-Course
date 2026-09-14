@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import unittest
 
 from scripts.stepik_uploader.golden import validate_golden_profile
@@ -9,6 +10,7 @@ PROFILE = {
     "schema_version": "1.0",
     "status": "confirmed-read-only",
     "course_id": 299189,
+    "course_state": {"language": "ru", "is_public": False},
     "golden_lessons": {
         "M00-L01": {
             "stepik_section_id": 11,
@@ -18,6 +20,8 @@ PROFILE = {
             "unit_position": 1,
             "step_count": 2,
             "block_sequence": ["text", "free-answer"],
+            "language": "ru",
+            "is_public": False,
         }
     },
     "observed_conventions": {
@@ -32,7 +36,7 @@ PROFILE = {
 
 def snapshot() -> dict:
     return {
-        "course": {"id": 299189},
+        "course": {"id": 299189, "language": "ru", "is_public": False},
         "sections": [
             {
                 "id": 11,
@@ -43,6 +47,8 @@ def snapshot() -> dict:
                         "position": 1,
                         "lesson": {
                             "id": 201,
+                            "language": "ru",
+                            "is_public": False,
                             "steps": [
                                 {
                                     "step_source": {
@@ -75,6 +81,29 @@ def snapshot() -> dict:
 class GoldenProfileTests(unittest.TestCase):
     def test_matching_profile_has_no_blockers(self) -> None:
         self.assertEqual(validate_golden_profile(PROFILE, snapshot()), [])
+
+    def test_course_publication_is_strict_by_default(self) -> None:
+        live = snapshot()
+        live["course"]["is_public"] = True
+        blockers = validate_golden_profile(PROFILE, live)
+        self.assertTrue(any("course.is_public" in blocker for blocker in blockers))
+
+    def test_exploitation_sync_can_allow_course_publication_only(self) -> None:
+        live = snapshot()
+        live["course"]["is_public"] = True
+        self.assertEqual(
+            validate_golden_profile(PROFILE, live, allow_course_publication_change=True),
+            [],
+        )
+
+        lesson_drift = copy.deepcopy(live)
+        lesson_drift["sections"][0]["units"][0]["lesson"]["is_public"] = True
+        blockers = validate_golden_profile(
+            PROFILE,
+            lesson_drift,
+            allow_course_publication_change=True,
+        )
+        self.assertTrue(any("lesson.is_public" in blocker for blocker in blockers))
 
     def test_block_sequence_change_is_blocker(self) -> None:
         live = snapshot()
