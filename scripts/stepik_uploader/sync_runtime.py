@@ -21,7 +21,7 @@ if __package__ in {None, ""}:
         summarize_event,
     )
     from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
-    from stepik_uploader.history_runtime import find_incomplete_object_events, final_confirmed_record
+    from stepik_uploader.history_runtime import find_incomplete_object_events, find_object_events, final_confirmed_record
     from stepik_uploader.planner import plan_dry_run
     from stepik_uploader.reconcile import classify_reconcile
     from stepik_uploader.reporting import build_report, write_json
@@ -40,11 +40,11 @@ else:
         summarize_event,
     )
     from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
-    from .history_runtime import find_incomplete_object_events, final_confirmed_record
+    from .history_runtime import find_incomplete_object_events, find_object_events, final_confirmed_record
     from .planner import plan_dry_run
     from .reconcile import classify_reconcile
     from .reporting import build_report, write_json
-    from .stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
+    from .stepik_uploader.stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
     from .sync_state import SyncStateError, assess_sync, baseline_for, close_lesson_pending, load_state, with_record
     from .writer import ContentWriteError, execute_content_sync_one
 
@@ -249,6 +249,16 @@ def main() -> int:
             pending_first_sha=pending_first_sha,
         )
 
+        object_events = find_object_events(store, object_id=TEST_LESSON_ID)
+        committed_live_event_ids: list[str] = []
+        for identity, _records, summary in object_events:
+            committed_baseline = summary.get("committed_baseline_after")
+            if not summary.get("machine_state_committed") or not isinstance(committed_baseline, dict):
+                continue
+            if committed_baseline.get("applied_fingerprint") == assessment.live_fingerprint:
+                committed_live_event_ids.append(identity.event_id)
+        committed_history_live_match = bool(committed_live_event_ids)
+
         incomplete = find_incomplete_object_events(store, object_id=TEST_LESSON_ID)
         conflicting_event = len(incomplete) > 1
         if incomplete:
@@ -261,8 +271,10 @@ def main() -> int:
         if args.mode == "sync-changed" and not args.confirm_write:
             raise ContentWriteError("sync-changed требует явный confirm_write")
 
-        if args.mode == "sync-changed" and not event_records:
-            recorder = DeploymentRecorder(store, current_identity)
+        if args.mode in {"sync-changed", "sync-reconcile"}:
+            recorder = DeploymentRecorder(store, event_identity)
+
+        if args.mode == "sync-changed" and not any(record.get("phase") == "EVENT_STARTED" for record in event_records):
             recorder.ensure_started(
                 operation_type="lesson-content-sync",
                 state_before=baseline,
@@ -270,11 +282,9 @@ def main() -> int:
                 stepik_object_ids={"lesson_id": int(live_lesson["id"]), "step_ids": _step_ids(live_lesson)},
                 fingerprint_before=assessment.live_fingerprint,
             )
-            event_identity = current_identity
+            event_identity = recorder.identity
             event_records = recorder.records(refresh=True)
             event_summary = summarize_event(event_records)
-        elif args.mode == "sync-changed":
-            recorder = DeploymentRecorder(store, event_identity)
 
         decision_source_sha = event_identity.source_sha if event_records else sha
         decision_desired_fp = event_identity.desired_fingerprint if event_records else assessment.desired_fingerprint
@@ -286,6 +296,7 @@ def main() -> int:
             baseline_fingerprint=assessment.baseline_fingerprint,
             event_summary=event_summary if event_records else None,
             event_source_sha=event_identity.source_sha if event_records else None,
+            committed_history_live_match=committed_history_live_match,
             golden_read_only=False,
             metadata_divergence=assessment.status == "METADATA_UPDATE_BLOCKED",
             structural_divergence=assessment.status == "STRUCTURAL_UPDATE_BLOCKED",
@@ -293,16 +304,29 @@ def main() -> int:
         )
         reconcile_payload = {
             **decision.as_dict(),
-            "event_id": event_identity.event_id if event_records else None,
-            "event_source_sha": event_identity.source_sha if event_records else None,
+            "event_id": event_identity.event_id,
+            "event_source_sha": event_identity.source_sha,
             "event_summary": event_summary if event_records else None,
             "live_fingerprint": assessment.live_fingerprint,
             "desired_fingerprint": assessment.desired_fingerprint,
             "baseline_fingerprint": assessment.baseline_fingerprint,
             "current_main_sha": sha,
+            "committed_history_live_match": committed_history_live_match,
+            "committed_history_live_event_ids": sorted(set(committed_live_event_ids)),
         }
         write_json(report_dir / "reconcile-report.json", reconcile_payload)
         report["reconcile"] = reconcile_payload
+
+        if recorder is not None:
+            recorder.reconcile_classified(
+                classification=decision.classification,
+                action=decision.action,
+                reason_codes=decision.reason_codes,
+                live_fingerprint=assessment.live_fingerprint,
+                baseline_fingerprint=assessment.baseline_fingerprint,
+                current_main_sha=sha,
+                owner_approval_required=decision.owner_approval_required,
+            )
 
         if args.mode == "sync-reconcile":
             report["verdict"] = "PASS" if decision.auto_allowed and not decision.action.startswith("STOP") else "BLOCKED"
@@ -315,8 +339,7 @@ def main() -> int:
             raise DeploymentHistoryError("sync-changed не получил durable deployment recorder")
 
         if not decision.auto_allowed or decision.action.startswith("STOP"):
-            if not any(record.get("phase") == "RECOVERY_CLASSIFIED" for record in event_records):
-                recorder.recovery_classified(classification=decision.classification, reason_codes=decision.reason_codes)
+            recorder.recovery_classified(classification=decision.classification, reason_codes=decision.reason_codes)
             raise ContentWriteError(
                 f"reconcile={decision.classification}: {'; '.join(decision.reason_codes)}"
             )
@@ -444,8 +467,10 @@ def main() -> int:
     ) as exc:
         if recorder is not None:
             try:
-                summary = summarize_event(recorder.records(refresh=True))
-                if not summary.get("final_readback_confirmed") and not any(
+                records = recorder.records(refresh=True)
+                summary = summarize_event(records)
+                started_deployment = any(record.get("phase") == "EVENT_STARTED" for record in records)
+                if started_deployment and not summary.get("final_readback_confirmed") and not any(
                     str(phase).startswith("FAILED_") for phase in summary.get("phases", [])
                 ):
                     recorder.failure(
