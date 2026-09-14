@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
 
+from .api import StepikWriteAmbiguousError
 from .content import CompiledStep
 from .fingerprints import compiled_lesson_fingerprint, html_fingerprint, live_lesson_fingerprint
 from .sync_state import SyncAssessment, assess_sync, build_record
@@ -99,6 +101,21 @@ def _target_lesson(
             f"Target lesson title отличается: ожидается «{expected_title}», найдено «{lesson.get('title')}»"
         )
     return lesson
+
+
+def _lesson_after_expected_step(lesson: dict[str, Any], *, step_id: int, expected: CompiledStep) -> dict[str, Any]:
+    updated = deepcopy(lesson)
+    matched = False
+    for item in updated.get("steps", []):
+        source = item.get("step_source")
+        if isinstance(source, dict) and int(source.get("id", -1)) == int(step_id):
+            source["position"] = expected.position
+            source["block"] = expected.block()
+            matched = True
+            break
+    if not matched:
+        raise ContentWriteError(f"Не найден step_id={step_id} для вычисления intermediate fingerprint")
+    return updated
 
 
 @dataclass
@@ -225,13 +242,14 @@ def execute_content_sync_one(
     expected_title: str,
     baseline: dict[str, Any] | None,
     source_sha: str,
+    recorder: Any | None = None,
+    recovery_expected_live_fingerprint: str | None = None,
 ) -> SyncWriteResult:
-    """Безопасно обновляет отслеживаемый урок с неизменной структурой steps.
+    """Обновляет отслеживаемый урок с WAL-history перед каждым внешним write.
 
-    В отличие от первого content-test, exploitation sync допускает опубликованный курс:
-    после запуска именно это нужно для исправлений в работающем курсе. Защиту даёт не
-    состояние draft, а точное совпадение текущего live fingerprint с последним
-    подтверждённым deployment baseline. Любой ручной drift блокирует overwrite.
+    Обычный route требует live == baseline. Recovery-continuation допускается только если
+    caller уже доказал через immutable history, что текущий live fingerprint равен последнему
+    подтверждённому intermediate fingerprint конкретного event.
     """
     lesson = _target_lesson_by_position(
         snapshot,
@@ -257,7 +275,12 @@ def execute_content_sync_one(
         result.state_record = baseline
         return result
 
-    if assessment.status != "UPDATE_REQUIRED":
+    live_before = live_lesson_fingerprint(lesson)
+    recovery_continuation = recovery_expected_live_fingerprint is not None
+    if recovery_continuation:
+        if live_before != recovery_expected_live_fingerprint:
+            raise ContentWriteError("Recovery continuation запрещён: live fingerprint уже не совпадает с подтверждённым intermediate state")
+    elif assessment.status != "UPDATE_REQUIRED":
         raise ContentWriteError(
             f"sync status={assessment.status}: {'; '.join(assessment.reasons)}"
         )
@@ -266,20 +289,58 @@ def execute_content_sync_one(
     if len(existing) != len(expected_steps):
         raise ContentWriteError("Update route не меняет количество steps")
 
+    working_lesson = deepcopy(lesson)
     for current, expected in zip(existing, expected_steps, strict=True):
         if _equivalent(current, expected):
             continue
         step_id = int(_step_source(current)["id"])
-        client.update_step_source(
-            step_id=step_id,
-            lesson_id=lesson_id,
-            position=expected.position,
-            block=expected.block(),
-        )
-        _assert_readback(client.fetch_one("step-sources", step_id), expected)
+        operation_id = f"step-{expected.position}-{step_id}"
+        before_fp = live_lesson_fingerprint(working_lesson)
+        expected_lesson = _lesson_after_expected_step(working_lesson, step_id=step_id, expected=expected)
+        expected_after_fp = live_lesson_fingerprint(expected_lesson)
+        if recorder is not None:
+            recorder.write_intent(
+                operation_id=operation_id,
+                method="PUT",
+                target=f"step-sources/{step_id}",
+                fingerprint_before=before_fp,
+                expected_fingerprint_after=expected_after_fp,
+            )
+        try:
+            client.update_step_source(
+                step_id=step_id,
+                lesson_id=lesson_id,
+                position=expected.position,
+                block=expected.block(),
+            )
+        except Exception as exc:
+            if recorder is not None:
+                recorder.write_result(
+                    operation_id=operation_id,
+                    status="AMBIGUOUS" if isinstance(exc, StepikWriteAmbiguousError) else "FAILED_KNOWN",
+                    reason_code="stepik-write-ambiguous" if isinstance(exc, StepikWriteAmbiguousError) else "stepik-write-failed-known",
+                )
+            raise
+        if recorder is not None:
+            recorder.write_result(operation_id=operation_id, status="COMPLETED")
+        try:
+            readback = client.fetch_one("step-sources", step_id)
+            _assert_readback(readback, expected)
+        except Exception:
+            if recorder is not None:
+                recorder.readback_failed(operation_id=operation_id, reason_code="operation-readback-unavailable-or-mismatch")
+            raise
+        if recorder is not None:
+            recorder.operation_readback(operation_id=operation_id, expected_fingerprint_after=expected_after_fp)
+        working_lesson = expected_lesson
         result.operations.append({"action": "UPDATE_STEP", "step_id": step_id, "position": expected.position})
 
-    after = client.inspect_course(int(snapshot["course"]["id"]))
+    try:
+        after = client.inspect_course(int(snapshot["course"]["id"]))
+    except Exception:
+        if recorder is not None:
+            recorder.readback_failed(operation_id=None, reason_code="final-readback-unavailable")
+        raise
     after_lesson = _target_lesson_by_position(
         after,
         module_position=module_position,
@@ -289,6 +350,8 @@ def execute_content_sync_one(
     desired_fp = compiled_lesson_fingerprint(expected_title=expected_title, expected_steps=expected_steps)
     live_fp = live_lesson_fingerprint(after_lesson)
     if live_fp != desired_fp:
+        if recorder is not None:
+            recorder.readback_failed(operation_id=None, reason_code="final-readback-mismatch")
         raise ContentWriteError("Финальный read-back после update не совпал с новым compiled content")
 
     final_step_ids = [int(_step_source(item)["id"]) for item in after_lesson.get("steps", [])]
@@ -305,4 +368,11 @@ def execute_content_sync_one(
         step_ids=final_step_ids,
         source_git_paths=source_paths,
     )
+    if recorder is not None:
+        recorder.final_readback(
+            fingerprint_after=live_fp,
+            stepik_object_ids={"lesson_id": lesson_id, "step_ids": final_step_ids},
+            status="APPLIED" if result.operations else "NOOP_CONFIRMED",
+            baseline_after=result.state_record,
+        )
     return result
