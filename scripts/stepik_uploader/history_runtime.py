@@ -42,7 +42,7 @@ def identity_from_records(records: list[dict[str, Any]]) -> EventIdentity:
 
 
 def find_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentity, list[dict[str, Any]], dict[str, Any]]]:
-    """Find deployment events for one object without relying on a mutable active-event index."""
+    """Find deployment/reconcile events for one object without a mutable active-event index."""
     event_ids: list[str] = []
     if isinstance(store, MemoryHistoryStore):
         event_ids = sorted(store.records)
@@ -83,7 +83,15 @@ def find_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentit
 
 
 def find_incomplete_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentity, list[dict[str, Any]], dict[str, Any]]]:
-    return [item for item in find_object_events(store, object_id=object_id) if not item[2].get("machine_state_committed")]
+    """Return only started deployment events, not reconcile-only observations."""
+    result = []
+    for item in find_object_events(store, object_id=object_id):
+        _identity, records, summary = item
+        if not any(record.get("phase") == "EVENT_STARTED" for record in records):
+            continue
+        if not summary.get("machine_state_committed"):
+            result.append(item)
+    return result
 
 
 def final_confirmed_record(records: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -115,7 +123,21 @@ def mark_machine_state_committed(
     summary = summarize_event(records)
     if not summary.get("final_readback_confirmed"):
         raise DeploymentHistoryError("Нельзя отметить machine state committed без FINAL_READBACK_CONFIRMED")
+    final = final_confirmed_record(records)
+    if final is None:
+        raise DeploymentHistoryError("FINAL_READBACK_CONFIRMED не найден")
+    expected_status = final.get("status")
+    expected_baseline = final.get("actual_confirmed_state")
+    if status != expected_status:
+        raise DeploymentHistoryError(
+            f"MACHINE_STATE_COMMITTED status={status!r} не совпадает с final read-back status={expected_status!r}"
+        )
+    if not isinstance(expected_baseline, dict) or baseline_after != expected_baseline:
+        raise DeploymentHistoryError("Machine state baseline после PATCH не совпадает с подтверждённым final read-back")
     if summary.get("machine_state_committed"):
+        committed = summary.get("committed_baseline_after")
+        if committed != expected_baseline:
+            raise DeploymentHistoryError("Существующий MACHINE_STATE_COMMITTED конфликтует с final read-back")
         return
     recorder = DeploymentRecorder(store, identity)
     recorder.state_committed(baseline_after=baseline_after, status=status)
