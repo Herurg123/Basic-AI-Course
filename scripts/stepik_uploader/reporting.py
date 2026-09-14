@@ -39,7 +39,7 @@ def build_report(
         "planned_operations": len(operations),
         "operation_counts": counts,
         "created": 0,
-        "skipped": counts.get("SKIP", 0) + counts.get("READ_ONLY_GOLDEN", 0),
+        "skipped": counts.get("SKIP", 0) + counts.get("SKIP_STALE_TITLE", 0) + counts.get("READ_ONLY_GOLDEN", 0),
         "blockers": sorted(set(blockers)),
         "unresolved_assets": unresolved_assets,
         "readback_failures": readback_failures,
