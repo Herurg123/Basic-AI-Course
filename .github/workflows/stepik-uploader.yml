@@ -8,10 +8,19 @@ on:
       - 'scripts/stepik_uploader/**'
       - 'tests/stepik_uploader/**'
       - '.github/workflows/stepik-uploader.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '04_course/**'
+      - '05_assets/**'
+      - 'scripts/stepik_uploader/**'
+      - 'tests/stepik_uploader/**'
+      - '.github/workflows/stepik-uploader.yml'
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Режим Stepik automation; content-test-one пишет только один тестовый урок'
+        description: 'Режим Stepik automation. Live write выполняется только в явно подтверждённых write-режимах.'
         required: true
         default: 'dry-run'
         type: choice
@@ -19,13 +28,15 @@ on:
           - dry-run
           - inspect
           - content-test-one
+          - sync-status
+          - sync-changed
       course_id:
         description: 'Обычный числовой Stepik course_id. По умолчанию используется рабочий черновой курс проекта; это не секрет.'
         required: false
         default: '299189'
         type: string
       confirm_write:
-        description: 'Явно разрешить запись для content-test-one. Для inspect/dry-run оставлять выключенным.'
+        description: 'Явно разрешить запись для content-test-one или sync-changed. Для read-only режимов оставлять выключенным.'
         required: true
         default: false
         type: boolean
@@ -36,6 +47,9 @@ permissions:
 concurrency:
   group: stepik-uploader-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  STEPIK_SYNC_ISSUE: '54'
 
 jobs:
   tests:
@@ -65,12 +79,65 @@ jobs:
           --repo-root .
           --report-dir artifacts/stepik-uploader-ci
 
+  impact:
+    name: Зафиксировать потенциальный Stepik impact после merge
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Получить репозиторий и историю для diff
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Определить изменённые production-файлы
+        id: impact
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/stepik-impact
+          git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" > artifacts/stepik-impact/changed-files.txt
+          python scripts/stepik_uploader/impact.py \
+            --changed-files artifacts/stepik-impact/changed-files.txt \
+            --json-output artifacts/stepik-impact/impact.json \
+            --markdown-output artifacts/stepik-impact/impact.md \
+            --source-sha "$GITHUB_SHA"
+          python - <<'PY'
+          import json, os
+          data = json.load(open('artifacts/stepik-impact/impact.json', encoding='utf-8'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write('has_impact=' + ('true' if data['stepik_content_impact'] else 'false') + '\n')
+          PY
+
+      - name: Добавить PENDING запись в журнал синхронизации
+        if: steps.impact.outputs.has_impact == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file artifacts/stepik-impact/impact.md
+
+      - name: Сохранить impact-отчёт
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: stepik-impact-${{ github.run_id }}
+          path: artifacts/stepik-impact/
+          if-no-files-found: error
+          retention-days: 90
+
   live:
     name: "Owner dispatch: ${{ inputs.mode }}"
     if: github.event_name == 'workflow_dispatch'
     needs: tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
     env:
       STEPIC_CLIENT_ID: ${{ secrets.STEPIC_CLIENT_ID }}
       STEPIC_CLIENT_SECRET: ${{ secrets.STEPIC_CLIENT_SECRET }}
@@ -91,22 +158,88 @@ jobs:
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
 
+      - name: Прочитать подтверждённый deployment baseline
+        if: inputs.mode == 'sync-status' || inputs.mode == 'sync-changed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/stepik-uploader-live
+          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > artifacts/stepik-uploader-live/sync-issue-body.md
+          python scripts/stepik_uploader/sync_issue_state.py extract \
+            --body-file artifacts/stepik-uploader-live/sync-issue-body.md \
+            --output artifacts/stepik-uploader-live/sync-state.previous.json \
+            --course-id "$COURSE_ID"
+
       - name: Выполнить Stepik automation
         shell: bash
         run: |
           set -euo pipefail
-          args=("$MODE" --repo-root . --report-dir artifacts/stepik-uploader-live)
-          if [[ -n "${COURSE_ID:-}" ]]; then
-            if [[ ! "$COURSE_ID" =~ ^[0-9]+$ ]]; then
-              echo 'course_id должен быть обычным положительным числом' >&2
-              exit 2
+          if [[ -n "${COURSE_ID:-}" ]] && [[ ! "$COURSE_ID" =~ ^[0-9]+$ ]]; then
+            echo 'course_id должен быть обычным положительным числом' >&2
+            exit 2
+          fi
+
+          if [[ "$MODE" == "sync-status" || "$MODE" == "sync-changed" ]]; then
+            args=("$MODE" --repo-root . --report-dir artifacts/stepik-uploader-live --course-id "$COURSE_ID" --sync-state artifacts/stepik-uploader-live/sync-state.previous.json)
+            if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then
+              args+=(--confirm-write)
             fi
-            args+=(--course-id "$COURSE_ID")
+            python scripts/stepik_uploader/sync_runtime.py "${args[@]}"
+          else
+            args=("$MODE" --repo-root . --report-dir artifacts/stepik-uploader-live)
+            if [[ -n "${COURSE_ID:-}" ]]; then
+              args+=(--course-id "$COURSE_ID")
+            fi
+            if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then
+              args+=(--confirm-write)
+            fi
+            python scripts/stepik_uploader/stepik_uploader.py "${args[@]}"
           fi
-          if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then
-            args+=(--confirm-write)
+
+      - name: Зафиксировать результат sync в журнале
+        if: inputs.mode == 'sync-changed' && success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='artifacts/stepik-uploader-live'
+          state="$base/sync-state.next.json"
+          journal="$base/sync-journal.md"
+          if [[ ! -f "$journal" ]]; then
+            echo 'Успешный sync-changed не сформировал sync-journal.md; journal update запрещён.' >&2
+            exit 2
           fi
-          python scripts/stepik_uploader/stepik_uploader.py "${args[@]}"
+
+          if [[ -f "$state" ]]; then
+            # Повторно читаем issue после Stepik write, чтобы не затереть изменение,
+            # сделанное человеком или другим run во время этой операции.
+            gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.current.md"
+            python scripts/stepik_uploader/sync_issue_state.py extract \
+              --body-file "$base/sync-issue-body.current.md" \
+              --output "$base/sync-state.current.json" \
+              --course-id "$COURSE_ID"
+            python - <<'PY'
+            import json
+            previous = json.load(open('artifacts/stepik-uploader-live/sync-state.previous.json', encoding='utf-8'))
+            current = json.load(open('artifacts/stepik-uploader-live/sync-state.current.json', encoding='utf-8'))
+            if previous != current:
+                raise SystemExit('Deployment baseline изменился во время Stepik write; issue update остановлен. Следующий sync обязан разобрать drift.')
+            PY
+            python scripts/stepik_uploader/sync_issue_state.py replace \
+              --body-file "$base/sync-issue-body.current.md" \
+              --state-file "$state" \
+              --output-body "$base/sync-issue-body.next.md" \
+              --output-patch "$base/sync-issue-patch.json" \
+              --course-id "$COURSE_ID"
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$base/sync-issue-patch.json" >/dev/null
+          else
+            echo 'Stepik writes не потребовались; deployment baseline не переписывается.'
+          fi
+
+          gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$journal"
 
       - name: Сохранить технический отчёт
         if: always()
@@ -115,4 +248,4 @@ jobs:
           name: stepik-uploader-${{ inputs.mode }}-${{ github.run_id }}
           path: artifacts/stepik-uploader-live/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 90
