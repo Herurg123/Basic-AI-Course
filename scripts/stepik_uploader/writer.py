@@ -306,6 +306,7 @@ def execute_content_sync_one(
                 fingerprint_before=before_fp,
                 expected_fingerprint_after=expected_after_fp,
             )
+            recorder.write_dispatch_started(operation_id=operation_id)
         try:
             client.update_step_source(
                 step_id=step_id,
