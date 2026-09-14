@@ -44,10 +44,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: stepik-uploader-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: false
-
 env:
   STEPIK_SYNC_ISSUE: '54'
 
@@ -135,6 +131,9 @@ jobs:
     needs: tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: stepik-live-course-${{ inputs.course_id }}
+      cancel-in-progress: false
     permissions:
       contents: read
       issues: write
@@ -171,6 +170,13 @@ jobs:
             --body-file artifacts/stepik-uploader-live/sync-issue-body.md \
             --output artifacts/stepik-uploader-live/sync-state.previous.json \
             --course-id "$COURSE_ID"
+
+      - name: Проверить актуальный HEAD main перед live Stepik
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          python scripts/stepik_uploader/live_guard.py
+          --output artifacts/stepik-uploader-live/live-source-guard.json
 
       - name: Выполнить Stepik automation
         shell: bash
