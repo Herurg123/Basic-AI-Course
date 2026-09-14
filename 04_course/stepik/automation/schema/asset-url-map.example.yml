@@ -1,0 +1,23 @@
+# Пример карты URL для learner-facing (видимых ученику) assets.
+# Один Asset ID может иметь несколько физических файлов/представлений.
+# Неизвестный URL не заменяется фиктивным значением: поле оставляется null,
+# а content phase (этап публикации содержания) остаётся заблокированным.
+strategy: manual-stepik-files
+course_id: null
+assets:
+  M00-L02-A01:
+    files:
+      M00-L02-A01.docx:
+        source_git_path: 05_assets/M00/M00-L02/M00-L02-A01.docx
+        url: null
+      M00-L02-A01.md:
+        source_git_path: 05_assets/M00/M00-L02/M00-L02-A01.md
+        url: null
+  M05-L02-A01:
+    files:
+      M05-L02-A01-part1.md:
+        source_git_path: 05_assets/M05/M05-L02/M05-L02-A01-part1.md
+        url: null
+      M05-L02-A01-part2.md:
+        source_git_path: 05_assets/M05/M05-L02/M05-L02-A01-part2.md
+        url: null
