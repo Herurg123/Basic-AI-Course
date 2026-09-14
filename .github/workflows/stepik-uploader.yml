@@ -19,8 +19,9 @@ on:
           - dry-run
           - inspect
       course_id:
-        description: 'Обычный числовой Stepik course_id. Для inspect обязателен; это не секрет.'
+        description: 'Обычный числовой Stepik course_id. По умолчанию используется рабочий черновой курс проекта; это не секрет.'
         required: false
+        default: '299189'
         type: string
 
 permissions:
