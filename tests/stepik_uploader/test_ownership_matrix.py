@@ -18,6 +18,7 @@ REQUIRED_CLASSES = {
     "manual_stepik_drift",
     "partial_write",
     "ambiguous_api_result",
+    "known_write_failure",
     "failed_readback",
     "machine_state_patch_failure",
     "stale_machine_baseline",
