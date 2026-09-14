@@ -80,6 +80,27 @@ class PlannerTests(unittest.TestCase):
         self.assertTrue(any(blocker.startswith("title-drift:M00-L03") for blocker in plan.blockers))
         self.assertFalse(any(op.get("lesson") == "M00-L03" and op["action"] == "PLANNED_CREATE" for op in plan.operations))
 
+    def test_matching_title_plus_drifted_same_id_is_ambiguity_blocker(self) -> None:
+        live = snapshot(prefixed_titles=True)
+        live["sections"][0]["units"].extend(
+            [
+                {"id": 103, "position": 3, "lesson": {"id": 203, "title": "M00-L03 — Третий", "steps": []}},
+                {"id": 104, "position": 4, "lesson": {"id": 204, "title": "M00-L03 — Чужой заголовок", "steps": []}},
+            ]
+        )
+        plan = plan_dry_run(manifest(), live)
+        self.assertTrue(any(blocker.startswith("ambiguous-id:M00-L03") for blocker in plan.blockers))
+        self.assertFalse(any(op.get("lesson") == "M00-L03" and op["action"] in {"SKIP", "PLANNED_CREATE"} for op in plan.operations))
+
+    def test_golden_matching_title_plus_drifted_same_id_is_blocker(self) -> None:
+        live = snapshot(prefixed_titles=True)
+        live["sections"][0]["units"].append(
+            {"id": 105, "position": 7, "lesson": {"id": 205, "title": "M00-L01 — Чужой заголовок", "steps": []}}
+        )
+        golden, blockers = recognize_golden(manifest(), live)
+        self.assertNotIn("M00-L01", golden)
+        self.assertTrue(any(blocker.startswith("golden:M00-L01") for blocker in blockers))
+
     def test_offline_dry_run_has_no_write_action(self) -> None:
         plan = plan_dry_run(manifest(), None)
         self.assertEqual(plan.write_count, 0)
