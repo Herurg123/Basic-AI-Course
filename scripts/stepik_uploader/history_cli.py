@@ -17,7 +17,7 @@ else:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Commit durable Stepik deployment history after machine-state PATCH")
-    parser.add_argument("mark-state-committed", nargs="?")
+    parser.add_argument("command", choices=["mark-state-committed"])
     parser.add_argument("--event-file", type=Path, required=True)
     parser.add_argument("--state-file", type=Path, required=True)
     return parser.parse_args()
