@@ -71,14 +71,25 @@ class PlannerTests(unittest.TestCase):
         self.assertNotIn("M00-L02", golden)
         self.assertTrue(blockers)
 
-    def test_stable_id_with_title_drift_blocks_instead_of_planning_create(self) -> None:
+    def test_stable_id_with_title_drift_is_existing_skeleton_not_create(self) -> None:
         live = snapshot(prefixed_titles=True)
         live["sections"][0]["units"].append(
-            {"id": 103, "position": 3, "lesson": {"id": 203, "title": "M00-L03 — Чужой заголовок", "steps": []}}
+            {"id": 103, "position": 3, "lesson": {"id": 203, "title": "M00-L03 — Старый заголовок", "steps": []}}
         )
         plan = plan_dry_run(manifest(), live)
-        self.assertTrue(any(blocker.startswith("title-drift:M00-L03") for blocker in plan.blockers))
+        op = next(op for op in plan.operations if op.get("lesson") == "M00-L03")
+        self.assertEqual(op["action"], "SKIP_STALE_TITLE")
+        self.assertEqual(op["stepik_lesson_id"], 203)
+        self.assertFalse(any(blocker.startswith("title-drift:M00-L03") for blocker in plan.blockers))
         self.assertFalse(any(op.get("lesson") == "M00-L03" and op["action"] == "PLANNED_CREATE" for op in plan.operations))
+
+    def test_title_drift_wrong_position_is_blocker(self) -> None:
+        live = snapshot(prefixed_titles=True)
+        live["sections"][0]["units"].append(
+            {"id": 103, "position": 9, "lesson": {"id": 203, "title": "M00-L03 — Старый заголовок", "steps": []}}
+        )
+        plan = plan_dry_run(manifest(), live)
+        self.assertTrue(any(blocker.startswith("ambiguous-title-drift:M00-L03") for blocker in plan.blockers))
 
     def test_matching_title_plus_drifted_same_id_is_ambiguity_blocker(self) -> None:
         live = snapshot(prefixed_titles=True)
@@ -90,7 +101,7 @@ class PlannerTests(unittest.TestCase):
         )
         plan = plan_dry_run(manifest(), live)
         self.assertTrue(any(blocker.startswith("ambiguous-id:M00-L03") for blocker in plan.blockers))
-        self.assertFalse(any(op.get("lesson") == "M00-L03" and op["action"] in {"SKIP", "PLANNED_CREATE"} for op in plan.operations))
+        self.assertFalse(any(op.get("lesson") == "M00-L03" and op["action"] in {"SKIP", "SKIP_STALE_TITLE", "PLANNED_CREATE"} for op in plan.operations))
 
     def test_golden_matching_title_plus_drifted_same_id_is_blocker(self) -> None:
         live = snapshot(prefixed_titles=True)

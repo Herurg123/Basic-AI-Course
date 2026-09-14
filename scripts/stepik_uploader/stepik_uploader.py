@@ -11,11 +11,13 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from stepik_uploader.api import StepikClient
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
+    from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
     from stepik_uploader.planner import plan_dry_run
     from stepik_uploader.reporting import build_report, write_json
 else:
     from .api import StepikClient
     from .canonical import CanonicalBuildError, build_structural_manifest
+    from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
     from .planner import plan_dry_run
     from .reporting import build_report, write_json
 
@@ -27,6 +29,8 @@ BLOCKED_WRITE_MODES = {
     "upload-remaining",
     "verify",
 }
+
+GOLDEN_PROFILE_PATH = Path("04_course/stepik/automation/golden-profile.v1.json")
 
 
 def source_sha(repo_root: Path) -> str:
@@ -63,12 +67,31 @@ def count_snapshot(snapshot: dict) -> int:
     return 1 + len(sections) + len(units) + len(lessons) + (2 * len(steps))
 
 
+def validate_saved_golden_profile(repo_root: Path, snapshot: dict, manifest: dict) -> list[str]:
+    try:
+        profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
+    except GoldenProfileError as exc:
+        return [f"golden-profile:{exc}"]
+    return validate_golden_profile(profile, snapshot, manifest)
+
+
+def mark_golden_profile_result(plan: object, profile_blockers: list[str]) -> str:
+    blockers = getattr(plan, "blockers", None)
+    if not isinstance(blockers, list):
+        return "invalid-plan"
+    if profile_blockers:
+        blockers.extend(profile_blockers)
+        return "blocked"
+    blockers[:] = [item for item in blockers if item != "needs-golden-profile"]
+    return "confirmed"
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Stepik uploader проекта «ИИ с нуля»")
     parser.add_argument(
         "mode",
         choices=["inspect", "dry-run", *sorted(BLOCKED_WRITE_MODES)],
-        help="Режим. До golden inspection write-режимы fail-closed.",
+        help="Режим. Write-режимы остаются fail-closed до отдельного content-test checkpoint.",
     )
     parser.add_argument("--course-id", type=int, default=None, help="Обычный числовой Stepik course_id")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
@@ -98,7 +121,10 @@ def main(argv: list[str] | None = None) -> int:
             course_id=args.course_id,
             manifest=manifest,
         )
-        report["blockers"] = sorted(set(report["blockers"] + ["needs-golden-profile", "write-mode-disabled-pre-golden"]))
+        report["blockers"] = sorted(
+            set(report["blockers"] + ["needs-content-compiler", "write-mode-disabled-pre-content-test"])
+        )
+        report["golden_profile_status"] = "recorded-but-write-still-locked"
         report["verdict"] = "BLOCKED"
         write_json(report_dir / "run-report.json", report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
@@ -117,14 +143,25 @@ def main(argv: list[str] | None = None) -> int:
             print(f"LIVE INSPECT BLOCKER: {exc}", file=sys.stderr)
             return 2
 
+    plan = plan_dry_run(manifest, snapshot)
+    profile_blockers: list[str] = []
+    golden_profile_status = "not-checked"
+    if snapshot is not None:
+        profile_blockers = validate_saved_golden_profile(repo_root, snapshot, manifest)
+        golden_profile_status = mark_golden_profile_result(plan, profile_blockers)
+
     if args.mode == "inspect":
         if args.course_id is None:
             print("LIVE INSPECT BLOCKER: inspect требует --course-id", file=sys.stderr)
             return 2
-        plan = plan_dry_run(manifest, snapshot)
         write_json(
             report_dir / "golden-inspection.json",
-            {"golden": plan.golden, "blockers": plan.blockers},
+            {
+                "golden": plan.golden,
+                "profile_status": golden_profile_status,
+                "profile_blockers": profile_blockers,
+                "blockers": plan.blockers,
+            },
         )
         report = build_report(
             mode="inspect",
@@ -135,7 +172,6 @@ def main(argv: list[str] | None = None) -> int:
             read_objects=read_objects,
         )
     else:
-        plan = plan_dry_run(manifest, snapshot)
         report = build_report(
             mode="dry-run",
             source_sha=sha,
@@ -145,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
             read_objects=read_objects,
         )
 
+    report["golden_profile_status"] = golden_profile_status
+    report["golden_profile_blockers"] = profile_blockers
     write_json(report_dir / "dry-run-plan.json", {"operations": plan.operations, "blockers": plan.blockers})
     write_json(report_dir / "run-report.json", report)
     print(json.dumps(report, ensure_ascii=False, indent=2))
