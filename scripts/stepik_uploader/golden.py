@@ -59,6 +59,14 @@ def validate_golden_profile(
         )
         return blockers
 
+    expected_course_state = profile.get("course_state", {})
+    for field in ("language", "is_public"):
+        if field in expected_course_state and course.get(field) != expected_course_state.get(field):
+            blockers.append(
+                f"golden-profile: course.{field} изменился: ожидалось {expected_course_state.get(field)!r}, "
+                f"прочитано {course.get(field)!r}"
+            )
+
     expected_free_answer_source = profile.get("observed_conventions", {}).get("free_answer_source", {})
     for canonical_id, expected in profile.get("golden_lessons", {}).items():
         if manifest is not None:
@@ -86,6 +94,12 @@ def validate_golden_profile(
             blockers.append(f"golden-profile:{canonical_id}: изменилась section position")
         if unit.get("position") != expected.get("unit_position"):
             blockers.append(f"golden-profile:{canonical_id}: изменилась unit position")
+        for field in ("language", "is_public"):
+            if field in expected and lesson.get(field) != expected.get(field):
+                blockers.append(
+                    f"golden-profile:{canonical_id}: lesson.{field} изменился: ожидалось {expected.get(field)!r}, "
+                    f"прочитано {lesson.get(field)!r}"
+                )
 
         steps = lesson.get("steps", [])
         sequence = [item.get("step_source", {}).get("block", {}).get("name") for item in steps]
