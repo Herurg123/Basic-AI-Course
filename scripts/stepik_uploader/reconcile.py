@@ -189,6 +189,23 @@ def classify_reconcile(
             reasons=["partial-automation-residue", "subsequent-live-change"],
         )
 
+    if summary.get("all_dispatched_writes_failed_known"):
+        if baseline_fingerprint is not None and live_fingerprint == baseline_fingerprint:
+            return _decision(
+                "KNOWN_WRITE_FAILURE_RETRY_SAFE",
+                "NORMAL_SYNC_ROUTE",
+                auto=True,
+                owner=False,
+                reasons=["all-dispatched-writes-failed-known", "live-still-matches-baseline"],
+            )
+        return _decision(
+            "KNOWN_WRITE_FAILURE_WITH_LIVE_DIVERGENCE",
+            "STOP_OWNER_DECISION",
+            auto=False,
+            owner=True,
+            reasons=["known-write-failure", "live-no-longer-matches-baseline"],
+        )
+
     if summary.get("external_write_started"):
         return _decision(
             "WRITE_STARTED_WITHOUT_CONFIRMED_PREFIX",
