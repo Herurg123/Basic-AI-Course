@@ -66,13 +66,15 @@ Fingerprint строится не из Stepik object ID и не из сырой 
 
 - title урока;
 - `language`;
-- `is_public`;
+- `is_public` самого lesson;
 - позиции шагов;
 - `block.name`;
 - `block.source`;
 - нормализованное HTML-содержимое шага.
 
 При HTML-нормализации игнорируются служебные атрибуты ссылок, которые Stepik может добавить при сохранении (`target`, `rel`). Поэтому штатная платформенная нормализация не вызывает ложный drift.
+
+Публичность **курса** намеренно не входит в lesson fingerprint: публикация курса является штатным жизненным циклом и не должна навсегда ломать возможность исправлять его содержание. Изменение публичности самого lesson остаётся значимым и вызывает drift, если не было отдельно подтверждено.
 
 ## 5. Три состояния перед обновлением
 
@@ -92,35 +94,53 @@ Fingerprint строится не из Stepik object ID и не из сырой 
 
 Если `live == baseline == desired`, результат `IN_SYNC`, write-запросов нет.
 
-## 6. Какие изменения можно обновлять автоматически
+Если baseline отсутствует, даже полное совпадение live и desired не даёт права на автоматический write: требуется отдельное подтверждение bootstrap baseline.
+
+## 6. Жизненный цикл: черновик и уже опубликованный курс
+
+Первичная загрузка (`content-test-one` и будущий первый bulk upload) остаётся **draft-only**. Мы не создаём массовый контент прямо в работающем публичном курсе.
+
+Эксплуатационный `sync-changed`, наоборот, обязан работать и после публикации курса, иначе механизм исправлений теряет смысл именно тогда, когда становится нужен. Поэтому для exploitation-sync допустимы оба состояния `course.is_public`: `false` и `true`.
+
+При этом публикация не ослабляет защиту:
+
+- course ID должен оставаться тем же;
+- golden lesson IDs, позиции, типы шагов и learner-visible HTML продолжают сверяться;
+- изменение `course.is_public` допускается как штатный жизненный цикл и само по себе не считается golden drift;
+- изменение `lesson.is_public` остаётся частью lesson fingerprint и при расхождении с baseline блокирует overwrite;
+- exploitation-sync не переключает публикацию курса или урока сам.
+
+Таким образом, после запуска курса можно исправить текст уже существующего шага без перевода всего курса обратно в черновик, но нельзя под шумок изменить режим доступа или затереть ручную правку.
+
+## 7. Какие изменения можно обновлять автоматически
 
 Первая версия exploitation-sync разрешает только **in-place content update** уже существующих шагов при неизменной структуре урока:
 
 - то же количество steps;
 - те же позиции;
-- тот же lesson;
-- курс и урок остаются draft/non-public;
+- тот же lesson ID;
 - язык остаётся `ru`;
 - lesson не относится к запрещённой чувствительной зоне текущего pilot scope;
 - live fingerprint совпадает с baseline.
 
 Тогда изменяются только те step positions, у которых desired content реально отличается. После каждого `PUT` выполняется немедленный read-back. Автоматического retry write-запроса нет.
 
-## 7. Что пока блокируется
+## 8. Что пока блокируется
 
 Автоматически не выполняются:
 
 - удаление шагов;
-- уменьшение количества шагов;
+- уменьшение или увеличение количества шагов в exploitation-update;
 - перестановка шагов;
 - изменение lesson title/других metadata;
+- изменение lesson visibility;
 - overwrite при live drift;
 - изменение golden `M00-L01` / `M00-L02`;
 - массовый update independence/F1-sensitive lessons без отдельного integrity pass.
 
-Такие случаи получают `STRUCTURAL_UPDATE_BLOCKED`, `METADATA_UPDATE_BLOCKED` или другой явный blocker. Это не потеря изменения: `PENDING` остаётся в журнале, пока не появится отдельно проверенный migration route.
+Такие случаи получают `STRUCTURAL_UPDATE_BLOCKED`, `METADATA_UPDATE_BLOCKED`, `DRIFT_BLOCKED` или другой явный blocker. Это не потеря изменения: `PENDING` остаётся в журнале, пока не появится отдельно проверенный migration route.
 
-## 8. Режимы workflow
+## 9. Режимы workflow
 
 ### `sync-status`
 
@@ -133,7 +153,7 @@ Read-only. Читает Stepik, baseline и текущий канон, зате�
 - `METADATA_UPDATE_BLOCKED`;
 - `BASELINE_MISSING_BLOCKED` / `BASELINE_BOOTSTRAP_REQUIRED`.
 
-Ничего в Stepik не пишет.
+Ничего в Stepik не пишет. Состояния без подтверждённого baseline считаются blocker, а не зелёным разрешением на запись.
 
 ### `sync-changed`
 
@@ -147,7 +167,7 @@ Write-mode. Требует `confirm_write=true`.
 
 Перед PATCH issue body workflow повторно читает issue и сравнивает machine-readable state с тем, который использовался перед Stepik write. Если baseline успел измениться параллельно, запись журнала останавливается. Человеческие правки текста issue сохраняются, потому что новый machine-state встраивается в свежепрочитанное body.
 
-## 9. Assets: обязательный hash-gate перед bulk upload
+## 10. Assets: обязательный hash-gate перед bulk upload
 
 Изменение learner-facing файла в `05_assets/**` всегда создаёт `PENDING`, но одного HTML fingerprint урока недостаточно для бинарных или внешне размещённых файлов. Возможна ситуация: в GitHub изменился DOCX/PNG/SVG, а ссылка в Stepik осталась той же. Тогда HTML шага не меняется, хотя содержимое файла уже устарело.
 
@@ -166,7 +186,7 @@ Write-mode. Требует `confirm_write=true`.
 
 Текущий pilot `M02-L01` использует Markdown asset, который компилируется внутрь Stepik content, поэтому этот binary-asset gate не требуется для уже проверенного pilot-route. Для массового compiler это обязательный release gate, а не будущая косметика.
 
-## 10. Текущий scope до открытия bulk upload
+## 11. Текущий scope до открытия bulk upload
 
 На текущем checkpoint общий content compiler ещё не включён для всех 21 урока. Поэтому `sync-status`/`sync-changed` технически ограничены уже проверенным `M02-L01` как pilot exploitation-route.
 
@@ -179,9 +199,10 @@ Write-mode. Требует `confirm_write=true`.
 - обновлять только changed steps;
 - блокировать live drift;
 - формировать `PENDING/APPLIED/NOOP_CONFIRMED` audit trail;
-- отслеживать hash/version learner-facing assets по правилам раздела 9.
+- отслеживать hash/version learner-facing assets по правилам раздела 10;
+- выполнять тот же безопасный update как в черновике, так и после публикации курса.
 
-## 11. Эксплуатационный результат
+## 12. Эксплуатационный результат
 
 В нормальном режиме после запуска курса процесс выглядит так:
 
