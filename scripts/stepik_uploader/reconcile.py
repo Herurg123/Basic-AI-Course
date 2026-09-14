@@ -52,6 +52,7 @@ def classify_reconcile(
     baseline_fingerprint: str | None,
     event_summary: dict[str, Any] | None,
     event_source_sha: str | None,
+    event_baseline_fingerprint_before: str | None = None,
     committed_history_live_match: bool = False,
     golden_read_only: bool = False,
     metadata_divergence: bool = False,
@@ -125,6 +126,20 @@ def classify_reconcile(
             owner=True,
             reasons=["write-not-confirmed", "readback-unavailable"],
         )
+
+    started_event = "EVENT_STARTED" in summary.get("phases", []) and not summary.get("machine_state_committed")
+    if started_event:
+        allowed_baselines = {event_baseline_fingerprint_before}
+        if summary.get("final_readback_confirmed"):
+            allowed_baselines.add(summary.get("final_fingerprint"))
+        if baseline_fingerprint not in allowed_baselines:
+            return _decision(
+                "MACHINE_STATE_DIVERGED_DURING_EVENT",
+                "STOP_OWNER_DECISION",
+                auto=False,
+                owner=True,
+                reasons=["current-baseline-not-event-before-or-confirmed-after", "state-provenance-changed"],
+            )
 
     if summary.get("final_readback_confirmed") and not summary.get("machine_state_committed"):
         confirmed_fp = summary.get("final_fingerprint")
