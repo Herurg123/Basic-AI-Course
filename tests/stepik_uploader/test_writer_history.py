@@ -148,9 +148,13 @@ class TraceRecorder:
         self.trace.append(f"intent:{operation_id}")
         return self.inner.write_intent(operation_id=operation_id, **kwargs)
 
+    def write_dispatch_started(self, *, operation_id: str):
+        self.trace.append(f"dispatch:{operation_id}")
+        return self.inner.write_dispatch_started(operation_id=operation_id)
+
 
 class WriterHistoryTests(unittest.TestCase):
-    def test_write_intent_is_durable_before_each_stepik_write(self) -> None:
+    def test_write_intent_and_dispatch_are_durable_before_each_stepik_write(self) -> None:
         store = MemoryHistoryStore()
         client = FakeClient(OLD_STEPS)
         recorder = TraceRecorder(recorder_for(store), client.trace)
@@ -167,9 +171,14 @@ class WriterHistoryTests(unittest.TestCase):
             recorder=recorder,
         )
         self.assertTrue(result.verified)
-        self.assertLess(client.trace.index("intent:step-0001-101"), client.trace.index("write:101"))
-        self.assertLess(client.trace.index("intent:step-0002-102"), client.trace.index("write:102"))
+        for operation_id, step_id in (("step-0001-101", 101), ("step-0002-102", 102)):
+            intent_index = client.trace.index(f"intent:{operation_id}")
+            dispatch_index = client.trace.index(f"dispatch:{operation_id}")
+            write_index = client.trace.index(f"write:{step_id}")
+            self.assertLess(intent_index, dispatch_index)
+            self.assertLess(dispatch_index, write_index)
         summary = summarize_event(store.load(recorder.inner.identity.event_id))
+        self.assertEqual(summary["write_intents"], 2)
         self.assertEqual(summary["writes_started"], 2)
         self.assertTrue(summary["final_readback_confirmed"])
 
@@ -215,6 +224,7 @@ class WriterHistoryTests(unittest.TestCase):
             )
         summary = summarize_event(recorder.records(refresh=True))
         self.assertTrue(summary["readback_failed"])
+        self.assertTrue(summary["external_write_started"])
         self.assertFalse(summary["final_readback_confirmed"])
 
     def test_recovery_after_all_step_writes_still_records_applied_not_noop(self) -> None:
@@ -229,6 +239,7 @@ class WriterHistoryTests(unittest.TestCase):
             fingerprint_before=baseline(OLD_STEPS)["applied_fingerprint"],
             expected_fingerprint_after="sha256:" + "c" * 64,
         )
+        recorder.write_dispatch_started(operation_id="step-0001-101")
         recorder.write_result(operation_id="step-0001-101", status="COMPLETED")
         recorder.operation_readback(operation_id="step-0001-101", expected_fingerprint_after="sha256:" + "c" * 64)
         recorder.write_intent(
@@ -238,6 +249,7 @@ class WriterHistoryTests(unittest.TestCase):
             fingerprint_before="sha256:" + "c" * 64,
             expected_fingerprint_after=desired_live_fp,
         )
+        recorder.write_dispatch_started(operation_id="step-0002-102")
         recorder.write_result(operation_id="step-0002-102", status="COMPLETED")
         recorder.operation_readback(operation_id="step-0002-102", expected_fingerprint_after=desired_live_fp)
 
