@@ -417,17 +417,30 @@ class DeploymentRecorder:
         fingerprint_before: str,
         expected_fingerprint_after: str,
     ) -> dict[str, Any]:
+        semantic = {
+            "operation_id": operation_id,
+            "method": method,
+            "target": target,
+            "fingerprint_before": fingerprint_before,
+            "expected_fingerprint_after": expected_fingerprint_after,
+            "external_write_started": False,
+        }
+        existing = [
+            record
+            for record in self.records()
+            if record.get("phase") == "WRITE_INTENT" and record.get("operation_id") == operation_id
+        ]
+        if existing:
+            if len(existing) != 1:
+                raise DeploymentHistoryError(f"{operation_id}: найдено несколько WRITE_INTENT records")
+            first = existing[0]
+            for key, value in semantic.items():
+                if first.get(key) != value:
+                    raise DeploymentHistoryError(f"{operation_id}: существующий WRITE_INTENT конфликтует по {key}")
+            return first
         return self._append(
             "WRITE_INTENT",
-            {
-                "recorded_at": utc_now(),
-                "operation_id": operation_id,
-                "method": method,
-                "target": target,
-                "fingerprint_before": fingerprint_before,
-                "expected_fingerprint_after": expected_fingerprint_after,
-                "external_write_started": False,
-            },
+            {"recorded_at": utc_now(), **semantic},
             operation_id=operation_id,
         )
 
