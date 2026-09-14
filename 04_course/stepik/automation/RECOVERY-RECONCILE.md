@@ -32,7 +32,7 @@ Deployment event навсегда привязан к source SHA, с котор�
 
 Evidence: есть `EVENT_STARTED`, но нет `WRITE_DISPATCH_STARTED`.
 
-`WRITE_INTENT` сам по себе не означает, что HTTP write был начат. Если intent сохранён, но dispatch отсутствует, normal write route может быть повторён при неизменном source SHA, baseline и live state.
+`WRITE_INTENT` сам по себе не означает, что HTTP write был начат. Если intent сохранён, но dispatch отсутствует, normal write route может быть повторён при неизменном source SHA, baseline и live state. Semantic-identical intent переиспользуется без переписывания immutable record; конфликт intent fields = `STOP`.
 
 Если `WRITE_DISPATCH_STARTED` существует, система больше не утверждает, что внешний write точно не начинался.
 
@@ -50,7 +50,9 @@ Action: `AUTO_RECOVER_MACHINE_STATE`.
 
 Stepik writes: `0`. Automation PATCH-ит только target baseline/pending через обычный compare-before-patch guard, затем append-ит `MACHINE_STATE_COMMITTED`.
 
-Перед `MACHINE_STATE_COMMITTED` status и baseline-after из текущего machine state обязаны точно совпасть с `FINAL_READBACK_CONFIRMED`.
+Если Issue state уже фактически содержит этот baseline и target pending уже закрыт, recovery не конструирует более старый `updated_at`: current state сохраняется как есть, а завершается только history/state handshake.
+
+Перед `MACHINE_STATE_COMMITTED` status и baseline-after из current machine state обязаны точно совпасть с `FINAL_READBACK_CONFIRMED`.
 
 ### R2. Подтверждённый partial write
 
@@ -75,13 +77,24 @@ Action: `STOP_OWNER_DECISION` + read-only reconcile. Blind retry запрещё�
 
 Даже если fresh live равен desired, одного совпадения недостаточно, чтобы доказать происхождение.
 
-### R4. Read-back недоступен или не совпал
+### R4. Known write failure
+
+`WRITE_FAILED_KNOWN` означает, что конкретная dispatch-попытка доказанно не создала server-side commit. Это не ambiguous state.
+
+Однако history v1 моделирует одну dispatch-попытку под semantic operation ID. Поэтому повторный внешний write не маскируется под старую попытку и не запускается автоматически.
+
+- live всё ещё равен baseline → `KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED`;
+- live уже отличается от baseline → `KNOWN_WRITE_FAILURE_WITH_LIVE_DIVERGENCE`.
+
+Оба класса требуют owner decision. Будущий explicit retry route обязан создавать отдельную attempt identity, а не переписывать старые dispatch/result records.
+
+### R5. Read-back недоступен или не совпал
 
 Write нельзя считать confirmed. Baseline не меняется, pending не закрывается.
 
 Action: `STOP_OWNER_DECISION`, пока происхождение live state не доказано достаточным evidence.
 
-### R5. Process умер между operations
+### R6. Process умер между operations
 
 Следующий run читает immutable history и fresh live.
 
@@ -90,19 +103,19 @@ Action: `STOP_OWNER_DECISION`, пока происхождение live state н
 - live отличается → STOP;
 - есть `WRITE_DISPATCH_STARTED` без подтверждённого результата/read-back → STOP, никакого blind retry.
 
-### R6. Повторный recovery run
+### R7. Повторный recovery run
 
-`event_id` и semantic record IDs детерминированы. Уже существующий identical immutable transition не переписывается. Run-specific reconcile/recovery records имеют отдельный attempt token и сохраняют `recorded_by_workflow` + relationship с исходным event.
+`event_id` стабилен для логической цели. Semantic records не переписываются. Run-specific reconcile/recovery records имеют attempt token и сохраняют `recorded_by_workflow` + relationship с исходным event.
 
-После `MACHINE_STATE_COMMITTED` повторный recovery не выполняет write и не создаёт новый логический deployment event для той же цели.
+После `MACHINE_STATE_COMMITTED` повторный recovery не выполняет Stepik write и не создаёт новый логический deployment event для той же цели.
 
-### R7. Новый Git merge во время recovery
+### R8. Новый Git merge во время recovery
 
 `event.source_sha != current main` → `STALE_SOURCE_SHA`.
 
 Старый event нельзя продолжить автоматически и нельзя использовать для закрытия нового pending, даже если fresh live совпадает с intermediate fingerprint старого event.
 
-### R8. Человек изменил Stepik после partial automation write
+### R9. Человек изменил Stepik после partial automation write
 
 Если live больше не равен confirmed intermediate/final fingerprint event, automation не пытается разложить состояние на «нашу» и «ручную» части эвристикой.
 
@@ -117,12 +130,14 @@ Action: `STOP_OWNER_DECISION`.
 - `VERIFIED_WRITE_STATE_PATCH_MISSING` → auto state-only recovery допустим;
 - `CONFIRMED_PARTIAL_AUTOMATION_STATE` → continuation допустим только из подтверждённого prefix;
 - `AMBIGUOUS_WRITE_RESULT` → owner decision;
+- `KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED` → owner decision/new attempt route;
+- `KNOWN_WRITE_FAILURE_WITH_LIVE_DIVERGENCE` → owner decision;
 - `UNCONFIRMED_WRITE_READBACK_FAILED` → owner decision;
 - `WRITE_STARTED_WITHOUT_CONFIRMED_PREFIX` → owner decision;
 - `MANUAL_OR_UNKNOWN_DRIFT` → owner decision;
 - `BASELINE_MISSING` → owner decision;
 - `CANONICAL_MATCH_WITHOUT_PROVEN_EVENT` / `UNPROVEN_LIVE_EQUALS_CANONICAL` → owner decision;
-- `STALE_MACHINE_BASELINE` → committed history подтверждает текущий live, но machine baseline ему не соответствует; owner decision;
+- `STALE_MACHINE_BASELINE` → latest provable committed history подтверждает live, но current machine baseline ему не соответствует; owner decision;
 - `METADATA_DIVERGENCE` → owner decision;
 - `STRUCTURAL_DIVERGENCE` → owner decision;
 - `GOLDEN_OWNER_REQUIRED` → owner decision;
@@ -130,6 +145,8 @@ Action: `STOP_OWNER_DECISION`.
 - `STALE_SOURCE_SHA` → STOP old event;
 - `IN_SYNC` → no-op;
 - `CANONICAL_CHANGE_PENDING` → обычный guarded sync route.
+
+Для `STALE_MACHINE_BASELINE` учитывается только **последний доказуемый committed deployment state** объекта, а не любое старое историческое состояние, случайно совпавшее с live. Если несколько latest committed events невозможно однозначно упорядочить и они дают разные fingerprints, reconcile fail-closed как conflict.
 
 ## 5. Rebaseline/adoption
 
@@ -144,7 +161,7 @@ Adoption/rebaseline допустим только отдельным явным 
 - machine-readable reason;
 - audit trail.
 
-`STALE_MACHINE_BASELINE` также не вызывает автоматический rebaseline. Доказательство того, что baseline устарел, ещё не является разрешением молча переписать текущий machine state.
+`STALE_MACHINE_BASELINE` также не вызывает автоматический rebaseline. Доказательство того, что baseline устарел, ещё не является разрешением молча переписать current state.
 
 Текущий этап не добавляет универсальный automatic adoption route.
 
