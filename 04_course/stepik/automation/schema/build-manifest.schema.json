@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Herurg123/Basic-AI-Course/04_course/stepik/automation/schema/build-manifest.schema.json",
-  "title": "Stepik build manifest — structural pre-golden phase",
+  "title": "Stepik build manifest — structural canonical projection",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,13 +14,13 @@
     "summary"
   ],
   "properties": {
-    "schema_version": {"const": "1.0-structural"},
+    "schema_version": {"const": "1.1-structural"},
     "source_sha": {"type": "string", "minLength": 1},
-    "phase": {"const": "pre-golden-inspection"},
+    "phase": {"const": "structural"},
     "write_enabled": {"const": false},
     "global_blockers": {
       "type": "array",
-      "contains": {"const": "needs-golden-profile"}
+      "contains": {"const": "requires-live-write-gates"}
     },
     "modules": {
       "type": "array",
@@ -83,7 +83,7 @@
         "independence_sensitive": {"type": "boolean"},
         "f1_sensitive": {"type": "boolean"},
         "write_ready": {"const": false},
-        "write_blocker": {"const": "needs-golden-profile"},
+        "write_blocker": {"const": "requires-live-write-gates"},
         "steps": {"type": "array", "minItems": 1, "maxItems": 16, "items": {"$ref": "#/$defs/step"}}
       }
     },
@@ -120,7 +120,7 @@
         "f1_sensitive": {"type": "boolean"},
         "stepik_block_type": {"type": "null"},
         "learner_body": {"type": "null"},
-        "rendering_status": {"const": "needs-golden-profile"}
+        "rendering_status": {"const": "structural-only"}
       }
     }
   }
