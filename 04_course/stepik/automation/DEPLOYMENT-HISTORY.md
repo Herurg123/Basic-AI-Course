@@ -23,7 +23,7 @@ Issue body не превращается в бесконечный event log. Hu
 
 ## 3. Почему отдельная derived branch допустима
 
-Эта branch содержит только эксплуатационные evidence records, которые появляются во время live/recovery runs и поэтому не могут проходить обычный content PR до внешнего write. Она не является конкурирующей версией проектных документов и не меняет `main`.
+Эта branch содержит только эксплуатационные evidence records, которые появляются во время live/recovery/reconcile runs и поэтому не могут проходить обычный content PR до внешней операции. Она не является конкурирующей версией проектных документов и не меняет `main`.
 
 Workflow имеет `contents: write` только в live job и код history store жёстко ограничивает запись branch `stepik-deployment-history-v1` и префиксом `.stepik-deployment-history/events/`.
 
@@ -43,11 +43,7 @@ Branch protection, rulesets и GitHub Environment этим контрактом 
 
 Логический retry той же цели получает тот же `event_id`. Новая canonical цель, другой baseline или другой source SHA создают другой event.
 
-Event identity также хранит:
-
-- GitHub Actions `run_id`, `run_attempt`, run URL;
-- retry/continuation relationship, если такой relationship создаётся отдельным будущим route;
-- canonical object и source SHA.
+Event identity хранит исходный GitHub Actions `run_id`, `run_attempt` и run URL. Каждый последующий transition дополнительно хранит `recorded_by_workflow`. Если transition создаётся другим run, record содержит `event_relationship=RETRY_OR_CONTINUATION_OF_EVENT` и ссылку на исходный run этого event.
 
 ## 5. Append-only records
 
@@ -62,6 +58,7 @@ Event identity также хранит:
 
 - `EVENT_STARTED`;
 - `WRITE_INTENT`;
+- `WRITE_DISPATCH_STARTED`;
 - `WRITE_COMPLETED`;
 - `WRITE_FAILED_KNOWN`;
 - `WRITE_AMBIGUOUS`;
@@ -70,21 +67,31 @@ Event identity также хранит:
 - `FINAL_READBACK_CONFIRMED`;
 - `MACHINE_STATE_COMMITTED`;
 - `FAILED_BEFORE_WRITE` / `FAILED_AFTER_WRITE_STARTED`;
+- `RECONCILE_CLASSIFIED`;
 - `RECOVERY_CLASSIFIED`.
+
+Reconcile-only observation может существовать без `EVENT_STARTED`. Такой record не считается незавершённым deployment и сам по себе не разрешает Stepik write.
 
 ## 6. Write-ahead правило
 
 До каждого внешнего Stepik write automation обязана durable-записать `WRITE_INTENT`.
 
-Record содержит минимум:
+`WRITE_INTENT` содержит минимум:
 
 - operation ID;
 - method и target;
 - lesson fingerprint before;
 - expected lesson fingerprint after operation;
-- признак `external_write_started=true`.
+- `external_write_started=false`.
 
 Если `WRITE_INTENT` сохранить не удалось, Stepik write запрещён.
+
+Непосредственно перед HTTP write automation durable-записывает `WRITE_DISPATCH_STARTED` с `external_write_started=true`. Поэтому history различает:
+
+- процесс завершился после сохранения intent, но до начала dispatch — blind-retry не нужен, потому что внешний write ещё не был начат по журналу;
+- dispatch уже начат, но результат не доказан — происхождение live state считается потенциально неоднозначным и blind-retry запрещён.
+
+Микроскопическое окно между durable `WRITE_DISPATCH_STARTED` и фактическим сетевым вызовом намеренно трактуется консервативно как потенциально начатый write. Лучше лишний STOP, чем двойная запись после неясного внешнего эффекта.
 
 После ответа:
 
@@ -116,16 +123,34 @@ HTTP success без read-back не является confirmed deployment.
 
 Только после успешного PATCH history получает `MACHINE_STATE_COMMITTED`.
 
+Перед записью `MACHINE_STATE_COMMITTED` automation обязана проверить, что status и baseline-after из фактически PATCH-нутого state точно совпадают с status и `actual_confirmed_state` из `FINAL_READBACK_CONFIRMED`. Нельзя отметить committed другой baseline только потому, что PATCH технически завершился успешно.
+
 Если Stepik уже подтверждён, а Issue PATCH не состоялся, event остаётся намеренно незавершённым. Следующий recovery может восстановить machine state без повторного Stepik write, но только при доказуемом совпадении свежего live fingerprint с `FINAL_READBACK_CONFIRMED`.
 
-## 9. Что event обязан позволять определить
+## 9. Reconcile evidence
+
+`sync-reconcile` не пишет в Stepik, но его классификация должна быть durable.
+
+Каждый reconcile run записывает `RECONCILE_CLASSIFIED` с:
+
+- classification/action;
+- reason codes;
+- live fingerprint;
+- current machine baseline fingerprint;
+- current main SHA;
+- признаком необходимости owner approval;
+- workflow identity текущего run.
+
+Reconcile-only records не превращаются в deployment event, пока не появился `EVENT_STARTED`.
+
+## 10. Что event обязан позволять определить
 
 Для recovery/reconcile event содержит или позволяет однозначно восстановить:
 
 - stable `event_id`;
 - canonical object ID и kind;
 - source SHA;
-- workflow/run identity;
+- исходную и текущую workflow/run identity;
 - начало операции и время подтверждения;
 - baseline/state before;
 - expected state;
@@ -133,7 +158,8 @@ HTTP success без read-back не является confirmed deployment.
 - Stepik object IDs;
 - fingerprints before/desired/after;
 - operation type;
-- был ли начат внешний write;
+- был ли только сохранён write intent;
+- был ли начат внешний write dispatch;
 - write operations started/completed;
 - read-back result;
 - final status;
@@ -141,11 +167,11 @@ HTTP success без read-back не является confirmed deployment.
 - pending link через `pending_first_sha`;
 - baseline before/after;
 - recovery/reconcile state;
-- retry/continuation relationship, если используется.
+- retry/continuation relationship.
 
 Secrets, OAuth tokens, cookies и credentials в history запрещены.
 
-## 10. Legacy history до schema v1
+## 11. Legacy history до schema v1
 
 До введения этого контракта Issue `#54` уже содержал подтверждённый baseline `M02-L01` и human-readable evidence раннего pilot write.
 
