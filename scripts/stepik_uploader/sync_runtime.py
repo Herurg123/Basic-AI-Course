@@ -21,7 +21,12 @@ if __package__ in {None, ""}:
         summarize_event,
     )
     from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
-    from stepik_uploader.history_runtime import find_incomplete_object_events, find_object_events, final_confirmed_record
+    from stepik_uploader.history_runtime import (
+        find_incomplete_object_events,
+        find_object_events,
+        final_confirmed_record,
+        latest_committed_history_evidence,
+    )
     from stepik_uploader.planner import plan_dry_run
     from stepik_uploader.reconcile import classify_reconcile
     from stepik_uploader.reporting import build_report, write_json
@@ -40,7 +45,12 @@ else:
         summarize_event,
     )
     from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
-    from .history_runtime import find_incomplete_object_events, find_object_events, final_confirmed_record
+    from .history_runtime import (
+        find_incomplete_object_events,
+        find_object_events,
+        final_confirmed_record,
+        latest_committed_history_evidence,
+    )
     from .planner import plan_dry_run
     from .reconcile import classify_reconcile
     from .reporting import build_report, write_json
@@ -250,32 +260,12 @@ def main() -> int:
         )
 
         object_events = find_object_events(store, object_id=TEST_LESSON_ID)
-        committed_candidates: list[tuple[str, str, str]] = []
-        for identity, records, summary in object_events:
-            committed_baseline = summary.get("committed_baseline_after")
-            if not summary.get("machine_state_committed") or not isinstance(committed_baseline, dict):
-                continue
-            committed_records = [record for record in records if record.get("phase") == "MACHINE_STATE_COMMITTED"]
-            if len(committed_records) != 1:
-                continue
-            committed_at = committed_records[0].get("confirmed_at")
-            fingerprint = committed_baseline.get("applied_fingerprint")
-            if isinstance(committed_at, str) and isinstance(fingerprint, str):
-                committed_candidates.append((committed_at, identity.event_id, fingerprint))
-
-        latest_committed_event_ids: list[str] = []
-        latest_committed_fingerprints: set[str] = set()
-        committed_history_ambiguous = False
-        committed_history_live_match = False
-        if committed_candidates:
-            latest_time = max(value[0] for value in committed_candidates)
-            latest = [value for value in committed_candidates if value[0] == latest_time]
-            latest_committed_event_ids = sorted(value[1] for value in latest)
-            latest_committed_fingerprints = {value[2] for value in latest}
-            committed_history_ambiguous = len(latest_committed_fingerprints) != 1
-            if not committed_history_ambiguous:
-                latest_fp = next(iter(latest_committed_fingerprints))
-                committed_history_live_match = latest_fp == assessment.live_fingerprint
+        committed_evidence = latest_committed_history_evidence(
+            object_events,
+            live_fingerprint=assessment.live_fingerprint,
+        )
+        committed_history_live_match = bool(committed_evidence["live_match"])
+        committed_history_ambiguous = bool(committed_evidence["ambiguous"])
 
         incomplete = find_incomplete_object_events(store, object_id=TEST_LESSON_ID)
         conflicting_event = len(incomplete) > 1 or committed_history_ambiguous
@@ -329,10 +319,7 @@ def main() -> int:
             "desired_fingerprint": assessment.desired_fingerprint,
             "baseline_fingerprint": assessment.baseline_fingerprint,
             "current_main_sha": sha,
-            "committed_history_live_match": committed_history_live_match,
-            "latest_committed_history_event_ids": latest_committed_event_ids,
-            "latest_committed_history_fingerprints": sorted(latest_committed_fingerprints),
-            "latest_committed_history_ambiguous": committed_history_ambiguous,
+            "latest_committed_history": committed_evidence,
         }
         write_json(report_dir / "reconcile-report.json", reconcile_payload)
         report["reconcile"] = reconcile_payload
