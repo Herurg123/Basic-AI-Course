@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from scripts.stepik_uploader.deployment_history import (
     DeploymentHistoryError,
@@ -10,7 +11,7 @@ from scripts.stepik_uploader.deployment_history import (
     stable_event_id,
     summarize_event,
 )
-from scripts.stepik_uploader.history_runtime import mark_machine_state_committed
+from scripts.stepik_uploader.history_runtime import find_incomplete_object_events, mark_machine_state_committed
 from scripts.stepik_uploader.reconcile import classify_reconcile
 
 SHA1 = "1" * 40
@@ -57,6 +58,17 @@ def started(recorder: DeploymentRecorder) -> None:
     )
 
 
+def dispatch_one(recorder: DeploymentRecorder, *, expected_after: str = PARTIAL) -> None:
+    recorder.write_intent(
+        operation_id="step-0001-101",
+        method="PUT",
+        target="step-sources/101",
+        fingerprint_before=OLD,
+        expected_fingerprint_after=expected_after,
+    )
+    recorder.write_dispatch_started(operation_id="step-0001-101")
+
+
 class DeploymentHistoryRecoveryTests(unittest.TestCase):
     def test_event_id_is_stable_for_logical_retry(self) -> None:
         first = identity().event_id
@@ -94,18 +106,39 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         self.assertFalse(summary["external_write_started"])
         self.assertIn("FAILED_BEFORE_WRITE", summary["phases"])
 
-    def test_ambiguous_api_result_forbids_blind_retry(self) -> None:
+    def test_intent_without_dispatch_is_safe_to_retry(self) -> None:
         store = MemoryHistoryStore()
         recorder = DeploymentRecorder(store, identity())
         started(recorder)
         recorder.write_intent(
-            operation_id="step-1-101",
+            operation_id="step-0001-101",
             method="PUT",
             target="step-sources/101",
             fingerprint_before=OLD,
             expected_fingerprint_after=PARTIAL,
         )
-        recorder.write_result(operation_id="step-1-101", status="AMBIGUOUS", reason_code="timeout")
+        summary = summarize_event(recorder.records(refresh=True))
+        self.assertEqual(summary["write_intents"], 1)
+        self.assertEqual(summary["writes_started"], 0)
+        self.assertFalse(summary["external_write_started"])
+        decision = classify_reconcile(
+            source_sha=SHA1,
+            current_main_sha=SHA1,
+            live_fingerprint=OLD,
+            desired_fingerprint=DESIRED,
+            baseline_fingerprint=OLD,
+            event_summary=summary,
+            event_source_sha=SHA1,
+        )
+        self.assertEqual(decision.action, "NORMAL_SYNC_ROUTE")
+        self.assertTrue(decision.auto_allowed)
+
+    def test_ambiguous_api_result_forbids_blind_retry(self) -> None:
+        store = MemoryHistoryStore()
+        recorder = DeploymentRecorder(store, identity())
+        started(recorder)
+        dispatch_one(recorder)
+        recorder.write_result(operation_id="step-0001-101", status="AMBIGUOUS", reason_code="timeout")
         summary = summarize_event(recorder.records(refresh=True))
         decision = classify_reconcile(
             source_sha=SHA1,
@@ -124,15 +157,9 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         store = MemoryHistoryStore()
         recorder = DeploymentRecorder(store, identity())
         started(recorder)
-        recorder.write_intent(
-            operation_id="step-1-101",
-            method="PUT",
-            target="step-sources/101",
-            fingerprint_before=OLD,
-            expected_fingerprint_after=PARTIAL,
-        )
-        recorder.write_result(operation_id="step-1-101", status="COMPLETED")
-        recorder.readback_failed(operation_id="step-1-101", reason_code="network")
+        dispatch_one(recorder)
+        recorder.write_result(operation_id="step-0001-101", status="COMPLETED")
+        recorder.readback_failed(operation_id="step-0001-101", reason_code="network")
         summary = summarize_event(recorder.records(refresh=True))
         self.assertFalse(summary["final_readback_confirmed"])
         decision = classify_reconcile(
@@ -151,15 +178,9 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         store = MemoryHistoryStore()
         recorder = DeploymentRecorder(store, identity())
         started(recorder)
-        recorder.write_intent(
-            operation_id="step-1-101",
-            method="PUT",
-            target="step-sources/101",
-            fingerprint_before=OLD,
-            expected_fingerprint_after=PARTIAL,
-        )
-        recorder.write_result(operation_id="step-1-101", status="COMPLETED")
-        recorder.operation_readback(operation_id="step-1-101", expected_fingerprint_after=PARTIAL)
+        dispatch_one(recorder)
+        recorder.write_result(operation_id="step-0001-101", status="COMPLETED")
+        recorder.operation_readback(operation_id="step-0001-101", expected_fingerprint_after=PARTIAL)
         summary = summarize_event(recorder.records(refresh=True))
         decision = classify_reconcile(
             source_sha=SHA1,
@@ -177,15 +198,9 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         store = MemoryHistoryStore()
         recorder = DeploymentRecorder(store, identity())
         started(recorder)
-        recorder.write_intent(
-            operation_id="step-1-101",
-            method="PUT",
-            target="step-sources/101",
-            fingerprint_before=OLD,
-            expected_fingerprint_after=PARTIAL,
-        )
-        recorder.write_result(operation_id="step-1-101", status="COMPLETED")
-        recorder.operation_readback(operation_id="step-1-101", expected_fingerprint_after=PARTIAL)
+        dispatch_one(recorder)
+        recorder.write_result(operation_id="step-0001-101", status="COMPLETED")
+        recorder.operation_readback(operation_id="step-0001-101", expected_fingerprint_after=PARTIAL)
         summary = summarize_event(recorder.records(refresh=True))
         decision = classify_reconcile(
             source_sha=SHA1,
@@ -247,6 +262,32 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         self.assertEqual(len(store.load(identity().event_id)), first_count)
         self.assertTrue(summarize_event(store.load(identity().event_id))["machine_state_committed"])
 
+    def test_machine_state_commit_must_equal_final_readback(self) -> None:
+        store = MemoryHistoryStore()
+        recorder = DeploymentRecorder(store, identity())
+        started(recorder)
+        baseline_after = {"applied_fingerprint": DESIRED}
+        recorder.final_readback(
+            fingerprint_after=DESIRED,
+            stepik_object_ids={"lesson_id": 10, "step_ids": [101]},
+            status="APPLIED",
+            baseline_after=baseline_after,
+        )
+        with self.assertRaises(DeploymentHistoryError):
+            mark_machine_state_committed(
+                store,
+                event_id=identity().event_id,
+                status="APPLIED",
+                baseline_after={"applied_fingerprint": MANUAL},
+            )
+        with self.assertRaises(DeploymentHistoryError):
+            mark_machine_state_committed(
+                store,
+                event_id=identity().event_id,
+                status="NOOP_CONFIRMED",
+                baseline_after=baseline_after,
+            )
+
     def test_noop_confirmed_is_a_real_history_event_with_zero_writes(self) -> None:
         same = identity(desired=OLD, baseline=OLD)
         store = MemoryHistoryStore()
@@ -272,7 +313,7 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         final = next(r for r in records if r["phase"] == "FINAL_READBACK_CONFIRMED")
         self.assertEqual(final["status"], "NOOP_CONFIRMED")
 
-    def test_newer_main_blocks_old_event_from_closing_new_pending(self) -> None:
+    def test_newer_main_blocks_old_event_even_if_live_matches_old_intermediate(self) -> None:
         decision = classify_reconcile(
             source_sha=SHA1,
             current_main_sha=SHA2,
@@ -284,6 +325,21 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         )
         self.assertEqual(decision.classification, "STALE_SOURCE_SHA")
         self.assertFalse(decision.auto_allowed)
+
+    def test_committed_history_live_match_exposes_stale_machine_baseline(self) -> None:
+        decision = classify_reconcile(
+            source_sha=SHA1,
+            current_main_sha=SHA1,
+            live_fingerprint=DESIRED,
+            desired_fingerprint=DESIRED,
+            baseline_fingerprint=OLD,
+            event_summary=None,
+            event_source_sha=None,
+            committed_history_live_match=True,
+        )
+        self.assertEqual(decision.classification, "STALE_MACHINE_BASELINE")
+        self.assertFalse(decision.auto_allowed)
+        self.assertTrue(decision.owner_approval_required)
 
     def test_live_equals_canonical_without_proven_event_is_not_auto_adopted(self) -> None:
         decision = classify_reconcile(
@@ -297,6 +353,46 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         )
         self.assertEqual(decision.classification, "UNPROVEN_LIVE_EQUALS_CANONICAL")
         self.assertTrue(decision.owner_approval_required)
+
+    def test_reconcile_only_observation_is_not_incomplete_deployment(self) -> None:
+        store = MemoryHistoryStore()
+        recorder = DeploymentRecorder(store, identity())
+        recorder.reconcile_classified(
+            classification="IN_SYNC",
+            action="NOOP",
+            reason_codes=["baseline-live-canonical-match"],
+            live_fingerprint=OLD,
+            baseline_fingerprint=OLD,
+            current_main_sha=SHA1,
+            owner_approval_required=False,
+        )
+        self.assertEqual(find_incomplete_object_events(store, object_id="M02-L01"), [])
+
+    def test_retry_or_reconcile_records_current_workflow_relationship(self) -> None:
+        store = MemoryHistoryStore()
+        recorder = DeploymentRecorder(store, identity())
+        with patch.dict(
+            "os.environ",
+            {
+                "GITHUB_RUN_ID": "200",
+                "GITHUB_RUN_ATTEMPT": "2",
+                "GITHUB_SERVER_URL": "https://github.com",
+                "GITHUB_REPOSITORY": "Herurg123/Basic-AI-Course",
+            },
+            clear=False,
+        ):
+            record = recorder.reconcile_classified(
+                classification="IN_SYNC",
+                action="NOOP",
+                reason_codes=["baseline-live-canonical-match"],
+                live_fingerprint=OLD,
+                baseline_fingerprint=OLD,
+                current_main_sha=SHA1,
+                owner_approval_required=False,
+            )
+        self.assertEqual(record["recorded_by_workflow"]["run_id"], "200")
+        self.assertEqual(record["event_relationship"]["type"], "RETRY_OR_CONTINUATION_OF_EVENT")
+        self.assertEqual(record["event_relationship"]["origin_run_id"], "100")
 
     def test_golden_and_structural_divergence_never_auto_reconcile(self) -> None:
         golden = classify_reconcile(
