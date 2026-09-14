@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: stepik-live-course-${{ inputs.course_id }}
+      group: stepik-live-course-299189
       cancel-in-progress: false
     env:
       STEPIC_CLIENT_ID: ${{ secrets.STEPIC_CLIENT_ID }}
