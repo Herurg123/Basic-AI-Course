@@ -52,6 +52,7 @@ def classify_reconcile(
     baseline_fingerprint: str | None,
     event_summary: dict[str, Any] | None,
     event_source_sha: str | None,
+    committed_history_live_match: bool = False,
     golden_read_only: bool = False,
     metadata_divergence: bool = False,
     structural_divergence: bool = False,
@@ -141,6 +142,15 @@ def classify_reconcile(
             auto=False,
             owner=True,
             reasons=["live-changed-after-confirmed-automation-write"],
+        )
+
+    if committed_history_live_match and baseline_fingerprint != live_fingerprint:
+        return _decision(
+            "STALE_MACHINE_BASELINE",
+            "STOP_OWNER_DECISION",
+            auto=False,
+            owner=True,
+            reasons=["committed-history-proves-live-state", "machine-baseline-differs"],
         )
 
     if summary.get("machine_state_committed"):
