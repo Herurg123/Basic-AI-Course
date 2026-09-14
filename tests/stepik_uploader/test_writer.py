@@ -4,20 +4,23 @@ import copy
 import unittest
 
 from scripts.stepik_uploader.content import CompiledStep
+from scripts.stepik_uploader.fingerprints import compiled_lesson_fingerprint
 from scripts.stepik_uploader.writer import (
     ContentWriteError,
     classify_existing_steps,
+    execute_content_sync_one,
     execute_content_test_one,
     html_fingerprint,
 )
 
+TITLE = "M02-L01 — Скажите, что получите и как это оцените"
 EXPECTED = [
     CompiledStep(
         1,
         "text",
         '<p>Первый <a href="https://example.org/">линк</a></p>',
         {},
-        (),
+        ("04_course/M02/M02-L01/lesson.md",),
     ),
     CompiledStep(
         2,
@@ -28,7 +31,7 @@ EXPECTED = [
             "is_html_enabled": True,
             "manual_scoring": False,
         },
-        (),
+        ("04_course/M02/M02-L01/lesson.md",),
     ),
 ]
 
@@ -46,7 +49,7 @@ def skeleton() -> dict:
                         "position": 1,
                         "lesson": {
                             "id": 201,
-                            "title": "M02-L01 — Скажите, что получите и как это оцените",
+                            "title": TITLE,
                             "is_public": False,
                             "language": "ru",
                             "steps": [
@@ -139,7 +142,7 @@ class WriterTests(unittest.TestCase):
             expected_steps=EXPECTED,
             module_position=3,
             lesson_position=1,
-            expected_title="M02-L01 — Скажите, что получите и как это оцените",
+            expected_title=TITLE,
         )
         self.assertTrue(result.verified)
         self.assertEqual(client.update_calls, 1)
@@ -151,12 +154,93 @@ class WriterTests(unittest.TestCase):
             expected_steps=EXPECTED,
             module_position=3,
             lesson_position=1,
-            expected_title="M02-L01 — Скажите, что получите и как это оцените",
+            expected_title=TITLE,
         )
         self.assertTrue(second.verified)
         self.assertEqual(client.update_calls, 1)
         self.assertEqual(client.create_calls, 1)
         self.assertEqual(second.operations[0]["action"], "NOOP_ALREADY_MATCHES")
+
+    def test_tracked_content_change_updates_only_changed_step_then_becomes_noop(self) -> None:
+        client = FakeClient()
+        initial = execute_content_test_one(
+            client,
+            client.inspect_course(299189),
+            expected_steps=EXPECTED,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+        )
+        baseline = {
+            "stepik_lesson_id": initial.lesson_id,
+            "applied_fingerprint": compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED),
+        }
+        updated = [
+            CompiledStep(1, "text", "<p>Исправленный текст</p>", {}, EXPECTED[0].source_git_paths),
+            EXPECTED[1],
+        ]
+        before_updates = client.update_calls
+        result = execute_content_sync_one(
+            client,
+            client.inspect_course(299189),
+            canonical_id="M02-L01",
+            expected_steps=updated,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+            baseline=baseline,
+            source_sha="new-sha",
+        )
+        self.assertTrue(result.verified)
+        self.assertEqual(client.update_calls, before_updates + 1)
+        self.assertEqual(client.create_calls, 1)
+        self.assertEqual(result.operations, [{"action": "UPDATE_STEP", "step_id": 1, "position": 1}])
+        self.assertIsNotNone(result.state_record)
+
+        second = execute_content_sync_one(
+            client,
+            client.inspect_course(299189),
+            canonical_id="M02-L01",
+            expected_steps=updated,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+            baseline=result.state_record,
+            source_sha="new-sha",
+        )
+        self.assertEqual(second.operations[0]["action"], "NOOP_ALREADY_IN_SYNC")
+        self.assertEqual(client.update_calls, before_updates + 1)
+
+    def test_manual_stepik_drift_blocks_before_overwrite(self) -> None:
+        client = FakeClient()
+        initial = execute_content_test_one(
+            client,
+            client.inspect_course(299189),
+            expected_steps=EXPECTED,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+        )
+        baseline = {
+            "stepik_lesson_id": initial.lesson_id,
+            "applied_fingerprint": compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED),
+        }
+        client._steps()[0]["step_source"]["block"]["text"] = "<p>Ручная правка в Stepik</p>"
+        updated = [CompiledStep(1, "text", "<p>Новый канон</p>", {}, EXPECTED[0].source_git_paths), EXPECTED[1]]
+        before_updates = client.update_calls
+        with self.assertRaisesRegex(ContentWriteError, "DRIFT_BLOCKED"):
+            execute_content_sync_one(
+                client,
+                client.inspect_course(299189),
+                canonical_id="M02-L01",
+                expected_steps=updated,
+                module_position=3,
+                lesson_position=1,
+                expected_title=TITLE,
+                baseline=baseline,
+                source_sha="new-sha",
+            )
+        self.assertEqual(client.update_calls, before_updates)
 
     def test_public_target_lesson_blocks_before_write(self) -> None:
         client = FakeClient()
@@ -168,7 +252,7 @@ class WriterTests(unittest.TestCase):
                 expected_steps=EXPECTED,
                 module_position=3,
                 lesson_position=1,
-                expected_title="M02-L01 — Скажите, что получите и как это оцените",
+                expected_title=TITLE,
             )
         self.assertEqual(client.update_calls, 0)
         self.assertEqual(client.create_calls, 0)
@@ -183,7 +267,7 @@ class WriterTests(unittest.TestCase):
                 expected_steps=EXPECTED,
                 module_position=3,
                 lesson_position=1,
-                expected_title="M02-L01 — Скажите, что получите и как это оцените",
+                expected_title=TITLE,
             )
         self.assertEqual(client.update_calls, 0)
         self.assertEqual(client.create_calls, 0)
