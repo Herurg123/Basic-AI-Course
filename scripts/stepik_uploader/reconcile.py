@@ -53,6 +53,7 @@ def classify_reconcile(
     event_summary: dict[str, Any] | None,
     event_source_sha: str | None,
     event_baseline_fingerprint_before: str | None = None,
+    event_baseline_known: bool = False,
     committed_history_live_match: bool = False,
     golden_read_only: bool = False,
     metadata_divergence: bool = False,
@@ -128,7 +129,7 @@ def classify_reconcile(
         )
 
     started_event = "EVENT_STARTED" in summary.get("phases", []) and not summary.get("machine_state_committed")
-    if started_event:
+    if started_event and event_baseline_known:
         allowed_baselines = {event_baseline_fingerprint_before}
         if summary.get("final_readback_confirmed"):
             allowed_baselines.add(summary.get("final_fingerprint"))
