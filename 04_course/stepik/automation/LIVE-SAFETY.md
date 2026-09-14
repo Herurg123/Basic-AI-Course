@@ -35,13 +35,9 @@ Mutex фиксирован по реальному course ID. Offline PR tests �
 
 ## 3. Current machine state и immutable history
 
-Issue `#54` содержит compact current state:
+Issue `#54` содержит compact current state: confirmed lesson baselines, `pending.lessons` и отдельный `pending.course_page`.
 
-- confirmed lesson baselines;
-- `pending.lessons`;
-- отдельный `pending.course_page`.
-
-Отдельная derived branch `stepik-deployment-history-v1` хранит immutable deployment/recovery/reconcile evidence. Она не используется как content source.
+Отдельная derived branch `stepik-deployment-history-v1` хранит immutable deployment/recovery/reconcile evidence и не используется как content source.
 
 До каждого Stepik write должен быть durable `WRITE_INTENT`. Этот record ещё **не** означает, что внешний write начался.
 
@@ -57,42 +53,33 @@ Write не ретраится автоматически вслепую.
 
 `WRITE_AMBIGUOUS` = `STOP` + read-only reconcile. Blind retry запрещён.
 
-`WRITE_FAILED_KNOWN` может вернуться в normal guarded route только если все начатые operations имеют known failure, нет ambiguous/read-back evidence и fresh live по-прежнему точно равен baseline. Иначе = `STOP_OWNER_DECISION`.
+`WRITE_FAILED_KNOWN` не считается ambiguous, но новый dispatch является новой внешней попыткой. History v1 не переиспользует старый dispatch/result record для неё. Поэтому текущий route возвращает `KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED`; live divergence после known failure возвращает отдельный owner blocker.
 
 ## 5. Read-back обязателен
 
 HTTP success не является подтверждением deployment.
 
-После каждого write automation читает изменённый Stepik object и durable-записывает подтверждённый intermediate fingerprint.
+После каждого write automation читает изменённый Stepik object и durable-записывает подтверждённый intermediate fingerprint. После всех operations выполняется full lesson read-back.
 
-После всех operations выполняется full lesson read-back. Baseline/pending разрешено менять только после `FINAL_READBACK_CONFIRMED`.
-
-Failed/unavailable read-back не считается confirmed state.
+Baseline/pending разрешено менять только после `FINAL_READBACK_CONFIRMED`. Failed/unavailable read-back не считается confirmed state.
 
 ## 6. Partial-write recovery
 
-Recovery всегда сопоставляет четыре источника:
-
-- event source `main` SHA;
-- current machine state;
-- fresh live Stepik;
-- immutable event history.
+Recovery всегда сопоставляет event source `main` SHA, current machine state, fresh live Stepik и immutable event history.
 
 ### Write не начинался
 
-Если есть `EVENT_STARTED`, но нет `WRITE_DISPATCH_STARTED`, automation может заново войти в normal route только при неизменных source/baseline/live guards. Наличие старого semantic-identical `WRITE_INTENT` не блокирует retry: он переиспользуется без переписывания immutable record.
+Если есть `EVENT_STARTED`, но нет `WRITE_DISPATCH_STARTED`, automation может заново войти в normal route только при неизменных source/baseline/live guards. Старый semantic-identical `WRITE_INTENT` переиспользуется без переписывания immutable record.
 
 ### Final write подтверждён, state PATCH отсутствует
 
 Если history содержит `FINAL_READBACK_CONFIRMED`, `MACHINE_STATE_COMMITTED` отсутствует, source SHA актуален, а fresh live точно равен history-confirmed final fingerprint, разрешён `AUTO_RECOVER_MACHINE_STATE`.
 
-Такой recovery выполняет **0 Stepik writes** и только восстанавливает baseline/pending через обычный Issue race guard.
+Такой recovery выполняет **0 Stepik writes**. Если Issue уже содержит доказанный final baseline и target pending закрыт, current state сохраняется без регрессии `updated_at`, а завершается только history/state handshake.
 
 ### Partial prefix подтверждён
 
-Если per-operation read-back доказал prefix и fresh live точно равен last confirmed intermediate fingerprint, разрешено продолжить только remaining operations.
-
-Подтверждённые operations повторно не выполняются.
+Если per-operation read-back доказал prefix и fresh live точно равен last confirmed intermediate fingerprint, разрешено продолжить только remaining operations. Подтверждённые operations повторно не выполняются.
 
 ### Unknown/ambiguous partial state
 
@@ -116,25 +103,25 @@ Mutation current state выполняется только так:
 
 Если state изменился между чтениями, PATCH запрещён.
 
-`MACHINE_STATE_COMMITTED` в history появляется только после успешного Issue PATCH и только после exact validation: committed status и baseline-after обязаны совпасть с `FINAL_READBACK_CONFIRMED`.
+`MACHINE_STATE_COMMITTED` в history появляется только после успешного Issue PATCH и exact validation: committed status и baseline-after обязаны совпасть с `FINAL_READBACK_CONFIRMED`.
 
-Если PATCH прошёл, а последующий history commit упал, повторный recovery обязан завершить handshake без повторного Stepik write.
+Если PATCH прошёл, а последующий history commit упал, повторный recovery завершает handshake без повторного Stepik write.
 
 ## 9. Pending closure
 
 Pending lesson закрывается только после доказанного `APPLIED` или `NOOP_CONFIRMED`.
 
-`APPLIED` обновляет baseline после final read-back. `NOOP_CONFIRMED` не выполняет фиктивный write.
-
-Другие lesson pending и `pending.course_page` не затрагиваются target sync/recovery.
+`APPLIED` обновляет baseline после final read-back. `NOOP_CONFIRMED` не выполняет фиктивный write. Другие lesson pending и `pending.course_page` не затрагиваются target sync/recovery.
 
 ## 10. Reconcile
 
 `sync-reconcile` является read-only по отношению к Stepik. Он классифицирует mismatch между live, baseline, canonical и history, но сам не пишет в Stepik и не rebaseline-ит state.
 
-При этом каждый reconcile run durable-записывает `RECONCILE_CLASSIFIED` в operational history. Reconcile-only observation без `EVENT_STARTED` не является незавершённым deployment event.
+Каждый reconcile run durable-записывает `RECONCILE_CLASSIFIED`. Reconcile-only observation без `EVENT_STARTED` не является незавершённым deployment event.
 
-Auto-reconcile допустим только при доказуемом происхождении. Manual/unknown drift, stale machine baseline, conflicting events, golden lesson, structural/metadata divergence, missing baseline с неизвестным origin и auto-adoption case требуют owner decision.
+Для stale-baseline evidence используется только последний однозначно доказуемый committed deployment state объекта. Старый history event, случайно совпавший с live, не доказывает, что current Issue baseline устарел. Неоднозначность latest committed history = fail-closed conflict.
+
+Manual/unknown drift, stale machine baseline, known-failure new attempt, conflicting events, golden lesson, structural/metadata divergence, missing baseline с неизвестным origin и auto-adoption case требуют owner decision.
 
 Совпадение `live == canonical` без доказанного event не разрешает автоматически принять live как baseline.
 
