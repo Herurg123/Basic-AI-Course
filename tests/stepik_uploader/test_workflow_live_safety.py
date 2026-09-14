@@ -41,6 +41,12 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.assertNotIn("STEPIC_CLIENT_ID", tests_block)
         self.assertNotIn("STEPIC_CLIENT_SECRET", tests_block)
 
+    def test_bulk_workflow_changes_trigger_regular_pr_ci(self) -> None:
+        self.assertGreaterEqual(
+            self.uploader.count("'.github/workflows/stepik-bulk-status.yml'"),
+            2,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
