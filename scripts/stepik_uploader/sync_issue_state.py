@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-from stepik_uploader.sync_state import empty_state, validate_state
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from stepik_uploader.sync_state import empty_state, validate_state
+else:
+    from .sync_state import empty_state, validate_state
 
 BEGIN = "<!-- STEPIK_SYNC_STATE_V1_BEGIN -->"
 END = "<!-- STEPIK_SYNC_STATE_V1_END -->"
