@@ -1,17 +1,28 @@
-# Stepik uploader: безопасная первая фаза
+# Stepik uploader: безопасная автоматизация
 
 Этот каталог содержит автоматизацию переноса утверждённого курса «ИИ с нуля» в существующий черновой курс Stepik. Источник истины для содержания остаётся в GitHub `main`; uploader (загрузчик курса) не проектирует уроки заново.
 
 ## Текущий статус
 
-Первая фаза намеренно поддерживает только безопасные режимы:
+Поддерживаются безопасные режимы:
 
 - `inspect` — READ-ONLY (только чтение) реального курса и двух вручную собранных golden lessons (эталонных уроков);
 - `dry-run` — пробный запуск без записи: компиляция структурного manifest (машиночитаемого манифеста сборки) и diff-плана (плана различий).
 
-Режимы `skeleton`, `assets-test`, `content-test-one`, `upload-remaining` и `verify` зарезервированы контрактом, но до анализа golden sample (эталонного образца) завершаются как `BLOCKED` (заблокировано). Это сделано специально: Stepik `block.name`, фактическое разбиение learner-facing (видимого ученику) текста и профиль ссылок нельзя надёжно угадать до чтения уже собранных M00-L01/M00-L02.
+Live inspect курса `299189` подтвердил M00-L01/M00-L02 как READ-ONLY golden sample. Наблюдаемая платформенная конфигурация сохранена в `04_course/stepik/automation/golden-profile.v1.json`: количество и порядок шагов, `block.name`, free-answer configuration и SHA-256 learner-visible HTML каждого golden step. Следующий live inspect снимает фазовый `needs-golden-profile` только если реальный Stepik по-прежнему совпадает с этим профилем.
 
-Два эталонных урока являются READ-ONLY. Автоматизация не удаляет их, не перезаписывает и не исправляет «для единообразия».
+Режимы `skeleton`, `assets-test`, `content-test-one`, `upload-remaining` и `verify` пока остаются fail-closed. После golden checkpoint причина блокировки уже не «неизвестна модель Stepik», а отсутствие утверждённого content compiler и отдельного теста одной не-golden lesson. Два эталонных урока по-прежнему нельзя удалять, перестраивать или перезаписывать.
+
+## Что показал golden sample
+
+- M00-L01: 6 Stepik steps, sequence `text, text, text, text, free-answer, text`.
+- M00-L02: 7 Stepik steps, sequence `text, text, text, text, text, free-answer, text`.
+- Free-answer использует `is_attachments_enabled=false`, `is_html_enabled=true`, `manual_scoring=false`.
+- Markdown helper assets в golden фактически встроены в learner-facing text.
+- DOCX/PNG M00-L02 отдаются по подтверждённым Stepik lesson-file URLs.
+- В обоих golden lessons количество строк Stepik-плана совпадает с количеством реальных Stepik steps 1:1.
+
+`golden-profile.v1.json` — derived platform-observation fixture, а не второй источник содержания курса. Если golden lesson изменится вручную или API начнёт возвращать другую структуру/HTML, inspect должен остановиться, а не «приспособиться» молча.
 
 ## Локальная проверка без Stepik
 
@@ -33,24 +44,18 @@ Offline `dry-run` (локальный пробный запуск без обр�
 
 ## Live inspect
 
-Для live inspect (чтения реального курса Stepik) нужен обычный числовой `course_id`, а OAuth-секреты должны находиться только в environment (переменных окружения) или GitHub Actions Secrets:
+Для live inspect нужен обычный числовой `course_id`, а OAuth-секреты должны находиться только в environment (переменных окружения) или GitHub Actions Secrets:
 
 ```text
 STEPIC_CLIENT_ID
 STEPIC_CLIENT_SECRET
 ```
 
-Локальный пример:
+Рабочий черновой курс проекта имеет `course_id=299189`; GitHub Actions уже подставляет его по умолчанию. `.env` исключён из Git. Не передавайте `client_secret`, access token (токен доступа), пароль или cookies в чат, issue, PR, Actions input или лог.
 
-```bash
-cp scripts/stepik_uploader/.env.example .env
-# заполнить .env локально и экспортировать переменные окружения своим способом
-python scripts/stepik_uploader/stepik_uploader.py inspect --course-id 123456 --repo-root .
-```
+`inspect` читает цепочку `course → sections → units → lessons → steps/step-sources`, сохраняет нормализованный snapshot (снимок состояния), распознаёт M00-L01/M00-L02 и проверяет их против сохранённого golden profile. Любая неоднозначность становится blocker (блокирующей ошибкой).
 
-`.env` уже исключён из Git. Не передавайте `client_secret`, access token (токен доступа), пароль или cookies в чат, issue, PR, Actions input или лог.
-
-`inspect` читает цепочку `course → sections → units → lessons → steps/step-sources`, сохраняет нормализованный snapshot (снимок состояния) и пытается однозначно распознать M00-L01/M00-L02 по каноническим заголовкам и позициям. Любая неоднозначность становится blocker (блокирующей ошибкой).
+Существующие skeleton lessons определяются по точному каноническому title либо по стабильному `Mxx-Lyy` в title вместе с точной section/unit position. Если canonical ID или позиция неоднозначны, uploader останавливается. Устаревший текст title при однозначном stable ID не считается отсутствующим уроком и никогда не ведёт к планированию дубля.
 
 ## Идемпотентность и сетевые ошибки
 
@@ -67,13 +72,13 @@ python scripts/stepik_uploader/stepik_uploader.py inspect --course-id 123456 --r
 
 Поэтому базовый fallback (резервный маршрут) v1 — `manual-stepik-files`:
 
-1. automation (автоматизация) создаёт только подтверждённую структуру;
-2. владелец загружает нужные assets (материалы) через Stepik UI;
+1. automation (автоматизация) определяет точный список нужных binary assets;
+2. владелец загружает их через Stepik UI;
 3. владелец копирует обычные ссылки;
 4. ссылки попадают в URL-map (карту URL);
 5. content phase (этап публикации содержания) блокируется, пока нужный Asset ID не разрешён в URL.
 
-Если позже эмпирически и по документации будет подтверждён устойчивый API-маршрут, его можно добавить отдельным PR без изменения канонического learner-facing содержания.
+Markdown helper assets могут быть встроены в текст, если это подтверждено production route; URL для них не выдумывается.
 
 ## Особые педагогические блокировки
 
