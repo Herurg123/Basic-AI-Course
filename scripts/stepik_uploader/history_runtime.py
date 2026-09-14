@@ -94,6 +94,55 @@ def find_incomplete_object_events(store: Any, *, object_id: str) -> list[tuple[E
     return result
 
 
+def latest_committed_history_evidence(
+    object_events: list[tuple[EventIdentity, list[dict[str, Any]], dict[str, Any]]],
+    *,
+    live_fingerprint: str,
+) -> dict[str, Any]:
+    """Resolve only the latest provable committed deployment state for stale-baseline evidence.
+
+    Older committed events that happen to match current live content are not sufficient proof that
+    the current Issue baseline is stale. Equal latest timestamps with different fingerprints are
+    intentionally ambiguous because second-level timestamps cannot prove ordering.
+    """
+    candidates: list[tuple[str, str, str]] = []
+    for identity, records, summary in object_events:
+        committed_baseline = summary.get("committed_baseline_after")
+        if not summary.get("machine_state_committed") or not isinstance(committed_baseline, dict):
+            continue
+        committed_records = [record for record in records if record.get("phase") == "MACHINE_STATE_COMMITTED"]
+        if len(committed_records) != 1:
+            continue
+        committed_at = committed_records[0].get("confirmed_at")
+        fingerprint = committed_baseline.get("applied_fingerprint")
+        if isinstance(committed_at, str) and isinstance(fingerprint, str):
+            candidates.append((committed_at, identity.event_id, fingerprint))
+
+    if not candidates:
+        return {
+            "has_evidence": False,
+            "live_match": False,
+            "ambiguous": False,
+            "committed_at": None,
+            "event_ids": [],
+            "fingerprints": [],
+        }
+
+    latest_time = max(value[0] for value in candidates)
+    latest = [value for value in candidates if value[0] == latest_time]
+    event_ids = sorted(value[1] for value in latest)
+    fingerprints = sorted({value[2] for value in latest})
+    ambiguous = len(fingerprints) != 1
+    return {
+        "has_evidence": True,
+        "live_match": False if ambiguous else fingerprints[0] == live_fingerprint,
+        "ambiguous": ambiguous,
+        "committed_at": latest_time,
+        "event_ids": event_ids,
+        "fingerprints": fingerprints,
+    }
+
+
 def final_confirmed_record(records: list[dict[str, Any]]) -> dict[str, Any] | None:
     for record in reversed(records):
         if record.get("phase") == "FINAL_READBACK_CONFIRMED":
