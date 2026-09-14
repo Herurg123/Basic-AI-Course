@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from html.parser import HTMLParser
 from typing import Any
 
 from .content import CompiledStep
-from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
+from .fingerprints import compiled_lesson_fingerprint, html_fingerprint, live_lesson_fingerprint
 from .sync_state import SyncAssessment, assess_sync, build_record
 
 PLACEHOLDER_TEXT = "Урок сгенерирован роботом ;)"
@@ -14,35 +13,6 @@ PLACEHOLDER_TEXT = "Урок сгенерирован роботом ;)"
 
 class ContentWriteError(RuntimeError):
     pass
-
-
-class _FingerprintParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.tokens: list[tuple[Any, ...]] = []
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        kept = tuple(sorted((key, value or "") for key, value in attrs if key not in {"rel", "target"}))
-        self.tokens.append(("start", tag, kept))
-
-    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        kept = tuple(sorted((key, value or "") for key, value in attrs if key not in {"rel", "target"}))
-        self.tokens.append(("startend", tag, kept))
-
-    def handle_endtag(self, tag: str) -> None:
-        self.tokens.append(("end", tag))
-
-    def handle_data(self, data: str) -> None:
-        normalized = re.sub(r"\s+", " ", data).strip()
-        if normalized:
-            self.tokens.append(("data", normalized))
-
-
-def html_fingerprint(text: str) -> tuple[tuple[Any, ...], ...]:
-    parser = _FingerprintParser()
-    parser.feed(text or "")
-    parser.close()
-    return tuple(parser.tokens)
 
 
 def _step_source(item: dict[str, Any]) -> dict[str, Any]:
@@ -81,10 +51,15 @@ def _target_lesson_by_position(
     *,
     module_position: int,
     lesson_position: int,
+    draft_only: bool,
 ) -> dict[str, Any]:
     course = snapshot.get("course", {})
-    if course.get("is_public") is not False:
-        raise ContentWriteError("Stepik writes разрешены только для непубличного чернового курса")
+    course_public = course.get("is_public")
+    if not isinstance(course_public, bool):
+        raise ContentWriteError(f"Не удалось подтвердить course.is_public: {course_public!r}")
+    if draft_only and course_public is not False:
+        raise ContentWriteError("Этот Stepik write-режим разрешён только для непубличного чернового курса")
+
     matching_sections = [s for s in snapshot.get("sections", []) if s.get("position") == module_position]
     if len(matching_sections) != 1:
         raise ContentWriteError(f"Не найден единственный section position={module_position}")
@@ -94,8 +69,11 @@ def _target_lesson_by_position(
             f"Не найден единственный unit section={module_position} position={lesson_position}"
         )
     lesson = matching_units[0].get("lesson", {})
-    if lesson.get("is_public") is not False:
-        raise ContentWriteError("Target lesson неожиданно public; write остановлен")
+    lesson_public = lesson.get("is_public")
+    if not isinstance(lesson_public, bool):
+        raise ContentWriteError(f"Не удалось подтвердить target lesson.is_public: {lesson_public!r}")
+    if draft_only and lesson_public is not False:
+        raise ContentWriteError("Этот Stepik write-режим разрешён только для непубличного target lesson")
     if lesson.get("language") != "ru":
         raise ContentWriteError(
             f"Target lesson language отличается от ожидаемого ru: {lesson.get('language')}"
@@ -114,6 +92,7 @@ def _target_lesson(
         snapshot,
         module_position=module_position,
         lesson_position=lesson_position,
+        draft_only=True,
     )
     if lesson.get("title") != expected_title:
         raise ContentWriteError(
@@ -247,16 +226,18 @@ def execute_content_sync_one(
     baseline: dict[str, Any] | None,
     source_sha: str,
 ) -> SyncWriteResult:
-    """Безопасно обновляет только уже отслеживаемый урок с неизменной структурой steps.
+    """Безопасно обновляет отслеживаемый урок с неизменной структурой steps.
 
-    Ключевой guard: текущий live fingerprint обязан точно совпасть с последним подтверждённым
-    deployment baseline. Если Stepik редактировали вручную после sync, автоматическая запись
-    останавливается вместо молчаливого overwrite.
+    В отличие от первого content-test, exploitation sync допускает опубликованный курс:
+    после запуска именно это нужно для исправлений в работающем курсе. Защиту даёт не
+    состояние draft, а точное совпадение текущего live fingerprint с последним
+    подтверждённым deployment baseline. Любой ручной drift блокирует overwrite.
     """
     lesson = _target_lesson_by_position(
         snapshot,
         module_position=module_position,
         lesson_position=lesson_position,
+        draft_only=False,
     )
     lesson_id = int(lesson["id"])
     assessment = assess_sync(
@@ -303,6 +284,7 @@ def execute_content_sync_one(
         after,
         module_position=module_position,
         lesson_position=lesson_position,
+        draft_only=False,
     )
     desired_fp = compiled_lesson_fingerprint(expected_title=expected_title, expected_steps=expected_steps)
     live_fp = live_lesson_fingerprint(after_lesson)
