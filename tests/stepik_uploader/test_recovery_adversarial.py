@@ -112,7 +112,7 @@ class RecoveryAdversarialTests(unittest.TestCase):
                 expected_fingerprint_after=DESIRED,
             )
 
-    def test_known_write_failure_is_retry_safe_only_when_live_still_matches_baseline(self) -> None:
+    def test_known_write_failure_requires_explicit_new_attempt_even_when_live_is_unchanged(self) -> None:
         store = MemoryHistoryStore()
         recorder = DeploymentRecorder(store, identity())
         start(recorder)
@@ -132,7 +132,7 @@ class RecoveryAdversarialTests(unittest.TestCase):
         summary = summarize_event(recorder.records(refresh=True))
         self.assertTrue(summary["all_dispatched_writes_failed_known"])
 
-        safe = classify_reconcile(
+        unchanged = classify_reconcile(
             source_sha=SHA,
             current_main_sha=SHA,
             live_fingerprint=OLD,
@@ -141,9 +141,9 @@ class RecoveryAdversarialTests(unittest.TestCase):
             event_summary=summary,
             event_source_sha=SHA,
         )
-        self.assertEqual(safe.classification, "KNOWN_WRITE_FAILURE_RETRY_SAFE")
-        self.assertEqual(safe.action, "NORMAL_SYNC_ROUTE")
-        self.assertTrue(safe.auto_allowed)
+        self.assertEqual(unchanged.classification, "KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED")
+        self.assertFalse(unchanged.auto_allowed)
+        self.assertTrue(unchanged.owner_approval_required)
 
         drifted = classify_reconcile(
             source_sha=SHA,
