@@ -54,7 +54,7 @@ Live Stepik вызывается только вручную через `workflo
 - Stepik step IDs;
 - Git paths, из которых был собран урок.
 
-Текущий machine-readable baseline хранится внутри body issue `#54` между markers `STEPIK_SYNC_STATE_V1_BEGIN/END`. История реальных применений сохраняется отдельными комментариями `APPLIED`.
+Текущий machine-readable baseline хранится внутри body issue `#54` между markers `STEPIK_SYNC_STATE_V1_BEGIN/END`. История реальных применений сохраняется отдельными комментариями `APPLIED`; подтверждённые проверки без записи фиксируются как `NOOP_CONFIRMED`.
 
 Issue не является источником содержания курса: это только эксплуатационный deployment state. Содержание по-прежнему берётся исключительно из `main`.
 
@@ -141,9 +141,32 @@ Write-mode. Требует `confirm_write=true`.
 
 Перед записью повторяет все проверки `sync-status`. При `UPDATE_REQUIRED` обновляет только реально отличающиеся steps, делает read-back и только после этого обновляет baseline в issue `#54` и добавляет `APPLIED` comment.
 
+Если выяснилось, что `live == baseline == desired`, режим делает **0 Stepik writes** и добавляет `NOOP_CONFIRMED`. Это закрывает ложный или уже устаревший `PENDING`, не меняя baseline.
+
 Если запись в Stepik прошла, а обновление GitHub journal по какой-то причине не удалось, workflow считается failed. Следующий run увидит расхождение live/baseline и заблокируется. То есть отказ журнала приводит к STOP, а не к молчаливому продолжению.
 
-## 9. Текущий scope до открытия bulk upload
+Перед PATCH issue body workflow повторно читает issue и сравнивает machine-readable state с тем, который использовался перед Stepik write. Если baseline успел измениться параллельно, запись журнала останавливается. Человеческие правки текста issue сохраняются, потому что новый machine-state встраивается в свежепрочитанное body.
+
+## 9. Assets: обязательный hash-gate перед bulk upload
+
+Изменение learner-facing файла в `05_assets/**` всегда создаёт `PENDING`, но одного HTML fingerprint урока недостаточно для бинарных или внешне размещённых файлов. Возможна ситуация: в GitHub изменился DOCX/PNG/SVG, а ссылка в Stepik осталась той же. Тогда HTML шага не меняется, хотя содержимое файла уже устарело.
+
+Поэтому **до разблокировки общего `upload-remaining`** deployment baseline каждого внешнего/binary asset обязан дополнительно хранить как минимум:
+
+- canonical Asset ID;
+- SHA-256 исходного файла из `main`;
+- storage type;
+- фактический deployed URL;
+- подтверждение/дату проверки deployed version;
+- при технической возможности remote hash/version identifier.
+
+Если Git asset hash изменился, asset считается `UPDATE_REQUIRED` независимо от того, изменился ли HTML урока. Новый lesson baseline нельзя объявлять актуальным, пока новый asset реально не загружен/заменён и его URL/version не подтверждены.
+
+Если storage не позволяет надёжно проверить remote content hash, используется fail-closed правило: после изменения исходного asset требуется явное подтверждение его повторной публикации. Совпадение старого URL само по себе не является доказательством синхронизации.
+
+Текущий pilot `M02-L01` использует Markdown asset, который компилируется внутрь Stepik content, поэтому этот binary-asset gate не требуется для уже проверенного pilot-route. Для массового compiler это обязательный release gate, а не будущая косметика.
+
+## 10. Текущий scope до открытия bulk upload
 
 На текущем checkpoint общий content compiler ещё не включён для всех 21 урока. Поэтому `sync-status`/`sync-changed` технически ограничены уже проверенным `M02-L01` как pilot exploitation-route.
 
@@ -155,12 +178,15 @@ Write-mode. Требует `confirm_write=true`.
 - вычислять desired/live fingerprints;
 - обновлять только changed steps;
 - блокировать live drift;
-- формировать `PENDING/APPLIED` audit trail.
+- формировать `PENDING/APPLIED/NOOP_CONFIRMED` audit trail;
+- отслеживать hash/version learner-facing assets по правилам раздела 9.
 
-## 10. Эксплуатационный результат
+## 11. Эксплуатационный результат
 
 В нормальном режиме после запуска курса процесс выглядит так:
 
 `PR/merge в main → PENDING в #54 без Stepik API → накопление нескольких правок → ручной sync-status → sync-changed при чистом baseline → read-back → APPLIED + новый baseline`.
+
+Если фактическая запись не нужна, последний фрагмент заменяется на `NOOP_CONFIRMED`.
 
 Это отделяет разработку курса от публикации, не создаёт постоянный polling Stepik и оставляет проверяемую историю того, **что требовало обновления и когда оно действительно было применено**.
