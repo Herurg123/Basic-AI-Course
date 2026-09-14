@@ -57,6 +57,26 @@ def _split_table_row(line: str) -> list[str]:
     return [cell.strip() for cell in stripped[1:-1].split("|")]
 
 
+def _is_author_only(*, logical_type: str, summary: str, material: str, check: str) -> bool:
+    """Определяет только явно служебные строки, не путая их с learner-facing словом «авторский».
+
+    Раньше поиск любого фрагмента «авторск» по всей строке ошибочно скрывал, например,
+    learner-facing «авторские версии» в M05-L01. Fail-closed остаётся для явных
+    author-only/author rubric/ключей проверяющего, но обычное упоминание автора больше
+    не превращает ученический шаг в служебный.
+    """
+    logical_lower = logical_type.lower()
+    combined_lower = " ".join((summary, material, check)).lower()
+    return (
+        "author-only" in logical_lower
+        or "author only" in logical_lower
+        or "ключ проверяющего" in combined_lower
+        or "author rubric" in combined_lower
+        or "авторская рубрик" in combined_lower
+        or "авторский ключ" in combined_lower
+    )
+
+
 def parse_stepik_plan(plan_markdown: str, *, lesson_id: str, path: Path) -> list[dict[str, Any]]:
     lines = plan_markdown.splitlines()
     header_index: int | None = None
@@ -84,12 +104,11 @@ def parse_stepik_plan(plan_markdown: str, *, lesson_id: str, path: Path) -> list
         logical_type, summary, material, check = cells[1], cells[2], cells[3], cells[4]
         combined = " ".join((logical_type, summary, material, check))
         lower = combined.lower()
-        author_only = (
-            "author-only" in lower
-            or "author only" in lower
-            or "авторск" in lower
-            or "ключ проверяющего" in lower
-            or "author rubric" in lower
+        author_only = _is_author_only(
+            logical_type=logical_type,
+            summary=summary,
+            material=material,
+            check=check,
         )
         independent = lesson_id in SENSITIVE_LESSONS or any(
             marker in lower
