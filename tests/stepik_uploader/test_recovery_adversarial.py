@@ -158,6 +158,67 @@ class RecoveryAdversarialTests(unittest.TestCase):
         self.assertFalse(drifted.auto_allowed)
         self.assertTrue(drifted.owner_approval_required)
 
+    def test_recovery_cannot_overwrite_unrelated_current_machine_baseline(self) -> None:
+        store = MemoryHistoryStore()
+        recorder = DeploymentRecorder(store, identity())
+        start(recorder)
+        baseline_after = {
+            "canonical_id": "M02-L01",
+            "stepik_lesson_id": 10,
+            "applied_source_sha": SHA,
+            "applied_at": "2026-09-14T20:01:00Z",
+            "applied_fingerprint": DESIRED,
+            "step_ids": [101],
+            "source_git_paths": ["lesson.md"],
+        }
+        recorder.final_readback(
+            fingerprint_after=DESIRED,
+            stepik_object_ids={"lesson_id": 10, "step_ids": [101]},
+            status="APPLIED",
+            baseline_after=baseline_after,
+        )
+        summary = summarize_event(recorder.records(refresh=True))
+
+        decision = classify_reconcile(
+            source_sha=SHA,
+            current_main_sha=SHA,
+            live_fingerprint=DESIRED,
+            desired_fingerprint=DESIRED,
+            baseline_fingerprint=MANUAL,
+            event_summary=summary,
+            event_source_sha=SHA,
+            event_baseline_fingerprint_before=OLD,
+            event_baseline_known=True,
+        )
+        self.assertEqual(decision.classification, "MACHINE_STATE_DIVERGED_DURING_EVENT")
+        self.assertFalse(decision.auto_allowed)
+        self.assertTrue(decision.owner_approval_required)
+
+    def test_final_recovery_allows_machine_baseline_before_or_confirmed_after(self) -> None:
+        summary = {
+            "phases": ["EVENT_STARTED", "FINAL_READBACK_CONFIRMED"],
+            "final_readback_confirmed": True,
+            "final_fingerprint": DESIRED,
+            "machine_state_committed": False,
+            "ambiguous": False,
+            "readback_failed": False,
+        }
+        for baseline in (OLD, DESIRED):
+            with self.subTest(current_baseline=baseline):
+                decision = classify_reconcile(
+                    source_sha=SHA,
+                    current_main_sha=SHA,
+                    live_fingerprint=DESIRED,
+                    desired_fingerprint=DESIRED,
+                    baseline_fingerprint=baseline,
+                    event_summary=summary,
+                    event_source_sha=SHA,
+                    event_baseline_fingerprint_before=OLD,
+                    event_baseline_known=True,
+                )
+                self.assertEqual(decision.action, "AUTO_RECOVER_MACHINE_STATE")
+                self.assertTrue(decision.auto_allowed)
+
 
 if __name__ == "__main__":
     unittest.main()
