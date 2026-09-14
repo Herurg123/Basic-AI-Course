@@ -11,18 +11,24 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Безопасный режим Stepik automation'
+        description: 'Режим Stepik automation; content-test-one пишет только один тестовый урок'
         required: true
         default: 'dry-run'
         type: choice
         options:
           - dry-run
           - inspect
+          - content-test-one
       course_id:
         description: 'Обычный числовой Stepik course_id. По умолчанию используется рабочий черновой курс проекта; это не секрет.'
         required: false
         default: '299189'
         type: string
+      confirm_write:
+        description: 'Явно разрешить запись для content-test-one. Для inspect/dry-run оставлять выключенным.'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -70,6 +76,7 @@ jobs:
       STEPIC_CLIENT_SECRET: ${{ secrets.STEPIC_CLIENT_SECRET }}
       COURSE_ID: ${{ inputs.course_id }}
       MODE: ${{ inputs.mode }}
+      CONFIRM_WRITE: ${{ inputs.confirm_write }}
     steps:
       - name: Получить репозиторий
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -84,7 +91,7 @@ jobs:
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
 
-      - name: Выполнить безопасный Stepik automation
+      - name: Выполнить Stepik automation
         shell: bash
         run: |
           set -euo pipefail
@@ -95,6 +102,9 @@ jobs:
               exit 2
             fi
             args+=(--course-id "$COURSE_ID")
+          fi
+          if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then
+            args+=(--confirm-write)
           fi
           python scripts/stepik_uploader/stepik_uploader.py "${args[@]}"
 

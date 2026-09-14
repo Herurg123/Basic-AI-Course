@@ -214,7 +214,7 @@ class StepikClient:
             "sections": normalized_sections,
         }
 
-    # Низкоуровневые write-методы существуют для следующей фазы, но CLI v1 до golden profile их не вызывает.
+    # Структурные create-методы остаются закрытыми CLI этой фазы.
     def create_lesson(self, title: str) -> dict[str, Any]:
         return self._request_write("POST", "/api/lessons", {"lesson": {"title": title}})
 
@@ -237,4 +237,24 @@ class StepikClient:
             "POST",
             "/api/step-sources",
             {"stepSource": {"block": block, "lesson": int(lesson_id), "position": int(position)}},
+        )
+
+    def update_step_source(
+        self,
+        *,
+        step_id: int,
+        lesson_id: int,
+        position: int,
+        block: dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._request_write(
+            "PUT",
+            f"/api/step-sources/{int(step_id)}",
+            {
+                "stepSource": {
+                    "block": block,
+                    "lesson": int(lesson_id),
+                    "position": int(position),
+                }
+            },
         )

@@ -116,10 +116,10 @@ def parse_stepik_plan(plan_markdown: str, *, lesson_id: str, path: Path) -> list
                 "author_only": author_only,
                 "independence_sensitive": independent,
                 "f1_sensitive": lesson_id == "M07-L02",
-                # До golden inspection эти два поля намеренно не угадываются.
+                # Structural manifest намеренно не угадывает platform rendering.
                 "stepik_block_type": None,
                 "learner_body": None,
-                "rendering_status": "needs-golden-profile",
+                "rendering_status": "structural-only",
             }
         )
 
@@ -184,7 +184,7 @@ def build_structural_manifest(repo_root: Path, *, source_sha: str = "unknown", s
                     "independence_sensitive": lesson_id in SENSITIVE_LESSONS,
                     "f1_sensitive": lesson_id == "M07-L02",
                     "write_ready": False,
-                    "write_blocker": "needs-golden-profile",
+                    "write_blocker": "requires-live-write-gates",
                     "steps": rows,
                 }
             )
@@ -211,11 +211,11 @@ def build_structural_manifest(repo_root: Path, *, source_sha: str = "unknown", s
             )
 
     return {
-        "schema_version": "1.0-structural",
+        "schema_version": "1.1-structural",
         "source_sha": source_sha,
-        "phase": "pre-golden-inspection",
+        "phase": "structural",
         "write_enabled": False,
-        "global_blockers": ["needs-golden-profile"],
+        "global_blockers": ["requires-live-write-gates"],
         "modules": modules,
         "summary": {
             "modules": len(modules),

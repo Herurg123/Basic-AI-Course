@@ -53,6 +53,8 @@ class CanonicalTests(unittest.TestCase):
             self.assertEqual(manifest["summary"]["modules"], 9)
             self.assertEqual(manifest["summary"]["lessons"], 21)
             self.assertFalse(manifest["write_enabled"])
+            self.assertEqual(manifest["phase"], "structural")
+            self.assertIn("requires-live-write-gates", manifest["global_blockers"])
             m07_l02 = next(
                 lesson
                 for module in manifest["modules"]
@@ -61,7 +63,8 @@ class CanonicalTests(unittest.TestCase):
             )
             self.assertTrue(m07_l02["f1_sensitive"])
             self.assertTrue(m07_l02["independence_sensitive"])
-            self.assertEqual(m07_l02["steps"][0]["rendering_status"], "needs-golden-profile")
+            self.assertEqual(m07_l02["write_blocker"], "requires-live-write-gates")
+            self.assertEqual(m07_l02["steps"][0]["rendering_status"], "structural-only")
 
     def test_generated_manifest_matches_json_schema(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
