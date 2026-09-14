@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 ASSET_ID_RE = re.compile(r"M\d{2}-L\d{2}-A\d{2}")
+ASSET_ID_FULL_RE = re.compile(r"(?P<module>M\d{2})-(?P<lesson>L\d{2})-A\d{2}")
 MARKDOWN_LINK_RE = re.compile(r"\]\(([^)]+)\)")
 
 
@@ -26,6 +27,21 @@ def _repo_path(repo_root: Path, path: Path) -> str:
         return str(path.resolve().relative_to(repo_root.resolve())).replace("\\", "/")
     except ValueError as exc:
         raise AssetInventoryError(f"Asset path выходит за пределы репозитория: {path}") from exc
+
+
+def _asset_dir_for_id(repo_root: Path, asset_id: str) -> Path:
+    """Resolve an Asset ID to its canonical physical directory.
+
+    Asset IDs encode their owning lesson. A learner-facing lesson may legitimately reuse an
+    asset owned by another lesson, so the physical file must be resolved from the Asset ID
+    itself rather than from the lesson that happens to reference it.
+    """
+    match = ASSET_ID_FULL_RE.fullmatch(asset_id)
+    if not match:
+        raise AssetInventoryError(f"Некорректный Asset ID: {asset_id}")
+    module_id = match.group("module")
+    lesson_id = f"{module_id}-{match.group('lesson')}"
+    return repo_root / "05_assets" / module_id / lesson_id
 
 
 def _lesson_links(repo_root: Path, lesson_path: Path) -> list[dict[str, Any]]:
@@ -80,9 +96,9 @@ def build_asset_inventory(repo_root: Path, manifest: dict[str, Any]) -> dict[str
             if not lesson_path.is_file():
                 raise AssetInventoryError(f"Не найден lesson.md для {lesson_id}: {lesson_path}")
 
-            asset_dir = repo_root / "05_assets" / str(module["canonical_id"]) / lesson_id
             physical: list[dict[str, Any]] = []
             for asset_id in lesson.get("asset_ids", []):
+                asset_dir = _asset_dir_for_id(repo_root, str(asset_id))
                 matches = sorted(path for path in asset_dir.glob(f"{asset_id}*") if path.is_file())
                 if not matches:
                     missing_files.append(asset_id)
