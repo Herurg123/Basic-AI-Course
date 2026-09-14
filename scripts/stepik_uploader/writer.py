@@ -97,6 +97,12 @@ def _target_lesson(
         raise ContentWriteError(
             f"Target lesson title отличается: ожидается «{expected_title}», найдено «{lesson.get('title')}»"
         )
+    if lesson.get("is_public") is not False:
+        raise ContentWriteError("Target lesson неожиданно public; content-test-one остановлен")
+    if lesson.get("language") != "ru":
+        raise ContentWriteError(
+            f"Target lesson language отличается от ожидаемого ru: {lesson.get('language')}"
+        )
     return lesson
 
 
