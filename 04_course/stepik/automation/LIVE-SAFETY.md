@@ -4,100 +4,117 @@
 **Курс Stepik:** `299189`  
 **Источник содержания:** только текущий HEAD `main`
 
-Этот документ фиксирует инфраструктурные условия, которые должны выполняться до любого обращения production workflow к реальному Stepik API. Он не меняет learner-facing содержание курса и не разблокирует массовую запись.
+Этот документ фиксирует инфраструктурные условия до обращения production workflow к реальному Stepik API. Он не меняет learner-facing содержание курса и не разблокирует общий bulk write.
 
 ## 1. Current-main guard
 
-Любой GitHub Actions job актуального production tooling, который собирается обратиться к реальному Stepik API, обязан непосредственно перед live-фазой выполнить `scripts/stepik_uploader/live_guard.py`.
+Любой актуальный production job, который собирается обратиться к реальному Stepik API, непосредственно перед live-фазой выполняет `scripts/stepik_uploader/live_guard.py`.
 
-Guard работает fail-closed и разрешает live-фазу только если одновременно:
+Guard разрешает live-фазу только если одновременно:
 
 - `GITHUB_REF == refs/heads/main`;
 - `GITHUB_SHA` является полным Git SHA;
 - GitHub API успешно возвращает текущий `refs/heads/main`;
-- SHA текущего remote HEAD `main` точно совпадает с `GITHUB_SHA` данного run.
+- remote HEAD `main` точно совпадает с `GITHUB_SHA` данного run.
 
-Если workflow был запущен с feature branch, если `main` успел получить новый commit, если GitHub API недоступен или ответ нельзя однозначно проверить, live-фаза останавливается до обращения к Stepik.
+Feature branch, устаревший SHA, недоступный GitHub API или неоднозначный ответ = STOP до Stepik API.
 
-Проверка выполняется после ожидания live mutex. Поэтому run, который долго ждал другой live job, не получает права работать со старым checkout только потому, что на старте он был актуальным.
+## 2. Единый mutex курса
 
-Guard не является механизмом отмены уже начатого Stepik write. После прохождения guard live-операция выполняется как единая защищённая фаза; автоматическое прерывание write из-за нового commit в середине операции запрещено, потому что это повышает риск частично записанного состояния. Следующий deployment снова обязан пройти current-main guard и обычные baseline/drift checks.
+Все актуальные live jobs курса `299189` используют один GitHub Actions concurrency group:
 
-## 2. Единый live mutex текущего production course
-
-Все production jobs, обращающиеся к реальному Stepik course `299189`, используют один фиксированный job-level concurrency contract:
-
-```text
-stepik-live-course-299189
+```yaml
+concurrency:
+  group: stepik-live-course-299189
+  cancel-in-progress: false
 ```
 
-Имя mutex намеренно не строится из пользовательского `course_id`. Иначе строки вроде `299189` и `0299189` могли бы попасть в разные concurrency groups, хотя после числового разбора указывали бы на один и тот же Stepik course.
+Mutex фиксирован по реальному course ID и не строится из пользовательского `inputs.course_id`.
 
-`cancel-in-progress` всегда `false`: новый read-only или write run не имеет права отменять уже начатую live-фазу.
+Это сериализует актуальные live workflows, включая Stepik Uploader и Stepik Bulk Status, и не позволяет двум штатным live job одновременно менять/проверять один курс.
 
-Один и тот же mutex используют как минимум:
+## 3. Offline CI не держит live mutex
 
-- live job workflow `Stepik Uploader`;
-- live job workflow `Stepik Bulk Status`;
-- будущие workflows этого же production course, если они читают или пишут live Stepik.
+Unit tests, structural dry-run и обычный PR CI выполняются отдельно от live mutex и без Stepik credentials.
 
-Read-only inspect не выполняется параллельно с write. Два read-only live run тоже сериализуются. Это намеренно: preflight snapshot должен описывать одно устойчивое состояние курса, а не объект, который другой workflow меняет во время чтения.
+Mutex применяется только к job, который действительно может перейти к live Stepik API. Человеческая привычка запирать вообще всё одним замком обычно заканчивается тем, что никто уже не помнит, зачем замок был нужен; здесь этого не делаем.
 
-Если в проекте когда-либо появится второй production Stepik course, для него сначала вводится отдельный явно проверенный fixed mutex и target-validation contract. Пользовательский input не должен сам определять пространство блокировок.
+## 4. Machine-readable deployment state
 
-## 3. Что не сериализуется
+Issue `#54` содержит единый machine-readable sync state согласно `SYNC-POLICY.md`:
 
-Offline CI не использует live mutex:
+- confirmed lesson baselines;
+- `pending.lessons`;
+- отдельный `pending.course_page`.
 
-- unit tests;
-- structural dry-run без Stepik API;
-- PR-проверки;
-- локальный impact-detector после merge.
+Live sync читает state до Stepik-фазы и после успешного verified result повторно читает Issue перед PATCH.
 
-В `Stepik Bulk Status` unit tests вынесены в отдельный offline job. Только последующий live job получает production Stepik credentials и общий mutex.
+Если machine state изменился между этими чтениями, PATCH запрещён. Run останавливается, чтобы не затереть более новое pending/baseline состояние.
 
-## 4. Порядок live job
+## 5. Pending closure после live check
 
-Безопасный порядок:
+Pending конкретного lesson object закрывается только после `result.verified == true` и одного из результатов:
 
-1. offline tests;
-2. job получает общий live mutex;
-3. checkout и подготовка runtime;
-4. при необходимости читается GitHub deployment baseline;
-5. выполняется current-main guard через GitHub API;
-6. только после PASS разрешается Stepik API;
-7. далее действуют golden/baseline/drift/idempotency/read-back guards конкретного режима.
+- `APPLIED`;
+- `NOOP_CONFIRMED`.
 
-Current-main guard не заменяет golden profile, deployment baseline, asset hash gate, `confirm_write`, read-back или запрет `DELETE`. Он добавляет отдельное условие: live Stepik нельзя читать или менять от имени уже устаревшего канонического commit.
+APPLIED обновляет baseline только после read-back. NOOP_CONFIRMED не отправляет фиктивную запись и закрывает pending только потому, что live Stepik, current canonical content и baseline подтверждённо совпали.
 
-## 5. Blocker contract
+Другие pending lessons и `pending.course_page` таким sync не затрагиваются.
 
-Типовые причины STOP:
+## 6. Никакого автоматического retry write
 
-- `live-source-not-main` — run запущен не из `refs/heads/main`;
-- `live-source-stale-main` — remote HEAD `main` уже отличается от `GITHUB_SHA` run;
-- `remote-main-check-failed` — GitHub API не позволил доказать актуальность `main`;
-- отсутствует или некорректен `GITHUB_SHA` / `GITHUB_REPOSITORY` / GitHub token.
+После неуспешной или неоднозначной live операции автоматический write retry запрещён.
 
-При blocker Stepik API не вызывается. Guard сохраняет machine-readable `live-source-guard.json` в artifact-каталог конкретного live workflow.
+Следующий запуск сначала заново проверяет:
 
-## 6. Граница гарантии без repository-level controls
+- current main;
+- deployment baseline;
+- live Stepik fingerprint;
+- structural/golden guards.
 
-Текущая защита действует в актуальных версиях production workflows и блокирует случайный dispatch актуального workflow с feature branch или устаревшего SHA.
+Причина проста: повторять внешний write после неизвестного partial result без reconcile означает превращать журнал deployment в художественную литературу.
 
-Она не может задним числом переписать историческую feature branch, в которой сохранена старая версия workflow до появления `live_guard.py`. Абсолютно запретить запуск таких исторических workflow можно только repository-level механизмами вроде branch/ruleset/environment/secret scope. Владелец проекта явно исключил этот класс изменений до отдельного распоряжения.
+## 7. Read-back обязателен
 
-Поэтому до такого распоряжения действует операционное правило: live Stepik dispatch выполняется только из текущего `main`; исторические ветки не используются как production launcher. Это известное ограничение, а не разрешение ослаблять guard в актуальном tooling.
+Успешный HTTP status сам по себе не считается подтверждением применения.
 
-## 7. Ограничения этого этапа
+После разрешённой записи automation читает live объект снова и сравнивает его с ожидаемым результатом. Baseline и закрытие pending разрешены только после успешного read-back.
 
-Эта защита не решает и не должна решать:
+## 8. DELETE и структурные изменения
 
-- general content compiler;
-- golden migration M00-L02;
-- machine-readable PENDING backlog;
-- dependency-aware impact;
-- deployment history/recovery;
-- branch protection, repository rulesets, GitHub Environment или организацию secrets.
+Автоматический `DELETE` запрещён.
 
-Последний пункт сознательно исключён владельцем до отдельного явного распоряжения.
+Не подтверждённые этим контуром изменения количества steps, reorder и lesson metadata блокируются. Текущий эксплуатационный write route остаётся узким и idempotent.
+
+## 9. Golden и bulk ограничения
+
+- M00-L01/M00-L02 остаются golden `READ_ONLY`;
+- M02-L01 остаётся pilot lesson с подтверждённым deployment baseline;
+- общий bulk write закрыт;
+- `Stepik Bulk Status` является read-only preflight и не превращается в bulk writer от одного успешного статуса.
+
+## 10. Push в main не выполняет Stepik write
+
+После merge/push в main dependency-aware impact job:
+
+- не использует Stepik credentials;
+- не обращается к Stepik API;
+- строит before/after dependency graph;
+- обновляет machine-readable PENDING в Issue `#54` с compare-before-patch race guard.
+
+Неизвестная learner-facing dependency = STOP и красный job, а не молчаливое отсутствие pending.
+
+## 11. Что current-main guard и mutex не решают
+
+Они не являются полным механизмом recovery после внешней partial write.
+
+Если Stepik write уже состоялся, а последующий state PATCH не смог завершиться из-за race/сбоя, требуется отдельный reconcile. Полноценные partial-write recovery, deployment history, baseline reconcile и ownership matrix относятся к следующему этапу инфраструктуры.
+
+Также этот контракт не изменяет branch protection/rulesets/GitHub Environment/secrets. Такие организационные меры вводятся только по отдельному распоряжению владельца.
+
+## 12. Fail-closed при конфликте
+
+Если любой guard, baseline comparison, dependency mapping, read-back или state race нельзя однозначно подтвердить, automation останавливается.
+
+Ни актуальный Stepik content, ни Issue `#54` не перезаписываются «по наиболее вероятному варианту».
