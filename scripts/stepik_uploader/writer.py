@@ -368,11 +368,13 @@ def execute_content_sync_one(
         step_ids=final_step_ids,
         source_git_paths=source_paths,
     )
+    if recovery_continuation and not result.operations:
+        result.operations.append({"action": "RECOVERY_FINALIZE_PRIOR_APPLIED", "stepik_writes": 0})
     if recorder is not None:
         recorder.final_readback(
             fingerprint_after=live_fp,
             stepik_object_ids={"lesson_id": lesson_id, "step_ids": final_step_ids},
-            status="APPLIED" if result.operations or recovery_continuation else "NOOP_CONFIRMED",
+            status="APPLIED" if result.operations else "NOOP_CONFIRMED",
             baseline_after=result.state_record,
         )
     return result
