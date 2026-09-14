@@ -8,7 +8,7 @@
 
 ## 1. Current-main guard
 
-Любой GitHub Actions job, который собирается обратиться к реальному Stepik API, обязан непосредственно перед live-фазой выполнить `scripts/stepik_uploader/live_guard.py`.
+Любой GitHub Actions job актуального production tooling, который собирается обратиться к реальному Stepik API, обязан непосредственно перед live-фазой выполнить `scripts/stepik_uploader/live_guard.py`.
 
 Guard работает fail-closed и разрешает live-фазу только если одновременно:
 
@@ -81,7 +81,15 @@ Current-main guard не заменяет golden profile, deployment baseline, as
 
 При blocker Stepik API не вызывается. Guard сохраняет machine-readable `live-source-guard.json` в artifact-каталог конкретного live workflow.
 
-## 6. Ограничения этого этапа
+## 6. Граница гарантии без repository-level controls
+
+Текущая защита действует в актуальных версиях production workflows и блокирует случайный dispatch актуального workflow с feature branch или устаревшего SHA.
+
+Она не может задним числом переписать историческую feature branch, в которой сохранена старая версия workflow до появления `live_guard.py`. Абсолютно запретить запуск таких исторических workflow можно только repository-level механизмами вроде branch/ruleset/environment/secret scope. Владелец проекта явно исключил этот класс изменений до отдельного распоряжения.
+
+Поэтому до такого распоряжения действует операционное правило: live Stepik dispatch выполняется только из текущего `main`; исторические ветки не используются как production launcher. Это известное ограничение, а не разрешение ослаблять guard в актуальном tooling.
+
+## 7. Ограничения этого этапа
 
 Эта защита не решает и не должна решать:
 
