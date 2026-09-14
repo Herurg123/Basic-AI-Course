@@ -45,6 +45,37 @@ def _flat_live_lessons(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
     return result
 
 
+def _accepted_live_titles(lesson: dict[str, Any]) -> set[str]:
+    """Допустимые точные заголовки: канон и существующий Stepik-формат со стабильным ID."""
+    canonical_id = str(lesson["canonical_id"])
+    title = str(lesson["title"])
+    return {title, f"{canonical_id} — {title}"}
+
+
+def _title_matches(lesson: dict[str, Any], live_title: Any) -> bool:
+    return isinstance(live_title, str) and live_title in _accepted_live_titles(lesson)
+
+
+def _same_id_prefix_but_title_drifted(lesson: dict[str, Any], live_title: Any) -> bool:
+    if not isinstance(live_title, str):
+        return False
+    canonical_id = str(lesson["canonical_id"])
+    prefix = f"{canonical_id} — "
+    return live_title.startswith(prefix) and live_title not in _accepted_live_titles(lesson)
+
+
+def _matching_live_lessons(lesson: dict[str, Any], live: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [item for item in live if _title_matches(lesson, item.get("lesson_title"))]
+
+
+def _drifted_id_candidates(lesson: dict[str, Any], live: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        item
+        for item in live
+        if _same_id_prefix_but_title_drifted(lesson, item.get("lesson_title"))
+    ]
+
+
 def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     canonical = {lesson["canonical_id"]: (module, lesson) for module, lesson in _canonical_lessons(manifest)}
     live = _flat_live_lessons(snapshot)
@@ -53,16 +84,23 @@ def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tupl
 
     for canonical_id in GOLDEN_IDS:
         module, lesson = canonical[canonical_id]
-        matches = [item for item in live if item.get("lesson_title") == lesson["title"]]
+        matches = _matching_live_lessons(lesson, live)
+        drifted = _drifted_id_candidates(lesson, live)
         if len(matches) != 1:
-            blockers.append(
-                f"golden:{canonical_id}: ожидался ровно один lesson с заголовком «{lesson['title']}», найдено {len(matches)}"
-            )
+            if not matches and drifted:
+                blockers.append(
+                    f"golden:{canonical_id}: найден lesson со стабильным ID в заголовке, но текст заголовка отличается от канона"
+                )
+            else:
+                expected = " / ".join(sorted(_accepted_live_titles(lesson)))
+                blockers.append(
+                    f"golden:{canonical_id}: ожидался ровно один lesson с допустимым заголовком «{expected}», найдено {len(matches)}"
+                )
             continue
         match = matches[0]
         if match.get("section_position") != module["position"] or match.get("unit_position") != lesson["position"]:
             blockers.append(
-                f"golden:{canonical_id}: совпал заголовок, но позиция section/unit отличается от канона"
+                f"golden:{canonical_id}: совпал канонический заголовок, но позиция section/unit отличается от канона"
             )
             continue
         golden[canonical_id] = {
@@ -105,9 +143,6 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
         return result
 
     live = _flat_live_lessons(snapshot)
-    title_index: dict[str, list[dict[str, Any]]] = {}
-    for item in live:
-        title_index.setdefault(str(item.get("lesson_title")), []).append(item)
 
     for module, lesson in _canonical_lessons(manifest):
         canonical_id = lesson["canonical_id"]
@@ -122,10 +157,12 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
                 }
             )
             continue
-        matches = title_index.get(lesson["title"], [])
+
+        matches = _matching_live_lessons(lesson, live)
+        drifted = _drifted_id_candidates(lesson, live)
         if len(matches) > 1:
             result.blockers.append(
-                f"duplicate:{canonical_id}: найдено {len(matches)} Stepik lessons с одинаковым заголовком"
+                f"duplicate:{canonical_id}: найдено {len(matches)} Stepik lessons с канонически допустимым заголовком"
             )
             continue
         if len(matches) == 1:
@@ -136,7 +173,7 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
             )
             if not exact_position:
                 result.blockers.append(
-                    f"ambiguous-existing:{canonical_id}: заголовок существует, но позиция не совпадает с каноном"
+                    f"ambiguous-existing:{canonical_id}: канонический заголовок существует, но позиция не совпадает с каноном"
                 )
                 continue
             result.operations.append(
@@ -145,8 +182,13 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
                     "module": module["canonical_id"],
                     "lesson": canonical_id,
                     "stepik_lesson_id": match.get("lesson_id"),
-                    "reason": "existing exact title+position candidate; no update in v1",
+                    "reason": "existing canonical title+position candidate; no update in v1",
                 }
+            )
+            continue
+        if drifted:
+            result.blockers.append(
+                f"title-drift:{canonical_id}: найден lesson со стабильным ID в заголовке, но текст заголовка отличается от канона"
             )
             continue
         result.operations.append(
