@@ -74,23 +74,32 @@ def _journal_markdown(*, source_sha_value: str, result: Any, record: dict[str, A
     if os.getenv("GITHUB_SERVER_URL") and os.getenv("GITHUB_REPOSITORY") and os.getenv("GITHUB_RUN_ID"):
         run_url = f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
     updated_positions = [op.get("position") for op in result.operations if op.get("action") == "UPDATE_STEP"]
+    if updated_positions:
+        heading = f"### APPLIED: `{TEST_LESSON_ID}` синхронизирован со Stepik"
+        operation_line = f"- обновлённые позиции steps: `{updated_positions}`"
+        final_note = (
+            "Запись baseline выполнена только после успешного read-back. Следующее обновление разрешается лишь если "
+            "live Stepik всё ещё совпадает с этим fingerprint."
+        )
+    else:
+        heading = f"### NOOP_CONFIRMED: `{TEST_LESSON_ID}` уже синхронизирован"
+        operation_line = "- Stepik writes: `0`"
+        final_note = (
+            "Live Stepik, текущий канон и подтверждённый baseline совпали. Никаких PUT/POST не отправлялось; "
+            "PENDING-запись этого source SHA не требует фактического обновления платформы."
+        )
     lines = [
-        f"### APPLIED: `{TEST_LESSON_ID}` синхронизирован со Stepik",
+        heading,
         "",
         f"- source main SHA: `{source_sha_value}`",
         f"- Stepik lesson ID: `{result.lesson_id}`",
-        f"- обновлённые позиции steps: `{updated_positions}`",
-        f"- подтверждённый read-back: `{record['applied_at']}`",
+        operation_line,
+        f"- подтверждённый baseline/read-back: `{record['applied_at']}`",
         f"- fingerprint: `{record['applied_fingerprint']}`",
     ]
     if run_url:
         lines.append(f"- workflow run: {run_url}")
-    lines.extend(
-        [
-            "",
-            "Запись baseline выполнена только после успешного read-back. Следующее обновление разрешается лишь если live Stepik всё ещё совпадает с этим fingerprint.",
-        ]
-    )
+    lines.extend(["", final_note])
     return "\n".join(lines) + "\n"
 
 
@@ -207,9 +216,10 @@ def main() -> int:
         report["blockers"] = []
         report["verdict"] = "PASS" if result.verified else "BLOCKED"
 
-        if result.state_record is not None and report["updated"] > 0:
-            next_state = with_record(state, canonical_id=TEST_LESSON_ID, record=result.state_record)
-            write_json(report_dir / "sync-state.next.json", next_state)
+        if result.state_record is not None:
+            if report["updated"] > 0:
+                next_state = with_record(state, canonical_id=TEST_LESSON_ID, record=result.state_record)
+                write_json(report_dir / "sync-state.next.json", next_state)
             (report_dir / "sync-journal.md").write_text(
                 _journal_markdown(source_sha_value=sha, result=result, record=result.state_record),
                 encoding="utf-8",
