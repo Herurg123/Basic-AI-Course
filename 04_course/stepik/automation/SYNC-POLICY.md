@@ -78,31 +78,40 @@ Normal write разрешён, когда fresh live точно совпадае
 
 - доказанный automation residue может быть recovery case;
 - доказанный final automation write с отсутствующим state PATCH может быть state-only recovery;
+- committed history, подтверждающая fresh live при отличающемся Issue baseline, классифицируется как `STALE_MACHINE_BASELINE` и требует owner decision;
 - unknown/manual origin остаётся `STOP_OWNER_DECISION`.
 
 Совпадение `live == canonical` само по себе не доказывает происхождение и не разрешает auto-rebaseline.
 
-## 8. Deployment history
+## 8. Deployment history и write-ahead
 
-До каждого внешнего Stepik write durable history обязана получить `WRITE_INTENT`. Если evidence не сохранено, write запрещён.
+До каждого внешнего Stepik write durable history обязана получить `WRITE_INTENT`. Intent означает только сохранённое намерение и имеет `external_write_started=false`.
 
-History связывает event с canonical object/kind, source SHA, workflow/run identity, state before, desired state, Stepik IDs, per-operation write intent/result/read-back, final read-back, failure/recovery reason и machine-state commit.
+Непосредственно перед HTTP write durable-записывается `WRITE_DISPATCH_STARTED` с `external_write_started=true`. Если intent уже существует с теми же semantic fields и dispatch не начинался, retry переиспользует этот immutable intent; конфликт semantic fields = `STOP`.
 
-Timeout, network failure, HTTP 5xx или иной неизвестный server-side outcome = `WRITE_AMBIGUOUS`; blind retry запрещён.
+History связывает event с canonical object/kind, source SHA, workflow/run identity, state before, desired state, Stepik IDs, per-operation intent/dispatch/result/read-back, final read-back, failure/recovery reason и machine-state commit.
+
+Timeout, network failure, HTTP 5xx или иной неизвестный server-side outcome после dispatch = `WRITE_AMBIGUOUS`; blind retry запрещён.
+
+Доказанный `WRITE_FAILED_KNOWN` допускает обычный guarded retry только когда все dispatch операции завершились known failure, нет ambiguous/read-back evidence и fresh live всё ещё точно совпадает с baseline. Любое live divergence = owner decision.
 
 ## 9. Recovery и reconcile
 
-`sync-reconcile` является read-only route: читает live state и history, классифицирует ситуацию и ничего не записывает в Stepik.
+`sync-reconcile` является read-only по отношению к Stepik: читает live state и history, классифицирует ситуацию и не выполняет Stepik write. При этом его `RECONCILE_CLASSIFIED` durable-записывается в operational history с workflow identity текущего run.
+
+Reconcile-only record без `EVENT_STARTED` не считается незавершённым deployment event.
 
 Auto action допустим только когда происхождение доказуемо:
 
 - final read-back доказан, state PATCH отсутствует, fresh live совпадает: state-only recovery, Stepik writes `0`;
 - partial prefix подтверждён per-operation read-back, fresh live совпадает с last confirmed intermediate fingerprint: continuation только remaining operations;
+- intent сохранён, но dispatch не начинался и baseline/live/source не изменились: normal guarded route;
+- все dispatch операции доказанно `FAILED_KNOWN`, live всё ещё baseline: normal guarded route;
 - baseline/live совпадают: обычный guarded sync либо no-op.
 
-Owner decision обязателен при manual/unknown drift, ambiguous result, failed read-back без доказательства, structural/metadata divergence, golden lesson, conflicting events, missing baseline с неизвестным origin и adoption/rebaseline.
+Owner decision обязателен при manual/unknown drift, ambiguous result, failed read-back без доказательства, stale machine baseline, structural/metadata divergence, golden lesson, conflicting events, missing baseline с неизвестным origin и adoption/rebaseline.
 
-Новый `main` не меняет target уже начатого event. `event.source_sha != current main` блокирует старый recovery и не позволяет ему закрыть новый pending.
+Новый `main` не меняет target уже начатого event. `event.source_sha != current main` блокирует старый recovery и не позволяет ему закрыть новый pending, даже если live совпадает с intermediate fingerprint старого event.
 
 ## 10. Race protection
 
@@ -110,7 +119,7 @@ Current machine state PATCH выполняется только по схеме:
 
 `read expected → compute next → re-read current → compare → PATCH only if unchanged`.
 
-После live deployment `MACHINE_STATE_COMMITTED` добавляется в immutable history только после успешного Issue PATCH.
+После live deployment `MACHINE_STATE_COMMITTED` добавляется в immutable history только после успешного Issue PATCH и только если status/baseline-after PATCH-нутого state точно совпадают с `FINAL_READBACK_CONFIRMED`.
 
 Если final Stepik read-back уже durable-зафиксирован, а PATCH не состоялся, следующий recovery может восстановить state без повторного Stepik write только при достаточном evidence.
 
@@ -121,7 +130,7 @@ Current machine state PATCH выполняется только по схеме:
 - fresh current-main guard;
 - единый mutex `stepik-live-course-299189`;
 - отсутствие blind automatic write retry;
-- durable write-ahead history;
+- durable intent → dispatch write-ahead history;
 - per-operation и final read-back;
 - fail-closed unknown state/dependency;
 - запрет destructive recovery и `DELETE`.
