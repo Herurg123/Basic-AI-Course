@@ -47,6 +47,8 @@ def skeleton() -> dict:
                         "lesson": {
                             "id": 201,
                             "title": "M02-L01 — Скажите, что получите и как это оцените",
+                            "is_public": False,
+                            "language": "ru",
                             "steps": [
                                 {
                                     "id": 1,
@@ -155,6 +157,36 @@ class WriterTests(unittest.TestCase):
         self.assertEqual(client.update_calls, 1)
         self.assertEqual(client.create_calls, 1)
         self.assertEqual(second.operations[0]["action"], "NOOP_ALREADY_MATCHES")
+
+    def test_public_target_lesson_blocks_before_write(self) -> None:
+        client = FakeClient()
+        client.snapshot["sections"][0]["units"][0]["lesson"]["is_public"] = True
+        with self.assertRaisesRegex(ContentWriteError, "public"):
+            execute_content_test_one(
+                client,
+                client.inspect_course(299189),
+                expected_steps=EXPECTED,
+                module_position=3,
+                lesson_position=1,
+                expected_title="M02-L01 — Скажите, что получите и как это оцените",
+            )
+        self.assertEqual(client.update_calls, 0)
+        self.assertEqual(client.create_calls, 0)
+
+    def test_wrong_language_blocks_before_write(self) -> None:
+        client = FakeClient()
+        client.snapshot["sections"][0]["units"][0]["lesson"]["language"] = "en"
+        with self.assertRaisesRegex(ContentWriteError, "language"):
+            execute_content_test_one(
+                client,
+                client.inspect_course(299189),
+                expected_steps=EXPECTED,
+                module_position=3,
+                lesson_position=1,
+                expected_title="M02-L01 — Скажите, что получите и как это оцените",
+            )
+        self.assertEqual(client.update_calls, 0)
+        self.assertEqual(client.create_calls, 0)
 
     def test_unexpected_existing_content_blocks(self) -> None:
         live = skeleton()
