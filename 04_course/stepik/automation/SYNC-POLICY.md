@@ -78,7 +78,7 @@ Normal write разрешён, когда fresh live точно совпадае
 
 - доказанный automation residue может быть recovery case;
 - доказанный final automation write с отсутствующим state PATCH может быть state-only recovery;
-- committed history, подтверждающая fresh live при отличающемся Issue baseline, классифицируется как `STALE_MACHINE_BASELINE` и требует owner decision;
+- только **последний однозначно доказуемый committed history state** используется как evidence для `STALE_MACHINE_BASELINE`; старое историческое совпадение не считается доказательством устаревшего Issue baseline;
 - unknown/manual origin остаётся `STOP_OWNER_DECISION`.
 
 Совпадение `live == canonical` само по себе не доказывает происхождение и не разрешает auto-rebaseline.
@@ -93,7 +93,7 @@ History связывает event с canonical object/kind, source SHA, workflow/
 
 Timeout, network failure, HTTP 5xx или иной неизвестный server-side outcome после dispatch = `WRITE_AMBIGUOUS`; blind retry запрещён.
 
-Доказанный `WRITE_FAILED_KNOWN` допускает обычный guarded retry только когда все dispatch операции завершились known failure, нет ambiguous/read-back evidence и fresh live всё ещё точно совпадает с baseline. Любое live divergence = owner decision.
+`WRITE_FAILED_KNOWN` означает доказанный отказ конкретной dispatch-попытки без server-side commit. Он не считается ambiguous, но current history v1 не маскирует новую dispatch-попытку под старую: повторный внешний write требует explicit owner-directed retry route с отдельной attempt identity. Если live уже отличается от baseline, owner decision обязателен тем более.
 
 ## 9. Recovery и reconcile
 
@@ -106,10 +106,9 @@ Auto action допустим только когда происхождение 
 - final read-back доказан, state PATCH отсутствует, fresh live совпадает: state-only recovery, Stepik writes `0`;
 - partial prefix подтверждён per-operation read-back, fresh live совпадает с last confirmed intermediate fingerprint: continuation только remaining operations;
 - intent сохранён, но dispatch не начинался и baseline/live/source не изменились: normal guarded route;
-- все dispatch операции доказанно `FAILED_KNOWN`, live всё ещё baseline: normal guarded route;
 - baseline/live совпадают: обычный guarded sync либо no-op.
 
-Owner decision обязателен при manual/unknown drift, ambiguous result, failed read-back без доказательства, stale machine baseline, structural/metadata divergence, golden lesson, conflicting events, missing baseline с неизвестным origin и adoption/rebaseline.
+Owner decision обязателен при `WRITE_FAILED_KNOWN` для новой dispatch-попытки, manual/unknown drift, ambiguous result, failed read-back без доказательства, stale machine baseline, structural/metadata divergence, golden lesson, conflicting events, missing baseline с неизвестным origin и adoption/rebaseline.
 
 Новый `main` не меняет target уже начатого event. `event.source_sha != current main` блокирует старый recovery и не позволяет ему закрыть новый pending, даже если live совпадает с intermediate fingerprint старого event.
 
@@ -121,7 +120,7 @@ Current machine state PATCH выполняется только по схеме:
 
 После live deployment `MACHINE_STATE_COMMITTED` добавляется в immutable history только после успешного Issue PATCH и только если status/baseline-after PATCH-нутого state точно совпадают с `FINAL_READBACK_CONFIRMED`.
 
-Если final Stepik read-back уже durable-зафиксирован, а PATCH не состоялся, следующий recovery может восстановить state без повторного Stepik write только при достаточном evidence.
+Если final Stepik read-back уже durable-зафиксирован, а PATCH не состоялся, следующий recovery может восстановить state без повторного Stepik write только при достаточном evidence. Если Issue state уже содержит доказанный final baseline и target pending закрыт, recovery не откатывает `updated_at` назад и завершает только оставшийся history/state handshake.
 
 ## 11. Live safety
 
