@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0",
+  "status": "confirmed-read-only",
+  "course_id": 299189,
+  "observed_run_id": 34806351525,
+  "observed_source_sha": "5e399454ec918c4e52a8a502b8e668051463b1e1",
+  "golden_lessons": {
+    "M00-L01": {
+      "stepik_section_id": 755023,
+      "stepik_unit_id": 2631074,
+      "stepik_lesson_id": 2591708,
+      "section_position": 1,
+      "unit_position": 1,
+      "plan_rows": 6,
+      "step_count": 6,
+      "block_sequence": [
+        "text",
+        "text",
+        "text",
+        "text",
+        "free-answer",
+        "text"
+      ],
+      "free_answer_positions": [5],
+      "inline_markdown_asset_ids": ["M00-L01-A01"],
+      "stepik_file_assets": []
+    },
+    "M00-L02": {
+      "stepik_section_id": 755023,
+      "stepik_unit_id": 2631076,
+      "stepik_lesson_id": 2591710,
+      "section_position": 1,
+      "unit_position": 2,
+      "plan_rows": 7,
+      "step_count": 7,
+      "block_sequence": [
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "free-answer",
+        "text"
+      ],
+      "free_answer_positions": [6],
+      "inline_markdown_asset_ids": ["M00-L02-A03"],
+      "stepik_file_assets": [
+        {
+          "asset_id": "M00-L02-A01",
+          "filename": "M00-L02-A01.docx",
+          "delivery": "stepik-lesson-file"
+        },
+        {
+          "asset_id": "M00-L02-A02",
+          "filename": "M00-L02-A02.png",
+          "delivery": "stepik-lesson-file"
+        }
+      ]
+    }
+  },
+  "observed_conventions": {
+    "plan_row_to_step": "1:1 in both golden lessons",
+    "text_block_source": {},
+    "free_answer_source": {
+      "is_attachments_enabled": false,
+      "is_html_enabled": true,
+      "manual_scoring": false
+    },
+    "subheading_rendering": "Manual golden lessons use learner-visible strong paragraph labels rather than h2 headings inside Stepik steps.",
+    "external_links": "Absolute external links are preserved; Stepik may add rel/target attributes on read-back.",
+    "markdown_assets": "Learner-facing Markdown helper assets are inlined into the relevant text step in the golden lessons.",
+    "binary_assets": "DOCX/PNG learner assets in M00-L02 are linked through confirmed Stepik lesson-file URLs.",
+    "golden_write_policy": "READ_ONLY"
+  },
+  "scope_note": "This is a platform-observation fixture derived from the live read-only golden lessons. It is not an independent course source and does not authorize generalization beyond the explicitly validated conventions."
+}
