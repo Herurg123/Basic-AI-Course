@@ -43,7 +43,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
   group: stepik-uploader-${{ github.event_name }}-${{ github.ref }}
@@ -86,11 +85,14 @@ jobs:
     needs: tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
     steps:
-      - name: Получить репозиторий и предыдущий commit
+      - name: Получить репозиторий и историю для diff
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Определить изменённые production-файлы
         id: impact
@@ -133,6 +135,9 @@ jobs:
     needs: tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
     env:
       STEPIC_CLIENT_ID: ${{ secrets.STEPIC_CLIENT_ID }}
       STEPIC_CLIENT_SECRET: ${{ secrets.STEPIC_CLIENT_SECRET }}
@@ -193,26 +198,48 @@ jobs:
             python scripts/stepik_uploader/stepik_uploader.py "${args[@]}"
           fi
 
-      - name: Записать новый baseline и APPLIED journal entry
+      - name: Зафиксировать результат sync в журнале
         if: inputs.mode == 'sync-changed' && success()
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          state='artifacts/stepik-uploader-live/sync-state.next.json'
-          if [[ ! -f "$state" ]]; then
-            echo 'Stepik изменений не было; deployment baseline не переписывается.'
-            exit 0
+          base='artifacts/stepik-uploader-live'
+          state="$base/sync-state.next.json"
+          journal="$base/sync-journal.md"
+          if [[ ! -f "$journal" ]]; then
+            echo 'Успешный sync-changed не сформировал sync-journal.md; journal update запрещён.' >&2
+            exit 2
           fi
-          python scripts/stepik_uploader/sync_issue_state.py replace \
-            --body-file artifacts/stepik-uploader-live/sync-issue-body.md \
-            --state-file "$state" \
-            --output-body artifacts/stepik-uploader-live/sync-issue-body.next.md \
-            --output-patch artifacts/stepik-uploader-live/sync-issue-patch.json \
-            --course-id "$COURSE_ID"
-          gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input artifacts/stepik-uploader-live/sync-issue-patch.json >/dev/null
-          gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file artifacts/stepik-uploader-live/sync-journal.md
+
+          if [[ -f "$state" ]]; then
+            # Повторно читаем issue после Stepik write, чтобы не затереть изменение,
+            # сделанное человеком или другим run во время этой операции.
+            gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.current.md"
+            python scripts/stepik_uploader/sync_issue_state.py extract \
+              --body-file "$base/sync-issue-body.current.md" \
+              --output "$base/sync-state.current.json" \
+              --course-id "$COURSE_ID"
+            python - <<'PY'
+            import json
+            previous = json.load(open('artifacts/stepik-uploader-live/sync-state.previous.json', encoding='utf-8'))
+            current = json.load(open('artifacts/stepik-uploader-live/sync-state.current.json', encoding='utf-8'))
+            if previous != current:
+                raise SystemExit('Deployment baseline изменился во время Stepik write; issue update остановлен. Следующий sync обязан разобрать drift.')
+            PY
+            python scripts/stepik_uploader/sync_issue_state.py replace \
+              --body-file "$base/sync-issue-body.current.md" \
+              --state-file "$state" \
+              --output-body "$base/sync-issue-body.next.md" \
+              --output-patch "$base/sync-issue-patch.json" \
+              --course-id "$COURSE_ID"
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$base/sync-issue-patch.json" >/dev/null
+          else
+            echo 'Stepik writes не потребовались; deployment baseline не переписывается.'
+          fi
+
+          gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$journal"
 
       - name: Сохранить технический отчёт
         if: always()
