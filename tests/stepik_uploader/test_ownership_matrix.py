@@ -20,6 +20,7 @@ REQUIRED_CLASSES = {
     "ambiguous_api_result",
     "failed_readback",
     "machine_state_patch_failure",
+    "stale_machine_baseline",
     "state_race",
     "tooling_only_change",
     "author_only_change",
