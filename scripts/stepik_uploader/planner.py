@@ -86,6 +86,11 @@ def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tupl
         module, lesson = canonical[canonical_id]
         matches = _matching_live_lessons(lesson, live)
         drifted = _drifted_id_candidates(lesson, live)
+        if drifted and matches:
+            blockers.append(
+                f"golden:{canonical_id}: одновременно найдены канонический lesson и lesson с тем же стабильным ID, но другим заголовком"
+            )
+            continue
         if len(matches) != 1:
             if not matches and drifted:
                 blockers.append(
@@ -160,6 +165,11 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
 
         matches = _matching_live_lessons(lesson, live)
         drifted = _drifted_id_candidates(lesson, live)
+        if drifted and matches:
+            result.blockers.append(
+                f"ambiguous-id:{canonical_id}: одновременно найдены канонический lesson и lesson с тем же стабильным ID, но другим заголовком"
+            )
+            continue
         if len(matches) > 1:
             result.blockers.append(
                 f"duplicate:{canonical_id}: найдено {len(matches)} Stepik lessons с канонически допустимым заголовком"
