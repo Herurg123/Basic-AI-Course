@@ -192,11 +192,11 @@ def classify_reconcile(
     if summary.get("all_dispatched_writes_failed_known"):
         if baseline_fingerprint is not None and live_fingerprint == baseline_fingerprint:
             return _decision(
-                "KNOWN_WRITE_FAILURE_RETRY_SAFE",
-                "NORMAL_SYNC_ROUTE",
-                auto=True,
-                owner=False,
-                reasons=["all-dispatched-writes-failed-known", "live-still-matches-baseline"],
+                "KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED",
+                "STOP_OWNER_DECISION",
+                auto=False,
+                owner=True,
+                reasons=["all-dispatched-writes-failed-known", "new-dispatch-attempt-needs-explicit-owner-route"],
             )
         return _decision(
             "KNOWN_WRITE_FAILURE_WITH_LIVE_DIVERGENCE",
