@@ -256,3 +256,11 @@ Automation-чат должен запрашивать только действ�
 - изменять F1;
 - считать API read-back человеческой валидацией;
 - считать успешный upload доказательством PHONE/COMPUTER readiness.
+
+## 12. Текущий all-course preflight
+
+После доказанного write/read-back/idempotency pilot для `M02-L01` добавлен отдельный workflow **`Stepik Bulk Status`**. Его задача — перед general compiler прочитать фактическое состояние всех 21 уроков и собрать единый preflight без Stepik writes.
+
+Подробный контракт: [`BULK-STATUS.md`](BULK-STATUS.md).
+
+`bulk-status` фиксирует golden lessons, tracked baseline для уже управляемого контента, skeleton lessons, stale title, sensitive/F1 gates и source SHA-256 learner-facing assets. Даже при успешном результате `ready_for_bulk_write` остаётся `false`: массовая запись не открывается до general content compiler, разрешения asset URL/inline route и отдельного аудита write-path.
