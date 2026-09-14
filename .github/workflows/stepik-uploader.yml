@@ -8,6 +8,7 @@ on:
       - 'scripts/stepik_uploader/**'
       - 'tests/stepik_uploader/**'
       - '.github/workflows/stepik-uploader.yml'
+      - '.github/workflows/stepik-bulk-status.yml'
   push:
     branches:
       - main
@@ -17,6 +18,7 @@ on:
       - 'scripts/stepik_uploader/**'
       - 'tests/stepik_uploader/**'
       - '.github/workflows/stepik-uploader.yml'
+      - '.github/workflows/stepik-bulk-status.yml'
   workflow_dispatch:
     inputs:
       mode:
