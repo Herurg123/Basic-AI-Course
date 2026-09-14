@@ -211,6 +211,41 @@ class WriterTests(unittest.TestCase):
         self.assertEqual(second.operations[0]["action"], "NOOP_ALREADY_IN_SYNC")
         self.assertEqual(client.update_calls, before_updates + 1)
 
+    def test_exploitation_sync_allows_published_course_when_baseline_matches(self) -> None:
+        client = FakeClient()
+        initial = execute_content_test_one(
+            client,
+            client.inspect_course(299189),
+            expected_steps=EXPECTED,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+        )
+        baseline = {
+            "stepik_lesson_id": initial.lesson_id,
+            "applied_fingerprint": compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED),
+        }
+        client.snapshot["course"]["is_public"] = True
+        updated = [
+            CompiledStep(1, "text", "<p>Исправление после публикации</p>", {}, EXPECTED[0].source_git_paths),
+            EXPECTED[1],
+        ]
+        before_updates = client.update_calls
+        result = execute_content_sync_one(
+            client,
+            client.inspect_course(299189),
+            canonical_id="M02-L01",
+            expected_steps=updated,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+            baseline=baseline,
+            source_sha="published-fix-sha",
+        )
+        self.assertTrue(result.verified)
+        self.assertEqual(client.update_calls, before_updates + 1)
+        self.assertEqual(result.operations[0]["action"], "UPDATE_STEP")
+
     def test_manual_stepik_drift_blocks_before_overwrite(self) -> None:
         client = FakeClient()
         initial = execute_content_test_one(
@@ -242,10 +277,10 @@ class WriterTests(unittest.TestCase):
             )
         self.assertEqual(client.update_calls, before_updates)
 
-    def test_public_target_lesson_blocks_before_write(self) -> None:
+    def test_public_target_lesson_blocks_initial_content_test(self) -> None:
         client = FakeClient()
         client.snapshot["sections"][0]["units"][0]["lesson"]["is_public"] = True
-        with self.assertRaisesRegex(ContentWriteError, "public"):
+        with self.assertRaisesRegex(ContentWriteError, "непубличного target lesson"):
             execute_content_test_one(
                 client,
                 client.inspect_course(299189),
