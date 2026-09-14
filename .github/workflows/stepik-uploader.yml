@@ -78,7 +78,7 @@ jobs:
           --report-dir artifacts/stepik-uploader-ci
 
   impact:
-    name: Зафиксировать потенциальный Stepik impact после merge
+    name: Обновить machine-readable Stepik pending после merge
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: tests
     runs-on: ubuntu-latest
@@ -87,25 +87,31 @@ jobs:
       contents: read
       issues: write
     steps:
-      - name: Получить репозиторий и историю для diff
+      - name: Получить репозиторий и историю для dependency diff
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
-      - name: Определить изменённые production-файлы
+      - name: Определить dependency-aware production impact
         id: impact
         env:
           BEFORE_SHA: ${{ github.event.before }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p artifacts/stepik-impact
-          git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" > artifacts/stepik-impact/changed-files.txt
+          base='artifacts/stepik-impact'
+          mkdir -p "$base"
+          git diff --name-status -M "$BEFORE_SHA" "$GITHUB_SHA" > "$base/changes.tsv"
+          git worktree add --detach "$RUNNER_TEMP/stepik-impact-base" "$BEFORE_SHA"
+          occurred_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           python scripts/stepik_uploader/impact.py \
-            --changed-files artifacts/stepik-impact/changed-files.txt \
-            --json-output artifacts/stepik-impact/impact.json \
-            --markdown-output artifacts/stepik-impact/impact.md \
-            --source-sha "$GITHUB_SHA"
+            --changes "$base/changes.tsv" \
+            --repo-root . \
+            --base-repo-root "$RUNNER_TEMP/stepik-impact-base" \
+            --json-output "$base/impact.json" \
+            --markdown-output "$base/impact.md" \
+            --source-sha "$GITHUB_SHA" \
+            --occurred-at "$occurred_at"
           python - <<'PY'
           import json, os
           data = json.load(open('artifacts/stepik-impact/impact.json', encoding='utf-8'))
@@ -113,18 +119,50 @@ jobs:
               out.write('has_impact=' + ('true' if data['stepik_content_impact'] else 'false') + '\n')
           PY
 
-      - name: Добавить PENDING запись в журнал синхронизации
+      - name: Обновить PENDING backlog в Issue 54 с race guard
         if: steps.impact.outputs.has_impact == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file artifacts/stepik-impact/impact.md
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='artifacts/stepik-impact'
+          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/issue-body.previous.md"
+          python scripts/stepik_uploader/sync_issue_state.py extract \
+            --body-file "$base/issue-body.previous.md" \
+            --output "$base/state.previous.json" \
+            --course-id 299189
+          python scripts/stepik_uploader/sync_issue_state.py apply-impact \
+            --state-file "$base/state.previous.json" \
+            --impact-file "$base/impact.json" \
+            --output "$base/state.next.json" \
+            --course-id 299189
+
+          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/issue-body.current.md"
+          python scripts/stepik_uploader/sync_issue_state.py extract \
+            --body-file "$base/issue-body.current.md" \
+            --output "$base/state.current.json" \
+            --course-id 299189
+          python scripts/stepik_uploader/sync_issue_state.py compare \
+            --expected-state "$base/state.previous.json" \
+            --current-state "$base/state.current.json" \
+            --course-id 299189
+          python scripts/stepik_uploader/sync_issue_state.py replace \
+            --body-file "$base/issue-body.current.md" \
+            --state-file "$base/state.next.json" \
+            --output-body "$base/issue-body.next.md" \
+            --output-patch "$base/issue-patch.json" \
+            --course-id 299189
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$base/issue-patch.json" >/dev/null
+          gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$base/impact.md"
 
       - name: Сохранить impact-отчёт
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: stepik-impact-${{ github.run_id }}
           path: artifacts/stepik-impact/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
 
   live:
@@ -159,7 +197,7 @@ jobs:
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
 
-      - name: Прочитать подтверждённый deployment baseline
+      - name: Прочитать подтверждённый deployment state
         if: inputs.mode == 'sync-status' || inputs.mode == 'sync-changed'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -216,37 +254,27 @@ jobs:
           base='artifacts/stepik-uploader-live'
           state="$base/sync-state.next.json"
           journal="$base/sync-journal.md"
-          if [[ ! -f "$journal" ]]; then
-            echo 'Успешный sync-changed не сформировал sync-journal.md; journal update запрещён.' >&2
+          if [[ ! -f "$journal" || ! -f "$state" ]]; then
+            echo 'Успешный sync-changed обязан сформировать journal и следующий machine state; issue update запрещён.' >&2
             exit 2
           fi
 
-          if [[ -f "$state" ]]; then
-            # Повторно читаем issue после Stepik write, чтобы не затереть изменение,
-            # сделанное человеком или другим run во время этой операции.
-            gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.current.md"
-            python scripts/stepik_uploader/sync_issue_state.py extract \
-              --body-file "$base/sync-issue-body.current.md" \
-              --output "$base/sync-state.current.json" \
-              --course-id "$COURSE_ID"
-            python - <<'PY'
-            import json
-            previous = json.load(open('artifacts/stepik-uploader-live/sync-state.previous.json', encoding='utf-8'))
-            current = json.load(open('artifacts/stepik-uploader-live/sync-state.current.json', encoding='utf-8'))
-            if previous != current:
-                raise SystemExit('Deployment baseline изменился во время Stepik write; issue update остановлен. Следующий sync обязан разобрать drift.')
-            PY
-            python scripts/stepik_uploader/sync_issue_state.py replace \
-              --body-file "$base/sync-issue-body.current.md" \
-              --state-file "$state" \
-              --output-body "$base/sync-issue-body.next.md" \
-              --output-patch "$base/sync-issue-patch.json" \
-              --course-id "$COURSE_ID"
-            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$base/sync-issue-patch.json" >/dev/null
-          else
-            echo 'Stepik writes не потребовались; deployment baseline не переписывается.'
-          fi
-
+          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.current.md"
+          python scripts/stepik_uploader/sync_issue_state.py extract \
+            --body-file "$base/sync-issue-body.current.md" \
+            --output "$base/sync-state.current.json" \
+            --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/sync_issue_state.py compare \
+            --expected-state "$base/sync-state.previous.json" \
+            --current-state "$base/sync-state.current.json" \
+            --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/sync_issue_state.py replace \
+            --body-file "$base/sync-issue-body.current.md" \
+            --state-file "$state" \
+            --output-body "$base/sync-issue-body.next.md" \
+            --output-patch "$base/sync-issue-patch.json" \
+            --course-id "$COURSE_ID"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$base/sync-issue-patch.json" >/dev/null
           gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$journal"
 
       - name: Сохранить технический отчёт
