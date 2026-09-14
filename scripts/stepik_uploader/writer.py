@@ -294,7 +294,7 @@ def execute_content_sync_one(
         if _equivalent(current, expected):
             continue
         step_id = int(_step_source(current)["id"])
-        operation_id = f"step-{expected.position}-{step_id}"
+        operation_id = f"step-{expected.position:04d}-{step_id}"
         before_fp = live_lesson_fingerprint(working_lesson)
         expected_lesson = _lesson_after_expected_step(working_lesson, step_id=step_id, expected=expected)
         expected_after_fp = live_lesson_fingerprint(expected_lesson)
@@ -372,7 +372,7 @@ def execute_content_sync_one(
         recorder.final_readback(
             fingerprint_after=live_fp,
             stepik_object_ids={"lesson_id": lesson_id, "step_ids": final_step_ids},
-            status="APPLIED" if result.operations else "NOOP_CONFIRMED",
+            status="APPLIED" if result.operations or recovery_continuation else "NOOP_CONFIRMED",
             baseline_after=result.state_record,
         )
     return result
