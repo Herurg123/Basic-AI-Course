@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -15,6 +16,7 @@ from .fingerprints import (
 )
 
 SCHEMA_VERSION = 1
+FINGERPRINT_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 class SyncStateError(RuntimeError):
@@ -62,7 +64,11 @@ def validate_state(payload: Any, *, course_id: int) -> dict[str, Any]:
         raise SyncStateError(
             f"Неподдерживаемая schema_version sync state: {payload.get('schema_version')!r}"
         )
-    if int(payload.get("course_id", -1)) != int(course_id):
+    try:
+        state_course_id = int(payload.get("course_id", -1))
+    except (TypeError, ValueError) as exc:
+        raise SyncStateError(f"Некорректный course_id в sync state: {payload.get('course_id')!r}") from exc
+    if state_course_id != int(course_id):
         raise SyncStateError(
             f"Sync state относится к course_id={payload.get('course_id')}, ожидается {course_id}"
         )
@@ -72,11 +78,18 @@ def validate_state(payload: Any, *, course_id: int) -> dict[str, Any]:
     for canonical_id, record in lessons.items():
         if not isinstance(canonical_id, str) or not isinstance(record, dict):
             raise SyncStateError("Некорректная запись lessons в sync state")
+        if record.get("canonical_id") not in {None, canonical_id}:
+            raise SyncStateError(f"{canonical_id}: canonical_id внутри record не совпадает с ключом")
         fingerprint = record.get("applied_fingerprint")
-        if not isinstance(fingerprint, str) or not fingerprint.startswith("sha256:"):
-            raise SyncStateError(f"{canonical_id}: отсутствует applied_fingerprint")
+        if not isinstance(fingerprint, str) or not FINGERPRINT_RE.fullmatch(fingerprint):
+            raise SyncStateError(f"{canonical_id}: некорректный applied_fingerprint")
         if not isinstance(record.get("stepik_lesson_id"), int):
             raise SyncStateError(f"{canonical_id}: отсутствует stepik_lesson_id")
+        step_ids = record.get("step_ids")
+        if step_ids is not None and (
+            not isinstance(step_ids, list) or any(not isinstance(value, int) for value in step_ids)
+        ):
+            raise SyncStateError(f"{canonical_id}: step_ids должны быть списком integer")
     return payload
 
 
