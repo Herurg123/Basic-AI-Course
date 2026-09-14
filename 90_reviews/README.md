@@ -12,4 +12,5 @@
 
 ## Course-level audits
 
+- [Педагогический аудит для абсолютного новичка, 14.09.2026](pedagogy-zero-level-2026-09-14/audit-report.md) — прочитаны все 21 урок и Stepik-планы; семь локальных проблем в [Issue #50](https://github.com/Herurg123/Basic-AI-Course/issues/50), [задание SOL](pedagogy-zero-level-2026-09-14/SOL-PROMPT.md). Каркас связный; нужны исправления и человеческая проверка до выпуска. Отчёт не является проверкой на реальных учениках (human validation).
 - [`full-cumulative-audit-m00-m08-2026-09-12.md`](full-cumulative-audit-m00-m08-2026-09-12.md) — повторный FULL CUMULATIVE AUDIT M00–M08 после fix PR #31; audited `main` @ `de0c7cbd9b9ec60440a378675482de0af134c47e`; verdict **PASS / CLEAN**, CRITICAL = 0, NONCRITICAL BLOCKING = 0, POLISH = 3. Следующий обязательный gate: HUMAN PILOT / HUMAN VALIDATION.
