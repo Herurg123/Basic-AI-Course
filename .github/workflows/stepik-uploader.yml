@@ -59,7 +59,7 @@ jobs:
           --report-dir artifacts/stepik-uploader-ci
 
   live:
-    name: Owner dispatch: ${{ inputs.mode }}
+    name: "Owner dispatch: ${{ inputs.mode }}"
     if: github.event_name == 'workflow_dispatch'
     needs: tests
     runs-on: ubuntu-latest
