@@ -12,20 +12,20 @@ if __package__ in {None, ""}:
     from stepik_uploader.api import StepikAPIError, StepikClient
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
     from stepik_uploader.content import ContentCompileError, TEST_LESSON_ID, compile_test_lesson
-    from stepik_uploader.golden import load_golden_profile, validate_golden_profile
+    from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
     from stepik_uploader.planner import plan_dry_run
     from stepik_uploader.reporting import build_report, write_json
-    from stepik_uploader.stepik_uploader import count_snapshot, source_sha
+    from stepik_uploader.stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
     from stepik_uploader.sync_state import SyncStateError, assess_sync, baseline_for, load_state, with_record
     from stepik_uploader.writer import ContentWriteError, execute_content_sync_one
 else:
     from .api import StepikAPIError, StepikClient
     from .canonical import CanonicalBuildError, build_structural_manifest
     from .content import ContentCompileError, TEST_LESSON_ID, compile_test_lesson
-    from .golden import load_golden_profile, validate_golden_profile
+    from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
     from .planner import plan_dry_run
     from .reporting import build_report, write_json
-    from .stepik_uploader import count_snapshot, source_sha
+    from .stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
     from .sync_state import SyncStateError, assess_sync, baseline_for, load_state, with_record
     from .writer import ContentWriteError, execute_content_sync_one
 
@@ -123,7 +123,8 @@ def main() -> int:
         plan = plan_dry_run(manifest, snapshot)
         profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
         profile_blockers = validate_golden_profile(profile, snapshot, manifest)
-        if profile_blockers or plan.blockers:
+        golden_status = mark_golden_profile_result(plan, profile_blockers)
+        if golden_status != "confirmed" or plan.blockers:
             raise ContentWriteError(
                 "pre-sync live guards не пройдены: " + "; ".join(sorted(set(profile_blockers + plan.blockers)))
             )
@@ -172,7 +173,7 @@ def main() -> int:
             read_objects=count_snapshot(snapshot),
         )
         report["sync"] = sync_payload
-        report["golden_profile_status"] = "confirmed"
+        report["golden_profile_status"] = golden_status
 
         if args.mode == "sync-status":
             report["verdict"] = "BLOCKED" if assessment.status in BLOCKED_SYNC_STATUSES else "PASS"
@@ -216,7 +217,15 @@ def main() -> int:
         write_json(report_dir / "run-report.json", report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if result.verified else 2
-    except (CanonicalBuildError, ContentCompileError, ContentWriteError, SyncStateError, StepikAPIError, RuntimeError) as exc:
+    except (
+        CanonicalBuildError,
+        ContentCompileError,
+        ContentWriteError,
+        GoldenProfileError,
+        SyncStateError,
+        StepikAPIError,
+        RuntimeError,
+    ) as exc:
         report = {
             "course_id": args.course_id,
             "source_main_sha": sha,
