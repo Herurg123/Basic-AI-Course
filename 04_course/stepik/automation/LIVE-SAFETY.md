@@ -41,19 +41,23 @@ Issue `#54` содержит compact current state:
 - `pending.lessons`;
 - отдельный `pending.course_page`.
 
-Отдельная derived branch `stepik-deployment-history-v1` хранит immutable deployment/recovery evidence. Она не используется как content source.
+Отдельная derived branch `stepik-deployment-history-v1` хранит immutable deployment/recovery/reconcile evidence. Она не используется как content source.
 
-До каждого Stepik write должен быть durable `WRITE_INTENT`. Если history record сохранить нельзя, write запрещён.
+До каждого Stepik write должен быть durable `WRITE_INTENT`. Этот record ещё **не** означает, что внешний write начался.
+
+Непосредственно перед HTTP write должен быть durable `WRITE_DISPATCH_STARTED`. Только с этого момента history консервативно считает внешний write потенциально начатым.
 
 ## 4. Write result classification
 
-Write не ретраится автоматически.
+Write не ретраится автоматически вслепую.
 
-- однозначный response, после которого read-back возможен, продолжает guarded flow;
-- known failure фиксируется как failed operation;
-- timeout, network failure, HTTP 5xx или иной неизвестный server-side outcome фиксируется как `WRITE_AMBIGUOUS`.
+- `WRITE_INTENT` без dispatch можно переиспользовать при неизменных semantic fields и fresh baseline/live/source guards;
+- доказанный отказ без server-side commit фиксируется как `WRITE_FAILED_KNOWN`;
+- timeout, network failure, HTTP 5xx или иной неизвестный server-side outcome после dispatch фиксируется как `WRITE_AMBIGUOUS`.
 
 `WRITE_AMBIGUOUS` = `STOP` + read-only reconcile. Blind retry запрещён.
+
+`WRITE_FAILED_KNOWN` может вернуться в normal guarded route только если все начатые operations имеют known failure, нет ambiguous/read-back evidence и fresh live по-прежнему точно равен baseline. Иначе = `STOP_OWNER_DECISION`.
 
 ## 5. Read-back обязателен
 
@@ -76,7 +80,7 @@ Recovery всегда сопоставляет четыре источника:
 
 ### Write не начинался
 
-Если есть `EVENT_STARTED`, но нет `WRITE_INTENT`, automation может заново войти в normal route только при неизменных source/baseline/live guards.
+Если есть `EVENT_STARTED`, но нет `WRITE_DISPATCH_STARTED`, automation может заново войти в normal route только при неизменных source/baseline/live guards. Наличие старого semantic-identical `WRITE_INTENT` не блокирует retry: он переиспользуется без переписывания immutable record.
 
 ### Final write подтверждён, state PATCH отсутствует
 
@@ -92,15 +96,15 @@ Recovery всегда сопоставляет четыре источника:
 
 ### Unknown/ambiguous partial state
 
-Unconfirmed `WRITE_INTENT`, ambiguous response, failed read-back или live divergence после partial automation write = `STOP_OWNER_DECISION`.
+Dispatch без доказанного outcome, ambiguous response, failed read-back или live divergence после partial automation write = `STOP_OWNER_DECISION`.
 
 Automation не пытается угадать, какая часть live state принадлежит ей, а какая ручной правке.
 
 ## 7. Idempotent recovery
 
-Logical event имеет stable `event_id`, а каждый transition deterministic `record_id`.
+Logical event имеет stable `event_id`. Semantic transitions не переписываются.
 
-Повтор identical history record является no-op. Попытка записать другой payload под тем же record ID блокируется.
+`EVENT_STARTED` и `WRITE_INTENT` могут быть безопасно переиспользованы только если их значимые поля полностью совпадают. Run-specific `RECONCILE_CLASSIFIED` / `RECOVERY_CLASSIFIED` имеют attempt-specific record ID и сохраняют workflow identity текущего run.
 
 После `MACHINE_STATE_COMMITTED` повторный recovery не выполняет Stepik write и не создаёт второй логический deployment event для той же цели.
 
@@ -112,7 +116,9 @@ Mutation current state выполняется только так:
 
 Если state изменился между чтениями, PATCH запрещён.
 
-`MACHINE_STATE_COMMITTED` в history появляется только после успешного Issue PATCH. Если PATCH прошёл, а последующий history commit упал, повторный recovery обязан завершить handshake без повторного Stepik write.
+`MACHINE_STATE_COMMITTED` в history появляется только после успешного Issue PATCH и только после exact validation: committed status и baseline-after обязаны совпасть с `FINAL_READBACK_CONFIRMED`.
+
+Если PATCH прошёл, а последующий history commit упал, повторный recovery обязан завершить handshake без повторного Stepik write.
 
 ## 9. Pending closure
 
@@ -124,9 +130,11 @@ Pending lesson закрывается только после доказанно
 
 ## 10. Reconcile
 
-`sync-reconcile` является read-only route. Он классифицирует mismatch между live, baseline, canonical и history, но сам не пишет в Stepik и не rebaseline-ит state.
+`sync-reconcile` является read-only по отношению к Stepik. Он классифицирует mismatch между live, baseline, canonical и history, но сам не пишет в Stepik и не rebaseline-ит state.
 
-Auto-reconcile допустим только при доказуемом происхождении. Manual/unknown drift, conflicting events, golden lesson, structural/metadata divergence, missing baseline с неизвестным origin и auto-adoption case требуют owner decision.
+При этом каждый reconcile run durable-записывает `RECONCILE_CLASSIFIED` в operational history. Reconcile-only observation без `EVENT_STARTED` не является незавершённым deployment event.
+
+Auto-reconcile допустим только при доказуемом происхождении. Manual/unknown drift, stale machine baseline, conflicting events, golden lesson, structural/metadata divergence, missing baseline с неизвестным origin и auto-adoption case требуют owner decision.
 
 Совпадение `live == canonical` без доказанного event не разрешает автоматически принять live как baseline.
 
