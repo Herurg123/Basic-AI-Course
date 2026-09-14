@@ -6,6 +6,8 @@ from html.parser import HTMLParser
 from typing import Any
 
 from .content import CompiledStep
+from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
+from .sync_state import SyncAssessment, assess_sync, build_record
 
 PLACEHOLDER_TEXT = "Урок сгенерирован роботом ;)"
 
@@ -74,16 +76,15 @@ def _placeholder(existing: dict[str, Any]) -> bool:
     )
 
 
-def _target_lesson(
+def _target_lesson_by_position(
     snapshot: dict[str, Any],
     *,
     module_position: int,
     lesson_position: int,
-    expected_title: str,
 ) -> dict[str, Any]:
     course = snapshot.get("course", {})
     if course.get("is_public") is not False:
-        raise ContentWriteError("content-test-one разрешён только для непубличного чернового курса")
+        raise ContentWriteError("Stepik writes разрешены только для непубличного чернового курса")
     matching_sections = [s for s in snapshot.get("sections", []) if s.get("position") == module_position]
     if len(matching_sections) != 1:
         raise ContentWriteError(f"Не найден единственный section position={module_position}")
@@ -93,15 +94,30 @@ def _target_lesson(
             f"Не найден единственный unit section={module_position} position={lesson_position}"
         )
     lesson = matching_units[0].get("lesson", {})
-    if lesson.get("title") != expected_title:
-        raise ContentWriteError(
-            f"Target lesson title отличается: ожидается «{expected_title}», найдено «{lesson.get('title')}»"
-        )
     if lesson.get("is_public") is not False:
-        raise ContentWriteError("Target lesson неожиданно public; content-test-one остановлен")
+        raise ContentWriteError("Target lesson неожиданно public; write остановлен")
     if lesson.get("language") != "ru":
         raise ContentWriteError(
             f"Target lesson language отличается от ожидаемого ru: {lesson.get('language')}"
+        )
+    return lesson
+
+
+def _target_lesson(
+    snapshot: dict[str, Any],
+    *,
+    module_position: int,
+    lesson_position: int,
+    expected_title: str,
+) -> dict[str, Any]:
+    lesson = _target_lesson_by_position(
+        snapshot,
+        module_position=module_position,
+        lesson_position=lesson_position,
+    )
+    if lesson.get("title") != expected_title:
+        raise ContentWriteError(
+            f"Target lesson title отличается: ожидается «{expected_title}», найдено «{lesson.get('title')}»"
         )
     return lesson
 
@@ -113,6 +129,12 @@ class WriteResult:
     final_step_ids: list[int] = field(default_factory=list)
     verified: bool = False
     after_snapshot: dict[str, Any] | None = None
+
+
+@dataclass
+class SyncWriteResult(WriteResult):
+    assessment: SyncAssessment | None = None
+    state_record: dict[str, Any] | None = None
 
 
 def classify_existing_steps(existing: list[dict[str, Any]], expected: list[CompiledStep]) -> tuple[str, int]:
@@ -210,4 +232,95 @@ def execute_content_test_one(
     result.final_step_ids = [int(_step_source(item)["id"]) for item in after_lesson.get("steps", [])]
     result.verified = True
     result.after_snapshot = after
+    return result
+
+
+def execute_content_sync_one(
+    client: Any,
+    snapshot: dict[str, Any],
+    *,
+    canonical_id: str,
+    expected_steps: list[CompiledStep],
+    module_position: int,
+    lesson_position: int,
+    expected_title: str,
+    baseline: dict[str, Any] | None,
+    source_sha: str,
+) -> SyncWriteResult:
+    """Безопасно обновляет только уже отслеживаемый урок с неизменной структурой steps.
+
+    Ключевой guard: текущий live fingerprint обязан точно совпасть с последним подтверждённым
+    deployment baseline. Если Stepik редактировали вручную после sync, автоматическая запись
+    останавливается вместо молчаливого overwrite.
+    """
+    lesson = _target_lesson_by_position(
+        snapshot,
+        module_position=module_position,
+        lesson_position=lesson_position,
+    )
+    lesson_id = int(lesson["id"])
+    assessment = assess_sync(
+        canonical_id=canonical_id,
+        live_lesson=lesson,
+        expected_title=expected_title,
+        expected_steps=expected_steps,
+        baseline=baseline,
+    )
+    result = SyncWriteResult(lesson_id=lesson_id, assessment=assessment)
+
+    if assessment.status == "IN_SYNC":
+        result.operations.append({"action": "NOOP_ALREADY_IN_SYNC", "steps": len(expected_steps)})
+        result.final_step_ids = [int(_step_source(item)["id"]) for item in lesson.get("steps", [])]
+        result.verified = True
+        result.after_snapshot = snapshot
+        result.state_record = baseline
+        return result
+
+    if assessment.status != "UPDATE_REQUIRED":
+        raise ContentWriteError(
+            f"sync status={assessment.status}: {'; '.join(assessment.reasons)}"
+        )
+
+    existing = sorted(lesson.get("steps", []), key=lambda item: _step_source(item).get("position", 10**9))
+    if len(existing) != len(expected_steps):
+        raise ContentWriteError("Update route не меняет количество steps")
+
+    for current, expected in zip(existing, expected_steps, strict=True):
+        if _equivalent(current, expected):
+            continue
+        step_id = int(_step_source(current)["id"])
+        client.update_step_source(
+            step_id=step_id,
+            lesson_id=lesson_id,
+            position=expected.position,
+            block=expected.block(),
+        )
+        _assert_readback(client.fetch_one("step-sources", step_id), expected)
+        result.operations.append({"action": "UPDATE_STEP", "step_id": step_id, "position": expected.position})
+
+    after = client.inspect_course(int(snapshot["course"]["id"]))
+    after_lesson = _target_lesson_by_position(
+        after,
+        module_position=module_position,
+        lesson_position=lesson_position,
+    )
+    desired_fp = compiled_lesson_fingerprint(expected_title=expected_title, expected_steps=expected_steps)
+    live_fp = live_lesson_fingerprint(after_lesson)
+    if live_fp != desired_fp:
+        raise ContentWriteError("Финальный read-back после update не совпал с новым compiled content")
+
+    final_step_ids = [int(_step_source(item)["id"]) for item in after_lesson.get("steps", [])]
+    source_paths = [path for step in expected_steps for path in step.source_git_paths]
+    result.final_step_ids = final_step_ids
+    result.verified = True
+    result.after_snapshot = after
+    result.state_record = build_record(
+        canonical_id=canonical_id,
+        stepik_lesson_id=lesson_id,
+        expected_title=expected_title,
+        expected_steps=expected_steps,
+        source_sha=source_sha,
+        step_ids=final_step_ids,
+        source_git_paths=source_paths,
+    )
     return result
