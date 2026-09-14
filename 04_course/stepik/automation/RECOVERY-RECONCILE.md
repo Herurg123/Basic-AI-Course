@@ -30,9 +30,11 @@ Deployment event навсегда привязан к source SHA, с котор�
 
 ### R0. External write не начинался
 
-Evidence: есть `EVENT_STARTED`, нет `WRITE_INTENT`.
+Evidence: есть `EVENT_STARTED`, но нет `WRITE_DISPATCH_STARTED`.
 
-Допустимо начать normal write route заново при неизменном source SHA, baseline и live state. Если нельзя доказать, что write не начинался, этот state неприменим.
+`WRITE_INTENT` сам по себе не означает, что HTTP write был начат. Если intent сохранён, но dispatch отсутствует, normal write route может быть повторён при неизменном source SHA, baseline и live state.
+
+Если `WRITE_DISPATCH_STARTED` существует, система больше не утверждает, что внешний write точно не начинался.
 
 ### R1. Final write/read-back подтверждён, machine-state PATCH отсутствует
 
@@ -48,11 +50,13 @@ Action: `AUTO_RECOVER_MACHINE_STATE`.
 
 Stepik writes: `0`. Automation PATCH-ит только target baseline/pending через обычный compare-before-patch guard, затем append-ит `MACHINE_STATE_COMMITTED`.
 
+Перед `MACHINE_STATE_COMMITTED` status и baseline-after из текущего machine state обязаны точно совпасть с `FINAL_READBACK_CONFIRMED`.
+
 ### R2. Подтверждённый partial write
 
 Evidence:
 
-- один или несколько `WRITE_INTENT`;
+- один или несколько `WRITE_DISPATCH_STARTED`;
 - соответствующие write results однозначны;
 - для выполненного prefix есть `OP_READBACK_CONFIRMED`;
 - fresh live fingerprint точно совпадает с последним подтверждённым intermediate fingerprint;
@@ -65,7 +69,7 @@ Action: `AUTO_CONTINUE_FROM_CONFIRMED_PREFIX` допустим только дл
 
 ### R3. Ambiguous API result
 
-Timeout/network error, HTTP 5xx после write request или иной результат, при котором server-side commit нельзя доказать или опровергнуть, создаёт `WRITE_AMBIGUOUS`.
+Timeout/network error, HTTP 5xx после write dispatch или иной результат, при котором server-side commit нельзя доказать или опровергнуть, создаёт `WRITE_AMBIGUOUS`.
 
 Action: `STOP_OWNER_DECISION` + read-only reconcile. Blind retry запрещён.
 
@@ -81,13 +85,14 @@ Action: `STOP_OWNER_DECISION`, пока происхождение live state н
 
 Следующий run читает immutable history и fresh live.
 
+- intent сохранён, но dispatch для operation отсутствует → эта operation не считается начатой; normal guarded route может выполнить её;
 - live == last confirmed intermediate → можно продолжить только remaining operations;
 - live отличается → STOP;
-- есть unconfirmed `WRITE_INTENT` → STOP, никакого повторного write.
+- есть `WRITE_DISPATCH_STARTED` без подтверждённого результата/read-back → STOP, никакого blind retry.
 
 ### R6. Повторный recovery run
 
-`event_id` и `record_id` детерминированы. Уже существующий identical record не создаётся второй раз. Existing record с другим payload = STOP.
+`event_id` и semantic record IDs детерминированы. Уже существующий identical immutable transition не переписывается. Run-specific reconcile/recovery records имеют отдельный attempt token и сохраняют `recorded_by_workflow` + relationship с исходным event.
 
 После `MACHINE_STATE_COMMITTED` повторный recovery не выполняет write и не создаёт новый логический deployment event для той же цели.
 
@@ -95,7 +100,7 @@ Action: `STOP_OWNER_DECISION`, пока происхождение live state н
 
 `event.source_sha != current main` → `STALE_SOURCE_SHA`.
 
-Старый event нельзя продолжить автоматически и нельзя использовать для закрытия нового pending.
+Старый event нельзя продолжить автоматически и нельзя использовать для закрытия нового pending, даже если fresh live совпадает с intermediate fingerprint старого event.
 
 ### R8. Человек изменил Stepik после partial automation write
 
@@ -105,7 +110,7 @@ Action: `STOP_OWNER_DECISION`.
 
 ## 4. Baseline reconcile classifications
 
-`sync-reconcile` является read-only route. Он не пишет в Stepik и не rebaseline-ит Issue автоматически.
+`sync-reconcile` является read-only по отношению к Stepik. Он не выполняет Stepik write и не rebaseline-ит Issue автоматически, но durable-записывает `RECONCILE_CLASSIFIED` в operational history.
 
 Минимальные классы:
 
@@ -117,6 +122,7 @@ Action: `STOP_OWNER_DECISION`.
 - `MANUAL_OR_UNKNOWN_DRIFT` → owner decision;
 - `BASELINE_MISSING` → owner decision;
 - `CANONICAL_MATCH_WITHOUT_PROVEN_EVENT` / `UNPROVEN_LIVE_EQUALS_CANONICAL` → owner decision;
+- `STALE_MACHINE_BASELINE` → committed history подтверждает текущий live, но machine baseline ему не соответствует; owner decision;
 - `METADATA_DIVERGENCE` → owner decision;
 - `STRUCTURAL_DIVERGENCE` → owner decision;
 - `GOLDEN_OWNER_REQUIRED` → owner decision;
@@ -138,6 +144,8 @@ Adoption/rebaseline допустим только отдельным явным 
 - machine-readable reason;
 - audit trail.
 
+`STALE_MACHINE_BASELINE` также не вызывает автоматический rebaseline. Доказательство того, что baseline устарел, ещё не является разрешением молча переписать текущий machine state.
+
 Текущий этап не добавляет универсальный automatic adoption route.
 
 ## 6. Golden, metadata и structure
@@ -153,11 +161,11 @@ Adoption/rebaseline допустим только отдельным явным 
 
 - единый live mutex `stepik-live-course-299189`;
 - fresh current-main guard до live Stepik;
-- write-ahead history до каждого Stepik write;
+- `WRITE_INTENT`, затем `WRITE_DISPATCH_STARTED` непосредственно перед каждым Stepik write;
 - current Issue state: read expected → re-read current → compare → PATCH only if unchanged;
-- history `MACHINE_STATE_COMMITTED` только после успешного Issue PATCH.
+- history `MACHINE_STATE_COMMITTED` только после успешного Issue PATCH и exact validation against final read-back.
 
-Если Issue PATCH уже прошёл, а history commit не прошёл, следующий recovery видит confirmed final event и fresh current state и может безопасно завершить только history/state handshake без Stepik write.
+Если Issue PATCH уже прошёл, а history commit не прошёл, следующий recovery сравнивает fresh current state, final event и live Stepik. Он не выполняет повторный Stepik write.
 
 ## 8. Ownership
 
