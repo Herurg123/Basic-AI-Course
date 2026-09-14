@@ -294,6 +294,7 @@ def main() -> int:
             event_records = recorder.records(refresh=True)
             event_summary = summarize_event(event_records)
 
+        event_baseline_known = bool(event_records and any(record.get("phase") == "EVENT_STARTED" for record in event_records))
         decision_source_sha = event_identity.source_sha if event_records else sha
         decision_desired_fp = event_identity.desired_fingerprint if event_records else assessment.desired_fingerprint
         decision = classify_reconcile(
@@ -304,6 +305,8 @@ def main() -> int:
             baseline_fingerprint=assessment.baseline_fingerprint,
             event_summary=event_summary if event_records else None,
             event_source_sha=event_identity.source_sha if event_records else None,
+            event_baseline_fingerprint_before=event_identity.baseline_fingerprint_before,
+            event_baseline_known=event_baseline_known,
             committed_history_live_match=committed_history_live_match,
             golden_read_only=False,
             metadata_divergence=assessment.status == "METADATA_UPDATE_BLOCKED",
@@ -314,6 +317,7 @@ def main() -> int:
             **decision.as_dict(),
             "event_id": event_identity.event_id,
             "event_source_sha": event_identity.source_sha,
+            "event_baseline_fingerprint_before": event_identity.baseline_fingerprint_before if event_baseline_known else None,
             "event_summary": event_summary if event_records else None,
             "live_fingerprint": assessment.live_fingerprint,
             "desired_fingerprint": assessment.desired_fingerprint,
