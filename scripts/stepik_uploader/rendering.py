@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+import re
+from pathlib import PurePosixPath
+from typing import Any
+
+import mistune
+
+ASSET_LINK_RE = re.compile(r"\]\(([^)]*?(M\d{2}-L\d{2}-A\d{2})(?:-[^/)]+)?\.[A-Za-z0-9]+)\)")
+
+
+class UnresolvedAssetError(RuntimeError):
+    pass
+
+
+def resolve_asset_links(markdown_text: str, asset_url_map: dict[str, Any]) -> str:
+    def replace(match: re.Match[str]) -> str:
+        original_target = match.group(1)
+        asset_id = match.group(2)
+        record = asset_url_map.get(asset_id)
+        if not isinstance(record, dict):
+            raise UnresolvedAssetError(
+                f"Asset {asset_id} требуется learner-facing тексту, но запись отсутствует в asset-url-map"
+            )
+        url = record.get("url")
+        if not url:
+            filename = PurePosixPath(original_target).name
+            files = record.get("files", {})
+            file_record = files.get(filename) if isinstance(files, dict) else None
+            if isinstance(file_record, str):
+                url = file_record
+            elif isinstance(file_record, dict):
+                url = file_record.get("url")
+        if not url:
+            raise UnresolvedAssetError(
+                f"Asset {asset_id} ({PurePosixPath(original_target).name}) требуется learner-facing тексту, "
+                "но точный URL отсутствует в asset-url-map"
+            )
+        url = str(url)
+        return match.group(0).replace(original_target, url)
+
+    return ASSET_LINK_RE.sub(replace, markdown_text)
+
+
+def render_markdown(markdown_text: str, *, asset_url_map: dict[str, Any] | None = None) -> str:
+    resolved = resolve_asset_links(markdown_text, asset_url_map or {})
+    renderer = mistune.create_markdown(escape=False, plugins=["table", "strikethrough"])
+    return renderer(resolved)

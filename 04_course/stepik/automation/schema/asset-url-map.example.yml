@@ -1,0 +1,21 @@
+# Пример карты URL для learner-facing assets.
+# Один Asset ID может иметь несколько физических файлов/представлений.
+strategy: manual-stepik-files
+course_id: 0
+assets:
+  M00-L02-A01:
+    files:
+      M00-L02-A01.docx:
+        source_git_path: 05_assets/M00/M00-L02/M00-L02-A01.docx
+        url: https://stepik.org/media/attachments/REPLACE_AFTER_MANUAL_UPLOAD/M00-L02-A01.docx
+      M00-L02-A01.md:
+        source_git_path: 05_assets/M00/M00-L02/M00-L02-A01.md
+        url: https://stepik.org/media/attachments/REPLACE_AFTER_MANUAL_UPLOAD/M00-L02-A01.md
+  M05-L02-A01:
+    files:
+      M05-L02-A01-part1.md:
+        source_git_path: 05_assets/M05/M05-L02/M05-L02-A01-part1.md
+        url: https://stepik.org/media/attachments/REPLACE_AFTER_MANUAL_UPLOAD/M05-L02-A01-part1.md
+      M05-L02-A01-part2.md:
+        source_git_path: 05_assets/M05/M05-L02/M05-L02-A01-part2.md
+        url: https://stepik.org/media/attachments/REPLACE_AFTER_MANUAL_UPLOAD/M05-L02-A01-part2.md

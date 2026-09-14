@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Herurg123/Basic-AI-Course/04_course/stepik/automation/schema/build-manifest.schema.json",
+  "title": "Stepik build manifest — structural pre-golden phase",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_sha",
+    "phase",
+    "write_enabled",
+    "global_blockers",
+    "modules",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0-structural"},
+    "source_sha": {"type": "string", "minLength": 1},
+    "phase": {"const": "pre-golden-inspection"},
+    "write_enabled": {"const": false},
+    "global_blockers": {
+      "type": "array",
+      "contains": {"const": "needs-golden-profile"}
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/module"}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modules", "lessons", "logical_steps"],
+      "properties": {
+        "modules": {"type": "integer", "minimum": 1},
+        "lessons": {"type": "integer", "minimum": 1},
+        "logical_steps": {"type": "integer", "minimum": 1}
+      }
+    }
+  },
+  "$defs": {
+    "canonicalId": {"type": "string", "pattern": "^M[0-9]{2}(?:-L[0-9]{2})?$"},
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonical_id", "title", "position", "lessons"],
+      "properties": {
+        "canonical_id": {"type": "string", "pattern": "^M[0-9]{2}$"},
+        "title": {"type": "string", "minLength": 1},
+        "position": {"type": "integer", "minimum": 1},
+        "lessons": {"type": "array", "items": {"$ref": "#/$defs/lesson"}}
+      }
+    },
+    "lesson": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonical_id",
+        "title",
+        "position",
+        "source_git_path",
+        "stepik_plan_git_path",
+        "asset_ids",
+        "exercise_ids",
+        "check_ids",
+        "golden_read_only",
+        "independence_sensitive",
+        "f1_sensitive",
+        "write_ready",
+        "write_blocker",
+        "steps"
+      ],
+      "properties": {
+        "canonical_id": {"type": "string", "pattern": "^M[0-9]{2}-L[0-9]{2}$"},
+        "title": {"type": "string", "minLength": 1},
+        "position": {"type": "integer", "minimum": 1},
+        "source_git_path": {"type": "string", "minLength": 1},
+        "stepik_plan_git_path": {"type": "string", "minLength": 1},
+        "asset_ids": {"type": "array", "items": {"type": "string", "pattern": "^M[0-9]{2}-L[0-9]{2}-A[0-9]{2}$"}, "uniqueItems": true},
+        "exercise_ids": {"type": "array", "items": {"type": "string", "pattern": "^M[0-9]{2}-L[0-9]{2}-E[0-9]{2}$"}, "uniqueItems": true},
+        "check_ids": {"type": "array", "items": {"type": "string", "pattern": "^M[0-9]{2}-L[0-9]{2}-C[0-9]{2}$"}, "uniqueItems": true},
+        "golden_read_only": {"type": "boolean"},
+        "independence_sensitive": {"type": "boolean"},
+        "f1_sensitive": {"type": "boolean"},
+        "write_ready": {"const": false},
+        "write_blocker": {"const": "needs-golden-profile"},
+        "steps": {"type": "array", "minItems": 1, "maxItems": 16, "items": {"$ref": "#/$defs/step"}}
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "position",
+        "logical_type",
+        "summary",
+        "material_or_action",
+        "check",
+        "asset_ids",
+        "exercise_ids",
+        "check_ids",
+        "author_only",
+        "independence_sensitive",
+        "f1_sensitive",
+        "stepik_block_type",
+        "learner_body",
+        "rendering_status"
+      ],
+      "properties": {
+        "position": {"type": "integer", "minimum": 1, "maximum": 16},
+        "logical_type": {"type": "string"},
+        "summary": {"type": "string"},
+        "material_or_action": {"type": "string"},
+        "check": {"type": "string"},
+        "asset_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "exercise_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "check_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "author_only": {"type": "boolean"},
+        "independence_sensitive": {"type": "boolean"},
+        "f1_sensitive": {"type": "boolean"},
+        "stepik_block_type": {"type": "null"},
+        "learner_body": {"type": "null"},
+        "rendering_status": {"const": "needs-golden-profile"}
+      }
+    }
+  }
+}
