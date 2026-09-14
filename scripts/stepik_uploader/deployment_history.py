@@ -583,6 +583,7 @@ def summarize_event(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
     phases = [str(record.get("phase")) for record in ordered]
     intents = [record for record in ordered if record.get("phase") == "WRITE_INTENT"]
     dispatches = [record for record in ordered if record.get("phase") == "WRITE_DISPATCH_STARTED"]
+    known_failed = [record for record in ordered if record.get("phase") == "WRITE_FAILED_KNOWN"]
     ambiguous = [record for record in ordered if record.get("phase") == "WRITE_AMBIGUOUS"]
     readback_failed = [record for record in ordered if record.get("phase") == "READBACK_FAILED"]
     final = next((record for record in ordered if record.get("phase") == "FINAL_READBACK_CONFIRMED"), None)
@@ -591,12 +592,16 @@ def summarize_event(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
         (record for record in ordered if record.get("phase") == "OP_READBACK_CONFIRMED"),
         key=lambda record: str(record.get("operation_id") or ""),
     )
+    dispatch_ids = {str(record.get("operation_id")) for record in dispatches}
+    known_failed_ids = {str(record.get("operation_id")) for record in known_failed}
     last_confirmed = confirmed_ops[-1] if confirmed_ops else None
     return {
         "phases": phases,
         "external_write_started": bool(dispatches),
         "write_intents": len(intents),
         "writes_started": len(dispatches),
+        "known_failed_writes": len(known_failed),
+        "all_dispatched_writes_failed_known": bool(dispatches) and dispatch_ids == known_failed_ids,
         "ambiguous": bool(ambiguous),
         "readback_failed": bool(readback_failed),
         "final_readback_confirmed": final is not None,
