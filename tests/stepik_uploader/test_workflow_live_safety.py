@@ -11,11 +11,16 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.bulk = (self.repo_root / ".github/workflows/stepik-bulk-status.yml").read_text(encoding="utf-8")
 
     def test_both_live_workflows_use_same_course_mutex(self) -> None:
-        shared = "group: stepik-live-course-${{ inputs.course_id }}"
+        shared = "group: stepik-live-course-299189"
         self.assertEqual(self.uploader.count(shared), 1)
         self.assertEqual(self.bulk.count(shared), 1)
         self.assertIn("cancel-in-progress: false", self.uploader)
         self.assertIn("cancel-in-progress: false", self.bulk)
+
+    def test_mutex_is_not_derived_from_user_supplied_course_id(self) -> None:
+        unsafe = "group: stepik-live-course-${{ inputs.course_id }}"
+        self.assertNotIn(unsafe, self.uploader)
+        self.assertNotIn(unsafe, self.bulk)
 
     def test_old_independent_live_concurrency_groups_are_removed(self) -> None:
         self.assertNotIn("stepik-uploader-${{ github.event_name }}-${{ github.ref }}", self.uploader)
