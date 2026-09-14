@@ -1,61 +1,97 @@
 # Stepik uploader: безопасная автоматизация
 
-Этот каталог содержит автоматизацию переноса утверждённого курса «ИИ с нуля» в существующий черновой курс Stepik. Источник истины для содержания остаётся в GitHub `main`; uploader (загрузчик курса) не проектирует уроки заново.
+Этот каталог содержит автоматизацию переноса утверждённого курса «ИИ с нуля» в существующий private/staging курс Stepik. Источник истины для содержания остаётся в GitHub `main`; uploader не проектирует уроки заново.
 
-## Текущий статус
+## Текущий подтверждённый статус
 
-Поддерживаются три рабочих режима:
+Рабочий курс: `course_id=299189`.
 
-- `inspect` — READ-ONLY (только чтение) реального курса и проверка двух вручную собранных golden lessons (эталонных уроков);
-- `dry-run` — пробный запуск без записи: структурный manifest и diff-план;
-- `content-test-one` — **единственный разрешённый write-test этой фазы**, жёстко ограниченный существующим черновым уроком `M02-L01` и требующий явного `--confirm-write` / флага `confirm_write` в GitHub Actions.
+Подтверждены следующие контуры:
 
-Массовые режимы `skeleton`, `assets-test`, `upload-remaining` и `verify` пока остаются fail-closed. Два golden lesson M00-L01/M00-L02 по-прежнему READ-ONLY и никогда не входят в write-set.
+- `inspect` — READ-ONLY снимок реального курса и проверка двух golden lessons;
+- `dry-run` — offline structural manifest и план без Stepik writes;
+- `content-test-one` — ограниченный first-write route только для `M02-L01`; реальный write, read-back, визуальная проверка и повторный no-op уже успешно выполнены;
+- `sync-status` — drift-guarded read-only сравнение `desired ↔ live ↔ baseline`;
+- `sync-changed` — drift-guarded exploitation update при неизменной структуре, но текущая реализация **жёстко ограничена `M02-L01`**;
+- отдельный workflow `Stepik Bulk Status` — READ-ONLY full-course preflight всех 21 уроков и asset inventory.
 
-Live inspect курса `299189` подтвердил golden profile и все 21 существующий lesson. Платформенная конфигурация сохранена в `04_course/stepik/automation/golden-profile.v1.json`: количество и порядок шагов, `block.name`, free-answer configuration и SHA-256 learner-visible HTML каждого golden step.
+Не считать существующий `sync-changed` общим bulk-sync.
 
-## Почему первым write-test выбран M02-L01
+Массовый first upload остальных skeleton lessons пока заблокирован. Режимы `skeleton`, `assets-test`, `upload-remaining` и `verify` не являются подтверждённым production write route. M00-L01/M00-L02 остаются `READ_ONLY_GOLDEN`.
 
-`M02-L01` — обычный не-golden lesson, не отмеченный как independence-sensitive или F1-sensitive. В Stepik он уже существует как skeleton с единственной стандартной заглушкой `Урок сгенерирован роботом ;)`.
+После педагогического PR #59 текущий `main` изменился. Issue #54 содержит `PENDING` для затронутых уроков и course page, поэтому предыдущий live full-course status не является достаточным preflight для нового канона.
 
-Его единственный Markdown asset `M02-L01-A01.md` содержит две учебные ситуации. Для test pass они встраиваются в learner-facing Stepik text по подтверждённой golden-конвенции для Markdown helper assets. Поэтому первый write-test не требует ручной загрузки binary files и не вводит новый внешний storage URL.
+## Подтверждённый pilot M02-L01
 
-Compiler допускает только текущую подтверждённую H2-структуру M02-L01. Изменение заголовков/shape production lesson или asset превращается в blocker, а не в молчаливую догадку.
+`M02-L01` выбран как обычный не-golden lesson, не отмеченный independence/F1-sensitive.
 
-Ожидаемая Stepik sequence для M02-L01:
+Первый live write:
 
-`text, text, text, text, free-answer, text`
+- использовал существующий skeleton;
+- выполнил последовательные PUT/POST без автоматических write retries;
+- после каждой записи выполнил GET read-back;
+- после завершения перечитал курс;
+- сохранил те же Stepik lesson/step IDs в подтверждённом состоянии;
+- прошёл визуальную проверку владельцем.
 
-Free-answer configuration берётся из сохранённого golden profile, а не задаётся «по памяти».
+Повторный запуск дал `NOOP_ALREADY_MATCHES`, `created=0`, `updated=0`.
 
-## Safety rails write-test
+После этого deployment baseline M02-L01 был bootstrap-записан в Issue #54. Отдельный `sync-status` подтвердил, что на той версии канона `desired == live == baseline`.
 
-`content-test-one` разрешён только если одновременно выполнены все условия:
+Этот checkpoint доказывает технический контракт pilot route, но не разрешает автоматически распространять его на остальные уроки.
 
-- `course_id=299189` проходит golden profile validation;
-- курс остаётся непубличным черновиком;
-- live plan не имеет blockers;
-- target — только `M02-L01` на точной module/unit position и с точным canonical title;
-- текущее состояние target lesson — либо исходная стандартная заглушка, либо уже записанный uploader-ом точный prefix/full content;
-- пользователь явно включил `confirm_write`;
-- `DELETE` отсутствует.
+## Exploitation sync contract
 
-На исходном skeleton первый placeholder step обновляется через один `PUT`, затем недостающие steps создаются последовательными `POST`. Каждый write немедленно проверяется отдельным GET read-back. POST/PUT автоматически не повторяются при сетевой ошибке.
+После появления baseline обычный content update разрешён только если одновременно:
 
-После успешной записи весь курс читается ещё раз, а target lesson проверяется на полный совпадающий sequence/content fingerprint. Повторный запуск того же `content-test-one` должен дать `NOOP_ALREADY_MATCHES` и создать **0** новых steps.
+```text
+live == baseline
+and
+desired != baseline
+```
 
-Если выполнение оборвалось после части writes, следующий запуск сначала читает фактическое состояние. Совпадающий prefix можно безопасно продолжить; любое несовпадение останавливает процесс. Автоматического destructive cleanup нет.
+Если:
 
-## Что показал golden sample
+```text
+live != baseline
+```
 
-- M00-L01: 6 Stepik steps, sequence `text, text, text, text, free-answer, text`.
-- M00-L02: 7 Stepik steps, sequence `text, text, text, text, text, free-answer, text`.
-- Free-answer использует `is_attachments_enabled=false`, `is_html_enabled=true`, `manual_scoring=false`.
-- Markdown helper assets в golden фактически встроены в learner-facing text.
-- DOCX/PNG M00-L02 отдаются по подтверждённым Stepik lesson-file URLs.
-- В обоих golden lessons количество строк Stepik-плана совпадает с количеством реальных Stepik steps 1:1.
+результат обязан быть `DRIFT_BLOCKED`.
 
-`golden-profile.v1.json` — derived platform-observation fixture, а не второй источник содержания курса. Если golden lesson изменится вручную или API начнёт возвращать другую структуру/HTML, inspect должен остановиться.
+Существующий Stepik content не перезаписывается автоматически без подтверждённого baseline. Изменение количества/порядка steps или lesson metadata блокируется отдельным статусом и требует отдельного migration route.
+
+Baseline меняется только после успешного write + read-back. Merge в `main` сам по себе не вызывает live Stepik write.
+
+## Full-course read-only preflight
+
+`Stepik Bulk Status` читает все 21 урок и строит для каждого состояние относительно канона/live/baseline там, где compiler уже доступен.
+
+Он проверяет минимум:
+
+- 9 modules / 21 lessons;
+- stable canonical IDs и positions;
+- golden protection;
+- существующие skeleton placeholders;
+- stale titles без создания дублей;
+- sensitive/F1 flags;
+- asset inventory и SHA-256 физических файлов;
+- отсутствие missing source files;
+- наличие baseline для уже управляемого content.
+
+Этот режим делает `stepik_writes=0` и никогда сам не открывает bulk write.
+
+## Golden profile
+
+`04_course/stepik/automation/golden-profile.v1.json` фиксирует подтверждённое наблюдение платформенной конвенции:
+
+- M00-L01: 6 Stepik steps, sequence `text, text, text, text, free-answer, text`;
+- M00-L02: 7 Stepik steps, sequence `text, text, text, text, text, free-answer, text`;
+- free-answer source: `is_attachments_enabled=false`, `is_html_enabled=true`, `manual_scoring=false`;
+- Stepik IDs/positions;
+- SHA-256 learner-visible HTML golden steps;
+- подтверждённые file URLs golden M00-L02.
+
+Golden profile является derived platform-observation fixture, а не вторым источником содержания. Не обновлять его просто потому, что fingerprint не совпал. Любой golden update требует отдельного проверяемого route.
 
 ## Локальная проверка без Stepik
 
@@ -67,53 +103,60 @@ python -m unittest discover -s tests/stepik_uploader -v
 python scripts/stepik_uploader/stepik_uploader.py dry-run --repo-root .
 ```
 
-Offline `dry-run` обязан сделать ноль API writes. Он создаёт в `artifacts/stepik-uploader/`:
+Offline `dry-run` обязан сделать ноль API writes. Structural manifest сам по себе не разрешает запись: `write_enabled=false`, а write gates проверяются live перед конкретной операцией.
 
-- `build-manifest.structural.json`;
-- `dry-run-plan.json`;
-- `run-report.json`.
+## GitHub Actions и секреты
 
-Структурный manifest — phase-neutral canonical projection. Он сам по себе никогда не разрешает write: `write_enabled=false`, а реальные write gates проверяются live перед конкретной операцией.
-
-## Live inspect и GitHub Actions
-
-Для live режима OAuth-секреты должны находиться только в environment или GitHub Actions Secrets:
+OAuth credentials находятся только в GitHub Actions Secrets под именами:
 
 ```text
 STEPIC_CLIENT_ID
 STEPIC_CLIENT_SECRET
 ```
 
-Рабочий черновой курс проекта имеет `course_id=299189`; GitHub Actions подставляет его по умолчанию. `.env` исключён из Git. Не передавайте `client_secret`, access token, пароль или cookies в чат, issue, PR, Actions input или лог.
+Не передавать `client_secret`, access token, пароль, cookies или OAuth tokens через чат, issue, PR, workflow input или лог.
 
-Для `inspect` и `dry-run` флаг `confirm_write` должен оставаться выключенным. Для `content-test-one` его нужно включить явно. Без него CLI завершится `BLOCKED` до обращения к write API.
+Для read-only режимов `confirm_write` остаётся выключенным. Любой разрешённый write-route обязан требовать отдельное явное подтверждение.
 
 ## Идемпотентность и сетевые ошибки
 
 - `DELETE` не используется.
-- Эталонные уроки никогда не входят в write-set.
-- Существующий объект не обновляется по одному совпавшему признаку.
+- Golden lessons по умолчанию не входят в обычный write-set.
 - GET может повторяться только для временных `429/5xx`.
-- POST/PUT автоматически не повторяются: повтор POST после сетевой неопределённости способен создать дубль.
+- POST/PUT автоматически не повторяются.
 - Каждая запись получает отдельный read-back до следующей операции.
-- Повторный successful content-test должен быть no-op.
+- Повтор уже совпадающего состояния должен быть no-op.
+- После неопределённого write response сначала читается live state; повторный write вслепую запрещён.
 
-## Stepik Files
+## Stepik Files и assets
 
-По официальной справке Stepik файлы курса/урока загружаются через интерфейс настроек, а learner получает файл по ссылке, вставленной автором в шаг. Стабильный официальный upload/list endpoint для lesson/course files в текущей документации не подтверждён.
+По официальной справке Stepik файлы курса/урока управляются через настройки и learner получает файл по ссылке, вставленной в шаг. Подтверждённого стабильного production upload/list API для lesson/course files в текущем контуре нет.
 
-Поэтому базовый fallback v1 для binary assets — `manual-stepik-files`:
+Поэтому для physical assets действует fail-closed подход:
 
-1. automation определяет точный список нужных binary assets;
-2. владелец загружает их через Stepik UI;
-3. владелец копирует обычные ссылки;
-4. ссылки попадают в URL-map;
-5. content phase блокируется, пока нужный Asset ID не разрешён в URL.
+1. inventory фиксирует Asset ID, source Git path и SHA-256;
+2. automation определяет, должен asset быть встроен, показан отдельно или опубликован как файл;
+3. если нужен внешний/Stepik file URL, content write блокируется до фактически подтверждённого URL/version;
+4. URL никогда не конструируется по догадке;
+5. изменение Git hash physical asset считается новым deployment requirement даже при прежней строке URL.
 
-Markdown helper assets могут быть встроены в текст только там, где это не ломает педагогическое действие и подтверждено production route. URL никогда не конструируется по догадке.
+Если API route не подтверждён, используется точный owner handoff для ручного UI-действия, после чего automation проверяет результат.
 
 ## Особые педагогические блокировки
 
-Compiler сохраняет `author_only`, `independence_sensitive` и `f1_sensitive`. Для M03-L02, M04-L02, M05-L02, M06-L04, M07-L01 и M07-L02 автоматическое склеивание temporal boundaries недопустимо. `M07-L02` требует отдельного F1 integrity pass до массовой публикации.
+Compiler обязан сохранять `author_only`, `independence_sensitive` и `f1_sensitive`.
 
-API success и точный read-back подтверждают только техническую запись. Они не доказывают педагогическую самостоятельность ученика и не делают WAVE 0 READY.
+К sensitive lessons относятся как минимум:
+
+- M03-L02;
+- M04-L02;
+- M05-L02;
+- M06-L04;
+- M07-L01;
+- M07-L02.
+
+Автоматическое склеивание temporal boundaries недопустимо. M07-L02 требует отдельного F1 integrity pass.
+
+После PR #59 structural dry-run текущего `main` показывает 9 modules / 21 lessons / 150 logical steps и `unresolved_assets=[]`, но это только offline source check. Перед новым Stepik write нужен свежий live inspect/full-course bulk-status.
+
+API success и точный read-back подтверждают техническую запись. Они не заменяют PHONE/COMPUTER staging check, live-service acceptance или Human Pilot и не делают `WAVE 0 READY`.
