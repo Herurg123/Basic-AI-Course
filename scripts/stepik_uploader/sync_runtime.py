@@ -191,7 +191,7 @@ def main() -> int:
             raise ContentWriteError("Текущий pilot sync target попал в protected lesson")
         free_answer_source = profile.get("observed_conventions", {}).get("free_answer_source")
         if not isinstance(free_answer_source, dict):
-            raise ContentCompileError("В golden profile отсутствует free_answer source")
+            raise ContentCompileError("В golden profile отсутствует free_answer_source")
         compiled = compile_test_lesson(repo_root, free_answer_source=free_answer_source, lesson_id=TEST_LESSON_ID)
         expected_title = f"{TEST_LESSON_ID} — {lesson['title']}"
         live_lesson = _live_lesson(snapshot, module_position=int(module["position"]), lesson_position=int(lesson["position"]))
@@ -250,17 +250,35 @@ def main() -> int:
         )
 
         object_events = find_object_events(store, object_id=TEST_LESSON_ID)
-        committed_live_event_ids: list[str] = []
-        for identity, _records, summary in object_events:
+        committed_candidates: list[tuple[str, str, str]] = []
+        for identity, records, summary in object_events:
             committed_baseline = summary.get("committed_baseline_after")
             if not summary.get("machine_state_committed") or not isinstance(committed_baseline, dict):
                 continue
-            if committed_baseline.get("applied_fingerprint") == assessment.live_fingerprint:
-                committed_live_event_ids.append(identity.event_id)
-        committed_history_live_match = bool(committed_live_event_ids)
+            committed_records = [record for record in records if record.get("phase") == "MACHINE_STATE_COMMITTED"]
+            if len(committed_records) != 1:
+                continue
+            committed_at = committed_records[0].get("confirmed_at")
+            fingerprint = committed_baseline.get("applied_fingerprint")
+            if isinstance(committed_at, str) and isinstance(fingerprint, str):
+                committed_candidates.append((committed_at, identity.event_id, fingerprint))
+
+        latest_committed_event_ids: list[str] = []
+        latest_committed_fingerprints: set[str] = set()
+        committed_history_ambiguous = False
+        committed_history_live_match = False
+        if committed_candidates:
+            latest_time = max(value[0] for value in committed_candidates)
+            latest = [value for value in committed_candidates if value[0] == latest_time]
+            latest_committed_event_ids = sorted(value[1] for value in latest)
+            latest_committed_fingerprints = {value[2] for value in latest}
+            committed_history_ambiguous = len(latest_committed_fingerprints) != 1
+            if not committed_history_ambiguous:
+                latest_fp = next(iter(latest_committed_fingerprints))
+                committed_history_live_match = latest_fp == assessment.live_fingerprint
 
         incomplete = find_incomplete_object_events(store, object_id=TEST_LESSON_ID)
-        conflicting_event = len(incomplete) > 1
+        conflicting_event = len(incomplete) > 1 or committed_history_ambiguous
         if incomplete:
             event_identity, event_records, event_summary = incomplete[0]
         else:
@@ -312,7 +330,9 @@ def main() -> int:
             "baseline_fingerprint": assessment.baseline_fingerprint,
             "current_main_sha": sha,
             "committed_history_live_match": committed_history_live_match,
-            "committed_history_live_event_ids": sorted(set(committed_live_event_ids)),
+            "latest_committed_history_event_ids": latest_committed_event_ids,
+            "latest_committed_history_fingerprints": sorted(latest_committed_fingerprints),
+            "latest_committed_history_ambiguous": committed_history_ambiguous,
         }
         write_json(report_dir / "reconcile-report.json", reconcile_payload)
         report["reconcile"] = reconcile_payload
@@ -353,15 +373,20 @@ def main() -> int:
             state_record = final["actual_confirmed_state"]
             confirmed_at = str(final.get("confirmed_at"))
             confirmation_status = str(final.get("status"))
-            next_state = state
-            if confirmation_status == "APPLIED":
-                next_state = with_record(next_state, canonical_id=TEST_LESSON_ID, record=state_record)
-            next_state = close_lesson_pending(
-                next_state,
-                canonical_id=TEST_LESSON_ID,
-                confirmed_at=confirmed_at,
-                confirmation_status=confirmation_status,
-            )
+            target_pending = state.get("pending", {}).get("lessons", {}).get(TEST_LESSON_ID)
+            state_already_confirmed = baseline == state_record and target_pending is None
+            if state_already_confirmed:
+                next_state = state
+            else:
+                next_state = state
+                if confirmation_status == "APPLIED":
+                    next_state = with_record(next_state, canonical_id=TEST_LESSON_ID, record=state_record)
+                next_state = close_lesson_pending(
+                    next_state,
+                    canonical_id=TEST_LESSON_ID,
+                    confirmed_at=confirmed_at,
+                    confirmation_status=confirmation_status,
+                )
             recovered_state_only = True
         elif decision.action == "NOOP":
             state_record = baseline
