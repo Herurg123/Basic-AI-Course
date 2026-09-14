@@ -50,7 +50,16 @@ def validate_golden_profile(
     profile: dict[str, Any],
     snapshot: dict[str, Any],
     manifest: dict[str, Any] | None = None,
+    *,
+    allow_course_publication_change: bool = False,
 ) -> list[str]:
+    """Проверяет неизменность golden lessons.
+
+    По умолчанию курс обязан совпадать с исходным golden course_state целиком. Для
+    exploitation-sync после публикации можно разрешить только изменение
+    `course.is_public`: это ожидаемый жизненный цикл курса и не ослабляет проверку
+    learner-visible HTML, step types, lesson visibility, IDs и позиций golden lessons.
+    """
     blockers: list[str] = []
     course = snapshot.get("course", {})
     if course.get("id") != profile.get("course_id"):
@@ -61,6 +70,8 @@ def validate_golden_profile(
 
     expected_course_state = profile.get("course_state", {})
     for field in ("language", "is_public"):
+        if field == "is_public" and allow_course_publication_change:
+            continue
         if field in expected_course_state and course.get(field) != expected_course_state.get(field):
             blockers.append(
                 f"golden-profile: course.{field} изменился: ожидалось {expected_course_state.get(field)!r}, "
