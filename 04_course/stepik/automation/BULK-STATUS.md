@@ -7,7 +7,7 @@
 
 ## Назначение
 
-`bulk-status` нужен между проверенным single-lesson pilot и будущим `upload-remaining`. Он одним запуском читает фактический курс Stepik, deployment baseline из issue `#54`, структурный manifest, source-compiled learner steps и canonical assets всех 21 уроков.
+`bulk-status` нужен между проверенным single-lesson pilot и будущим `upload-remaining`. Он одним запуском читает фактический курс Stepik, deployment baseline из issue `#54`, структурный manifest, source-compiled learner steps, полный граф learner-facing local dependencies и утверждённую asset publication policy всех 21 уроков.
 
 Этот режим **никогда не пишет в Stepik** и не изменяет issue `#54`. У него нет `confirm_write` и нет write-route.
 
@@ -20,7 +20,11 @@
 - число live steps и число строк `stepik-plan.md`;
 - `compiler_status` и число source-compiled learner steps после удаления author-only rows;
 - block sequence `text` / `free-answer`;
-- repo-relative links, которые ещё требуют asset-publication решения;
+- repo-relative links, найденные source compiler;
+- полный learner dependency graph, включая nested Markdown dependencies;
+- разрешённый publication mode для каждой зависимости;
+- assets, которые уже имеют confirmed URL;
+- assets, которые требуют materialization внутри будущей write-транзакции;
 - наличие deployment baseline;
 - golden / independence-sensitive / F1-sensitive flags;
 - Asset ID;
@@ -30,7 +34,7 @@
 
 Уже проверенный `M02-L01` по-прежнему оценивается тем же проверенным exploitation compiler и тройным сравнением `baseline ↔ live ↔ desired`, что и эксплуатационный sync. General source compiler не переписывает доказанный baseline пилота.
 
-Остальные skeleton lessons имеют `compiler_status=SOURCE_COMPILED`, но до разрешения assets и появления first-upload writer продолжают получать `INITIAL_UPLOAD_REQUIRED`, а не фиктивный `READY`.
+Остальные skeleton lessons имеют `compiler_status=SOURCE_COMPILED`. После закрытия asset route gate их статус всё равно остаётся `INITIAL_UPLOAD_REQUIRED`, пока не реализованы verified rendering и controlled first-upload writer. Route resolution не является разрешением на write.
 
 Если в существующем non-golden lesson уже есть содержательный контент без подтверждённого baseline, статус остаётся `UNMANAGED_EXISTING_CONTENT_BLOCKED`: автоматизация не усыновляет неизвестное live-состояние молча.
 
@@ -55,30 +59,54 @@ H2/H3 learner headings при source compilation превращаются в к�
 - confirmed golden `free_answer_source` используется fail-closed;
 - Stepik writer этим compiler **не включается**.
 
-## Asset inventory и следующий gate
+## Asset publication resolution
 
-Preflight строит `asset-inventory.json` только из Git-tracked источников. Для каждого physical asset-файла сохраняются:
+Asset inventory строится из Git-tracked источников и отслеживает не только Asset ID, а полный граф локальных learner-facing зависимостей.
 
-- canonical Asset ID;
-- точный Git path;
-- имя и расширение;
-- размер;
-- SHA-256 содержимого.
+Текущий утверждённый topology contract:
 
-Repo-relative ссылки из learner-facing `lesson.md` source compiler намеренно не маскирует. Они сохраняются в `repo_relative_links_pending_asset_route` и требуют явного решения на следующем gate:
+- 48 direct repo-relative links из learner source compiler;
+- 49 dependency occurrences с учётом nested dependency;
+- 43 уникальных source-файла;
+- topology fingerprint `sha256:ecbb9f9b8426c5bd4bba9f07816ab0e647022c13c0f38b4c29d9debd6096c20d`.
 
-- published Stepik URL; либо
-- подтверждённая inline adaptation.
+Для каждого физического source-файла сохраняются точный Git path, расширение, размер и SHA-256 содержимого. Новый/перемещённый файл, новый локальный dependency edge или новый формат меняют topology и fail-closed блокируют старую policy.
 
-Это защищает от ситуации, когда DOCX/PNG/SVG изменился в GitHub, а URL в Stepik остался прежним: один неизменившийся HTML больше не может служить доказательством синхронизации бинарного asset.
+Publication modes:
+
+- `.md` → `inline-source`: canonical Markdown должен быть контекстно встроен verified rendering layer; blind string replacement запрещён;
+- non-golden `.png` → `stepik-image-upload`;
+- `.svg` → deterministic rasterization в PNG → `stepik-image-upload`;
+- существующие golden `M00-L02` DOCX/PNG → `confirmed-url`, жёстко привязанный к точному source SHA-256;
+- `M04-L01-A01.txt` → `stepik-attachment-upload`.
+
+Маршрут `stepik-attachment-upload` принят владельцем как рабочее production-допущение D-2026-09-15-STEPIK-ATTACHMENTS. Основание: два существующих live attachments, read-only API discovery, `POST /api/attachments`, `multipart/form-data` и обязательное поле `file upload` подтверждены для бесплатного курса `299189`.
+
+Это допущение fail-closed: если API перестаёт объявлять POST/upload capability, возвращает тарифный/permission blocker либо upload/read-back/download невозможно доказать, asset route снова считается незакрытым.
+
+Текущий route gate:
+
+- 49/49 dependency occurrences resolved;
+- 43/43 unique source files resolved;
+- unresolved sources: 0;
+- 5 уникальных файлов потребуют materialization внутри будущей write-транзакции;
+- `ready_for_bulk_write=false`.
+
+`bulk-status` сохраняет отдельно:
+
+- `repo_relative_links_detected` — что source compiler реально нашёл;
+- `repo_relative_links_pending_asset_route` — только действительно неразрешённые routes;
+- `asset_materialization_required_sources` — resolved routes, которые ещё нужно физически материализовать при write.
+
+Таким образом resolved route не маскируется под уже загруженный файл, а materialization не маскируется под незакрытую архитектурную проблему.
 
 ## Статусы
 
 - `READ_ONLY_GOLDEN` — golden lesson не изменяется.
 - `IN_SYNC` — live, baseline и проверенный rendered desired совпадают.
 - `UPDATE_REQUIRED` — tracked lesson требует обычного drift-guarded sync.
-- `INITIAL_UPLOAD_REQUIRED` — source уже компилируется, но существующий skeleton ждёт asset resolution, verified first upload и создания baseline.
-- `BASELINE_PRESENT_RENDERING_PENDING_BLOCKED` — source compiler доступен, но для объекта с baseline ещё нет общего доказанного rendered route; overwrite запрещён.
+- `INITIAL_UPLOAD_REQUIRED` — source и asset routes определены, но существующий skeleton ждёт verified rendering, first upload и создания baseline.
+- `BASELINE_PRESENT_RENDERING_PENDING_BLOCKED` — source и routes известны, но для объекта с baseline ещё нет общего доказанного rendered route; overwrite запрещён.
 - `UNMANAGED_EXISTING_CONTENT_BLOCKED` — в Stepik найден содержательный non-golden lesson без baseline; требуется отдельное исследование.
 
 Stale title не означает отсутствующий lesson. Он фиксируется отдельным `title_state=STALE_TITLE` и требует explicit metadata route, чтобы не создавать дубль.
@@ -87,15 +115,16 @@ Stale title не означает отсутствующий lesson. Он фик
 
 Успешный `bulk-status` **не разблокирует запись**. Поле `ready_for_bulk_write` намеренно остаётся `false`.
 
-General source compiler является закрытым gate. Следующий gate после него: `asset-publication-resolution`.
+General source compiler и `asset-publication-resolution` являются закрытыми gates. Следующий gate: `verified-rendering-and-first-upload`.
 
 Перед `upload-remaining` всё ещё должны быть отдельно реализованы и проверены:
 
-1. однозначное разрешение каждого learner-facing asset/repo-relative link в Stepik URL либо inline content;
-2. first-upload writer, который после каждого write делает read-back и создаёт baseline;
-3. общий drift guard для последующих обновлений;
-4. отдельный integrity pass для independence/F1-sensitive lessons;
-5. explicit route для stale lesson titles без создания новых lessons;
-6. запрет `DELETE` и fail-closed поведение при любой неоднозначности.
+1. verified rendering, который контекстно заменяет все local learner dependencies на inline content или фактические Stepik URLs без потери педагогической структуры;
+2. controlled first-upload writer, который материализует необходимые images/attachments только внутри защищённой транзакции, после каждого write делает read-back и создаёт baseline;
+3. attachment capability preflight перед первым file upload и fail-closed STOP при расхождении с D-2026-09-15-STEPIK-ATTACHMENTS;
+4. общий drift guard для последующих обновлений;
+5. отдельный integrity pass для independence/F1-sensitive lessons;
+6. explicit route для stale lesson titles без создания новых lessons;
+7. запрет `DELETE` и fail-closed поведение при любой неоднозначности.
 
 До выполнения этих условий массовый Stepik write остаётся закрытым.
