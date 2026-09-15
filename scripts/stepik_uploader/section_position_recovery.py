@@ -48,7 +48,7 @@ else:
         plan_replacement_put,
     )
     from .reporting import write_json
-    from .stepik_uploader.stepik_uploader import source_sha
+    from .stepik_uploader import source_sha
 
 COURSE_ID = 299189
 RECOVERY_KIND = "section-position-recovery"
