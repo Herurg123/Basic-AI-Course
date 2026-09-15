@@ -17,17 +17,21 @@
 - source-compile learner-facing content всех 21 canonical lessons без потери порядка и author-only leakage;
 - строить полный learner dependency graph, включая nested local links;
 - разрешать все текущие learner asset routes через machine-readable `asset-publication.v1.json`;
+- verified-render learner content всех 21 lessons / 148 learner steps без repo-relative links при наличии подтверждённых physical bindings;
+- context-aware встраивать Markdown-материалы отдельными learner-facing блоками вместо blind string replacement;
+- распознавать physical assets, для которых до rendering нужен подтверждённый Stepik URL;
+- выполнять owner-only controlled first upload для `M04-L01` с `M04-L01-A01.txt`;
+- capability-check `/api/attachments`, отправлять attachment одним multipart POST без blind retry и проверять фактические bytes скачиванием;
+- хранить отдельные verified asset baselines и lesson baselines в machine state;
 - распознавать два golden lessons `M00-L01/M00-L02` как `READ_ONLY`;
-- отдельно проверять live integrity golden sample и отдельно классифицировать canonical-vs-golden divergence;
+- отдельно проверять live integrity golden sample и canonical-vs-golden divergence;
 - вести confirmed baseline и machine-readable PENDING в Issue `#54`;
-- определять learner-facing impact dependency-aware способом;
 - выполнять узкий guarded exploitation sync pilot lesson `M02-L01`;
 - durable-журналировать deployment/recovery operations;
-- восстанавливаться после доказуемого partial/state-patch failure без blind retry;
-- выполнять read-only baseline reconcile classification;
-- проверять эксплуатационную ownership matrix автоматическим completeness test.
+- восстанавливаться после доказуемого partial/state/history-commit gap без повторного Stepik write;
+- выполнять read-only baseline reconcile classification.
 
-Asset route gate закрыт, но общий bulk write по-прежнему закрыт. Следующий gate — verified rendering / controlled first upload.
+**Важно:** engineering route `verified-rendering-and-first-upload` реализован, но live acceptance `M04-L01` ещё не выполнен. Общий bulk write остаётся закрытым до реального owner-dispatched pilot и оставшихся gates.
 
 ## 2. Канонические источники и derived state
 
@@ -58,16 +62,11 @@ Operational state разделён на три слоя:
 
 ## 3. Golden sample
 
-Первые два вручную созданных урока остаются платформенным эталоном:
+`M00-L01` и `M00-L02` остаются платформенным read-only эталоном. Обычный uploader/recovery не изменяет и не удаляет их.
 
-- `M00-L01`;
-- `M00-L02`.
+Canonical `main` может развиваться после создания golden sample. Расхождение current canonical и подтверждённого live golden фиксируется как target-scoped `GOLDEN_OWNER_REQUIRED`, но не блокирует независимый non-golden read-only/guarded route при подтверждённой live golden integrity.
 
-Обычный uploader/recovery не изменяет и не удаляет их. Если фактическая Stepik representation расходится с observation fixture, это live golden integrity blocker: исправляется/разбирается platform state, а не маскируется обновлением canonical данных.
-
-При этом canonical `main` может законно развиваться после создания golden sample. Расхождение текущего canonical title/числа planned steps с подтверждённым неизменным live golden фиксируется как non-blocking `GOLDEN_OWNER_REQUIRED` notice. Оно относится только к соответствующему golden object и **не блокирует** read-only/guarded sync независимого non-golden lesson при подтверждённой live golden integrity.
-
-Такой notice не разрешает adoption, rebaseline или запись в golden. Для изменения `M00-L01/M00-L02` всё ещё нужен отдельный owner-approved golden route, которого обычный sync не имеет.
+Такой notice не разрешает adoption, rebaseline или запись в golden.
 
 ## 4. Безопасные режимы
 
@@ -77,25 +76,41 @@ Operational state разделён на три слоя:
 
 ### Bulk Status
 
-`Stepik Bulk Status` читает весь курс и строит preflight для 21 canonical lessons. Он различает три состояния, которые нельзя смешивать:
+`Stepik Bulk Status` читает весь курс и различает:
 
 - local learner dependency обнаружена source compiler;
 - publication route архитектурно разрешён;
-- физическая materialization в Stepik ещё требуется при будущем write.
+- physical materialization уже подтверждена или ещё требуется.
 
-Даже полностью разрешённый asset route не устанавливает `ready_for_bulk_write=true` автоматически.
-
-Подробный контракт: [`BULK-STATUS.md`](BULK-STATUS.md).
+Даже полностью разрешённый asset route не устанавливает `ready_for_bulk_write=true`.
 
 ### Impact after merge
 
-Push в `main` не пишет в Stepik. Workflow:
+Push в `main` не пишет в Stepik. Workflow dependency-aware определяет learner impact и обновляет PENDING Issue `#54` только через compare-before-PATCH guard.
 
-- строит before/after dependency graph;
-- определяет direct/shared learner impact;
-- обновляет PENDING Issue `#54` через compare-before-PATCH guard.
+### `first-upload-m04-l01`
 
-Unknown/ambiguous learner dependency = `STOP`.
+Owner-only controlled write route для первого файлового non-golden lesson.
+
+Требует одновременно:
+
+- запуск только из `workflow_dispatch`;
+- `confirm_write=true`;
+- current-main guard;
+- общий live mutex `stepik-live-course-299189`;
+- непубличный course и target lesson;
+- точный target title/language/position;
+- отсутствие существующего lesson baseline, кроме доказуемого recovery после state/history commit gap;
+- точный asset route `M04-L01-A01.txt → stepik-attachment-upload`;
+- attachment capability preflight;
+- write-ahead history до каждого внешнего write;
+- no blind retry;
+- download/read-back фактических attachment bytes;
+- verified final lesson read-back;
+- race-checked Issue state PATCH;
+- `MACHINE_STATE_COMMITTED` для asset и lesson events после PATCH.
+
+Route не поддерживает DELETE, golden, произвольный lesson ID или массовую загрузку.
 
 ### `sync-status`
 
@@ -103,75 +118,96 @@ Live read-only проверка pilot target против canonical desired stat
 
 ### `sync-reconcile`
 
-Live **read-only** route для сопоставления:
-
-- current `main`;
-- current machine state;
-- fresh live Stepik;
-- immutable deployment history.
-
-Reconcile классифицирует provenance и допустимое действие, но сам не пишет в Stepik и не делает automatic rebaseline.
-
-Canonical divergence unrelated golden lesson показывается в `run-report.json.notices`, но не превращается в target blocker, если live golden integrity подтверждена.
+Live read-only сопоставление current `main`, machine state, fresh live Stepik и immutable history. Automatic rebaseline отсутствует.
 
 ### `sync-changed`
 
-Единственный текущий exploitation write route для pilot `M02-L01`.
+Guarded exploitation write route для уже отслеживаемого `M02-L01`. Требует owner dispatch, `confirm_write`, current-main guard, live mutex, baseline/history checks и verified read-back.
 
-Требует owner dispatch, `confirm_write`, current-main guard, live mutex, baseline/history checks и verified read-back.
+## 5. Verified rendering contract
 
-## 5. Durable deployment history
+General source compiler сохраняет canonical learner text. Verified rendering выполняется отдельным слоем.
 
-До каждого внешнего Stepik write automation сохраняет `WRITE_INTENT` в derived operational history.
+Текущий offline contract доказан для всех 21 lessons / 148 learner-facing steps:
 
-Для logical event сохраняются минимум:
+- repo-relative learner links не остаются в финальном HTML;
+- Markdown dependency не вставляется слепо внутрь предложения;
+- исходная инструкция сохраняется, ссылка заменяется указанием на материал ниже, а сам Markdown добавляется отдельным блоком в том же Stepik step;
+- nested Markdown dependencies раскрываются рекурсивно;
+- confirmed external/Stepik URLs сохраняются ссылками;
+- physical assets без verified binding дают `MaterializationRequired`, а не фиктивный URL;
+- author-only материал не попадает в learner rendering;
+- `free-answer` source берётся только из подтверждённого golden profile.
 
-- stable event ID;
-- canonical object/kind;
-- source SHA;
-- workflow/run identity;
-- state/baseline before;
-- desired fingerprint;
-- Stepik object IDs;
-- per-operation intent/result/read-back;
-- final read-back;
-- failure/recovery reason;
-- machine-state commit.
+Без runtime bindings сейчас остаются ровно 5 physical sources, требующих materialization. `M04-L01` проверяет attachment route; image/SVG routes остаются следующими gates перед bulk write.
 
-History record append-only: identical retry является no-op, попытка переписать тот же record другим payload блокируется.
+## 6. Attachment materialization
 
-## 6. Partial-write recovery
+`M04-L01-A01.txt` использует owner-approved working assumption [D-2026-09-15-STEPIK-ATTACHMENTS](../../../00_governance/decision-log/2026-09-15-stepik-attachment-upload-assumption.md).
 
-Blind write retry запрещён.
+Фактическая основа:
 
-Основные случаи:
+- в бесплатном курсе уже существуют lesson attachments;
+- `/api/attachments` читает эти объекты;
+- `OPTIONS /api/attachments` объявляет `GET, POST, HEAD, OPTIONS`;
+- parser включает `multipart/form-data`;
+- `file` writable, required и имеет type `file upload`;
+- `lesson` writable.
 
-- write не начинался: normal route возможен только если guards всё ещё подтверждены;
-- final Stepik state уже verified, но Issue PATCH не состоялся: разрешён state-only recovery с `0` повторных Stepik writes;
-- partial prefix verified и fresh live точно совпадает с last confirmed intermediate fingerprint: можно продолжить только remaining operations;
-- timeout/network/HTTP 5xx с неизвестным server-side outcome: `WRITE_AMBIGUOUS`, STOP;
-- failed read-back: state не считается confirmed;
-- manual change после automation residue: owner decision;
-- новый `main` после начала event: old event не может закрыть новый pending.
+Перед первым POST automation повторно проверяет этот capability contract. При расхождении route останавливается fail-closed.
 
-## 7. Pending и baseline
+Attachment transaction:
 
-Issue `#54` использует sync state schema v2.
+1. проверяет SHA-256 canonical source;
+2. читает attachments target lesson;
+3. существующий exact same-name attachment допускается только после download + exact hash read-back;
+4. несколько same-name объектов или mismatch bytes = STOP;
+5. до POST сохраняются `EVENT_STARTED`, `WRITE_INTENT`, `WRITE_DISPATCH_STARTED`;
+6. POST выполняется ровно один раз;
+7. timeout/network/5xx = `WRITE_AMBIGUOUS`, blind retry запрещён;
+8. success подтверждается повторным list, created ID/name и скачиванием bytes;
+9. URL берётся только из фактического Stepik response/read-back, не конструируется по шаблону;
+10. asset baseline попадает в Issue state только вместе с подтверждённым lesson state.
 
-На Lesson ID существует один active pending object. Повторный merge:
+## 7. Machine state schema
 
-- сохраняет `first_pending_sha/at`;
-- обновляет `latest_pending_sha/at`;
-- объединяет `source_paths/reason_codes`.
+Issue `#54` использует текущую schema v3. При чтении schema v1/v2 безопасно нормализуется в v3 с пустым `assets`, поэтому существующий lesson baseline не теряется.
 
-Pending закрывается только после:
+State хранит отдельно:
 
-- `APPLIED`; или
-- `NOOP_CONFIRMED`.
+- `lessons` — confirmed lesson baselines;
+- `assets` — verified physical asset bindings;
+- `pending` — learner-facing изменения после baseline.
 
-`APPLIED` обновляет baseline только после final verified read-back. `NOOP_CONFIRMED` не выполняет фиктивный write.
+Asset baseline содержит как минимум:
 
-## 8. Race guarantees
+- exact repo source path;
+- source SHA-256;
+- фактический HTTPS URL;
+- storage kind;
+- Stepik attachment ID;
+- Stepik lesson ID;
+- filename/size;
+- materialization timestamp.
+
+При каждом reuse automation повторно сверяет live attachment ID/name/size/path и скачанные bytes с canonical SHA-256.
+
+## 8. Durable deployment history и recovery
+
+До каждого внешнего write automation сохраняет intent отдельно от dispatch.
+
+Asset materialization и lesson first upload являются **разными logical events**. Это необходимо, потому что финальный lesson fingerprint можно вычислить только после получения фактического verified attachment URL.
+
+Основные recovery случаи:
+
+- write не начинался: normal route возможен только при всё ещё действующих guards;
+- asset/lesson final read-back подтверждён, но Issue PATCH не состоялся: next run восстанавливает state из immutable history без повторного Stepik write;
+- Issue PATCH состоялся, но один из `MACHINE_STATE_COMMITTED` не успел записаться: next run сверяет state ↔ history ↔ live и завершает только history commit без повторного Stepik write;
+- lesson partial prefix подтверждён и fresh live точно совпадает с last confirmed intermediate fingerprint: разрешается только remaining suffix;
+- ambiguous dispatch или failed read-back: automatic continuation запрещён;
+- manual/unproven live state: STOP.
+
+## 9. Race guarantees
 
 Сохраняются одновременно:
 
@@ -184,104 +220,48 @@ Pending закрывается только после:
 
 Unknown state = `STOP`.
 
-## 9. API write policy
+## 10. API write policy
 
-Автоматический write retry отсутствует.
+Автоматический write retry отсутствует для POST/PUT.
 
 Write result классифицируется так:
 
-- known failure: failed operation;
-- timeout/network failure/HTTP 5xx/неоднозначный response: ambiguous outcome;
+- known 4xx failure: failed operation;
+- timeout/network/HTTP 5xx/неоднозначный response: ambiguous outcome;
 - HTTP success без подтверждённого read-back: не confirmed deployment.
 
 `DELETE` не реализуется и не разрешается recovery route.
 
-## 10. Asset route
+## 11. Что ещё закрывает bulk write
 
-Полный learner dependency topology и publication policy описаны в [`asset-publication.v1.json`](asset-publication.v1.json) и [`BULK-STATUS.md`](BULK-STATUS.md).
+Engineering implementation first-upload route не означает готовность к массовой записи.
 
-Текущий route contract:
+До `upload-remaining` всё ещё нужны:
 
-- Markdown source → contextual `inline-source` через будущий verified renderer;
-- non-golden PNG → verified Stepik image materialization;
-- SVG → deterministic PNG rasterization → Stepik image materialization;
-- существующие golden M00-L02 attachments → exact confirmed URLs, привязанные к source SHA-256;
-- обязательный реальный `M04-L01-A01.txt` → `stepik-attachment-upload`.
+1. реальный owner-dispatched acceptance `first-upload-m04-l01` на `main`;
+2. confirmed materialization/read-back для PNG routes;
+3. deterministic SVG→PNG route и visual read-back;
+4. общий initial-upload orchestration для оставшихся lessons, а не hard-coded pilot;
+5. общий drift guard после создания baseline;
+6. отдельный integrity pass для independence/F1-sensitive lessons;
+7. explicit stale-title metadata route без duplicate creation;
+8. финальный all-course private staging verification.
 
-`stepik-attachment-upload` принят владельцем как рабочее production-допущение [D-2026-09-15-STEPIK-ATTACHMENTS](../../../00_governance/decision-log/2026-09-15-stepik-attachment-upload-assumption.md).
+`ready_for_bulk_write` остаётся `false`.
 
-Фактическая основа решения:
+## 12. Что требуется от владельца
 
-- два файла уже успешно существуют как lesson attachments в бесплатном курсе;
-- API курса подтверждает `is_paid=false`;
-- `/api/attachments` читает эти объекты;
-- `OPTIONS /api/attachments` объявляет `POST`;
-- API принимает `multipart/form-data`;
-- обязательное поле `file` объявлено как `file upload`.
+Владелец принимает только решения/действия, которые automation не должна принимать сама:
 
-Это не даёт writer права немедленно отправлять файл. Первый автоматизированный attachment POST должен идти только через будущий owner-dispatched write route с write-ahead history, capability preflight, no blind retry, read-back и доказательством learner-facing URL.
-
-Если API/plan/permissions перестают подтверждать этот контракт, route fail-closed возвращается в `asset-publication-resolution`.
-
-Asset URL никогда не конструируется по догадке.
-
-## 11. Derived asset URL map
-
-Карта physical source → фактический URL является derived operational data. Если materialization ещё не выполнена, URL не заполняется фиктивным значением. После успешного upload URL связывается с точным source SHA-256 и verified read-back.
-
-Пример структуры:
-
-```yaml
-M04-L01-A01:
-  storage: stepik-lesson-attachment
-  lesson_id: 123456
-  source_sha256: sha256:...
-  url: https://stepik.org/media/attachments/lesson/123456/M04-L01-A01.txt
-  checked_at: 2026-09-15
-```
-
-## 12. Защита от дублей и destructive behavior
-
-- существующие canonical mappings переиспользуются только при однозначном доказательстве;
-- второй объект при неоднозначном совпадении не создаётся;
-- existing manual/golden content автоматически не перезаписывается;
-- structural divergence блокируется;
-- `DELETE` запрещён;
-- destructive rollback запрещён;
-- unknown live provenance не принимается как baseline автоматически.
-
-## 13. Ownership
-
-Machine-checkable [`ownership-matrix.v1.json`](ownership-matrix.v1.json) задаёт для обязательных event classes:
-
-- source of truth;
-- detection/initiation/execution owner;
-- approval;
-- retry/partial/reconcile/rebaseline policy;
-- mandatory STOP;
-- required evidence;
-- machine-state mutation;
-- history event.
-
-Отдельный class `golden_canonical_divergence` закрепляет target-scoped правило: owner decision обязателен для самого golden object, но unrelated non-golden read-only/guarded sync не блокируется только из-за pending canonical change golden lesson.
-
-Матрица не является списком содержания курса.
-
-## 14. Что требуется от владельца
-
-От владельца нужны только действия, которые automation не может или не должна принимать сама:
-
-- явный запуск live write route;
+- запуск live write route;
 - owner decision при ambiguous/manual/unknown provenance;
 - отдельное решение для golden/structural/adoption cases;
-- изменение/отмена D-2026-09-15-STEPIK-ATTACHMENTS, если владелец больше не хочет использовать Stepik attachments;
-- финальный human visual review там, где он требуется production-процессом.
+- изменение/отмена D-2026-09-15-STEPIK-ATTACHMENTS;
+- human visual/learner validation по production процессу.
 
-Если Stepik API сам обнаружит ограничение attachment route, новое ручное решение владельца не требуется для STOP: automation обязана остановиться fail-closed и вернуть проблему в asset gate.
+Если Stepik API сам перестаёт подтверждать attachment capability, automation обязана остановиться без нового owner approval.
 
-Чувствительные данные не передаются в чат и не фиксируются в deployment history.
-
-## 15. Что этот контур не разрешает
+## 13. Что этот контур не разрешает
 
 - перепроектировать курс под удобство API;
 - менять canonical IDs;
@@ -290,5 +270,5 @@ Machine-checkable [`ownership-matrix.v1.json`](ownership-matrix.v1.json) зад�
 - менять F1;
 - считать API read-back Human Validation;
 - считать successful upload доказательством PHONE/COMPUTER readiness;
-- считать resolved asset route доказательством фактической materialization;
-- разблокировать общий bulk write одним успешным pilot/recovery/attachment result.
+- считать resolved asset route фактической materialization;
+- разблокировать общий bulk write одним успешным pilot result.
