@@ -69,6 +69,12 @@ def dispatch_one(recorder: DeploymentRecorder, *, expected_after: str = PARTIAL)
     recorder.write_dispatch_started(operation_id="step-0001-101")
 
 
+def confirm_one_write(recorder: DeploymentRecorder, *, expected_after: str = DESIRED) -> None:
+    dispatch_one(recorder, expected_after=expected_after)
+    recorder.write_result(operation_id="step-0001-101", status="COMPLETED")
+    recorder.operation_readback(operation_id="step-0001-101", expected_fingerprint_after=expected_after)
+
+
 class DeploymentHistoryRecoveryTests(unittest.TestCase):
     def test_event_id_is_stable_for_logical_retry(self) -> None:
         first = identity().event_id
@@ -218,6 +224,7 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         store = MemoryHistoryStore()
         recorder = DeploymentRecorder(store, identity())
         started(recorder)
+        confirm_one_write(recorder)
         baseline_after = {
             "canonical_id": "M02-L01",
             "stepik_lesson_id": 10,
@@ -266,6 +273,7 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         store = MemoryHistoryStore()
         recorder = DeploymentRecorder(store, identity())
         started(recorder)
+        confirm_one_write(recorder)
         baseline_after = {"applied_fingerprint": DESIRED}
         recorder.final_readback(
             fingerprint_after=DESIRED,
