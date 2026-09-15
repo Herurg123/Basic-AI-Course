@@ -16,8 +16,10 @@ PROFILE = {
             "stepik_section_id": 11,
             "stepik_unit_id": 101,
             "stepik_lesson_id": 201,
+            "lesson_title": "M00-L01 — Первый",
             "section_position": 1,
             "unit_position": 1,
+            "plan_rows": 2,
             "step_count": 2,
             "block_sequence": ["text", "free-answer"],
             "language": "ru",
@@ -47,6 +49,7 @@ def snapshot() -> dict:
                         "position": 1,
                         "lesson": {
                             "id": 201,
+                            "title": "M00-L01 — Первый",
                             "language": "ru",
                             "is_public": False,
                             "steps": [
@@ -78,9 +81,39 @@ def snapshot() -> dict:
     }
 
 
+def manifest(*, title: str = "Первый", step_count: int = 2) -> dict:
+    return {
+        "modules": [
+            {
+                "canonical_id": "M00",
+                "position": 1,
+                "lessons": [
+                    {
+                        "canonical_id": "M00-L01",
+                        "title": title,
+                        "position": 1,
+                        "golden_read_only": True,
+                        "steps": [{"position": i + 1} for i in range(step_count)],
+                    }
+                ],
+            }
+        ]
+    }
+
+
 class GoldenProfileTests(unittest.TestCase):
     def test_matching_profile_has_no_blockers(self) -> None:
         self.assertEqual(validate_golden_profile(PROFILE, snapshot()), [])
+
+    def test_canonical_golden_change_is_not_live_integrity_blocker(self) -> None:
+        changed_manifest = manifest(title="Новый канонический заголовок", step_count=3)
+        self.assertEqual(validate_golden_profile(PROFILE, snapshot(), changed_manifest), [])
+
+    def test_live_title_change_is_blocker_even_if_canonical_can_change_independently(self) -> None:
+        live = snapshot()
+        live["sections"][0]["units"][0]["lesson"]["title"] = "M00-L01 — Ручная правка в Stepik"
+        blockers = validate_golden_profile(PROFILE, live, manifest(title="Новый канонический заголовок"))
+        self.assertTrue(any("lesson.title" in blocker for blocker in blockers))
 
     def test_course_publication_is_strict_by_default(self) -> None:
         live = snapshot()
