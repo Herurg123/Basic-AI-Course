@@ -40,7 +40,12 @@ H2/H3 преобразуются в компактные жирные learner la
 - marker нельзя поместить в plan row, который не владеет соответствующим Exercise/Check ID;
 - уникальный Exercise/Check marker обязан попасть в соответствующий plan row;
 - author-only rows исключаются до learner compilation;
-- при невозможном alignment compiler останавливается fail-closed.
+- Check-секция от `Check` marker до следующего H2/H3 неделима между Stepik steps;
+- Stepik step, содержащий Check-секцию, обязан закончиться вместе с ней и не может захватить следующую смысловую H2/H3-секцию;
+- если несколько разных разбиений имеют одинаковый лучший score, compiler не выбирает одно произвольно, а останавливается fail-closed;
+- при невозможном alignment compiler также останавливается fail-closed.
+
+Exercise-секция при этом может быть разделена на практику и последующее объяснение, если это прямо требуется `stepik-plan.md`. Это нужно для уроков, где после самостоятельного действия внутри той же Markdown-секции идёт отдельный instructional step.
 
 Внутри допустимых вариантов используется детерминированный lexical/position score для выбора последовательной границы. Этот score не создаёт и не редактирует ученический текст; он только выбирает границу между уже существующими source chunks.
 
@@ -113,6 +118,8 @@ Regression suite обязана подтверждать минимум:
 - весь learner-facing source сохраняется в исходном порядке;
 - source chunks не теряются и не дублируются;
 - Exercise/Check markers принадлежат допустимым plan rows;
+- Check-step не захватывает recovery/transfer/closing section после своей рубрики;
+- `M01-L02` сохраняет canonical порядок: вторая переносная ситуация → финальная C01 → backup/итог;
 - sensitive/branching lessons сохраняют ожидаемый `text` / `free-answer` shape;
 - free-answer source совпадает с golden convention;
 - repo-relative links остаются явными до asset gate.
