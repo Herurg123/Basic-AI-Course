@@ -1,7 +1,7 @@
 # Автоматизация переноса и эксплуатационной синхронизации курса в Stepik
 
 **Статус:** production automation contract / implementation handoff  
-**Дата:** 14 сентября 2026 года  
+**Дата:** 15 сентября 2026 года  
 **Курс Stepik:** `299189`  
 **Источник learner-facing содержания:** только актуальный `main`
 
@@ -15,6 +15,7 @@
 - строить derived structural/build representation из canonical GitHub files;
 - выполнять offline dry-run и all-course read-only preflight;
 - распознавать два golden lessons `M00-L01/M00-L02` как `READ_ONLY`;
+- отдельно проверять live integrity golden sample и отдельно классифицировать canonical-vs-golden divergence;
 - вести confirmed baseline и machine-readable PENDING в Issue `#54`;
 - определять learner-facing impact dependency-aware способом;
 - выполнять узкий guarded exploitation sync pilot lesson `M02-L01`;
@@ -57,7 +58,11 @@ Operational state разделён на три слоя:
 - `M00-L01`;
 - `M00-L02`.
 
-Обычный uploader/recovery не изменяет и не удаляет их. Если фактическая Stepik representation расходится с предположениями uploader, исправляется uploader, а не golden sample.
+Обычный uploader/recovery не изменяет и не удаляет их. Если фактическая Stepik representation расходится с observation fixture, это live golden integrity blocker: исправляется/разбирается platform state, а не маскируется обновлением canonical данных.
+
+При этом canonical `main` может законно развиваться после создания golden sample. Расхождение текущего canonical title/числа planned steps с подтверждённым неизменным live golden фиксируется как non-blocking `GOLDEN_OWNER_REQUIRED` notice. Оно относится только к соответствующему golden object и **не блокирует** read-only/guarded sync независимого non-golden lesson при подтверждённой live golden integrity.
+
+Такой notice не разрешает adoption, rebaseline или запись в golden. Для изменения `M00-L01/M00-L02` всё ещё нужен отдельный owner-approved golden route, которого обычный sync не имеет.
 
 ## 4. Безопасные режимы
 
@@ -95,6 +100,8 @@ Live **read-only** route для сопоставления:
 - immutable deployment history.
 
 Reconcile классифицирует provenance и допустимое действие, но сам не пишет в Stepik и не делает automatic rebaseline.
+
+Canonical divergence unrelated golden lesson показывается в `run-report.json.notices`, но не превращается в target blocker, если live golden integrity подтверждена.
 
 ### `sync-changed`
 
@@ -224,6 +231,8 @@ Machine-checkable [`ownership-matrix.v1.json`](ownership-matrix.v1.json) зад�
 - required evidence;
 - machine-state mutation;
 - history event.
+
+Отдельный class `golden_canonical_divergence` закрепляет target-scoped правило: owner decision обязателен для самого golden object, но unrelated non-golden read-only/guarded sync не блокируется только из-за pending canonical change golden lesson.
 
 Матрица не является списком содержания курса.
 
