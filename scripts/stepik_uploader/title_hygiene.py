@@ -6,7 +6,7 @@ from typing import Any
 from .api import StepikAPIError, StepikWriteAmbiguousError
 from .deployment_history import DeploymentHistoryError, DeploymentRecorder, summarize_event
 from .fingerprints import canonical_hash
-from .replacement_update import ReplacementUpdateError, execute_replacement_put
+from .replacement_update import ReplacementPlan, ReplacementUpdateError, dispatch_replacement_put, plan_replacement_put
 
 GOLDEN_LESSON_IDS = {"M00-L01", "M00-L02"}
 
@@ -250,17 +250,28 @@ def _read_live_state(client: Any, operation: TitleOperation) -> dict[str, Any]:
     return title_state(kind=operation.kind, stepik_id=operation.stepik_id, title=str(obj["title"]))
 
 
-def _write_title(client: Any, operation: TitleOperation) -> None:
+def _plan_title_write(client: Any, operation: TitleOperation) -> ReplacementPlan:
     required = ("title", "position", "course") if operation.kind == "section" else ("title",)
-    # PUT в Stepik replacement-like. Поэтому payload строится read-modify-write из live object
-    # и OPTIONS actions.PUT schema, а не из одного title. PATCH намеренно не предполагается.
-    execute_replacement_put(
+    plan = plan_replacement_put(
         client,
         resource=_resource(operation),
         object_id=operation.stepik_id,
         changes={"title": operation.expected_title},
         required_preserved_fields=required,
     )
+    before = plan.before
+    if str(before.get("title")) != operation.live_title:
+        raise TitleHygieneError(f"{operation.object_id}: live title изменился во время replacement preflight")
+    if operation.kind == "section":
+        try:
+            position = int(before.get("position"))
+        except (TypeError, ValueError) as exc:
+            raise TitleHygieneError(f"{operation.object_id}: replacement preflight потерял position") from exc
+        if position != operation.position:
+            raise TitleHygieneError(
+                f"{operation.object_id}: replacement preflight position {position} != {operation.position}"
+            )
+    return plan
 
 
 def execute_title_only_operation(
@@ -351,6 +362,10 @@ def execute_title_only_operation(
             f"{operation.object_id}: title изменился после planning: {before_title!r} != {operation.live_title!r}"
         )
 
+    # Read/OPTIONS/read-modify-write planning must finish before WRITE_DISPATCH_STARTED.
+    # If schema is unavailable, this is a known pre-dispatch block, not an ambiguous Stepik write.
+    replacement_plan = _plan_title_write(client, operation)
+
     recorder.ensure_started(
         operation_type="title-hygiene",
         state_before=before_state,
@@ -368,11 +383,11 @@ def execute_title_only_operation(
     )
     recorder.write_dispatch_started(operation_id=operation_id)
     try:
-        _write_title(client, operation)
+        dispatch_replacement_put(client, replacement_plan)
     except StepikWriteAmbiguousError:
         recorder.write_result(operation_id=operation_id, status="AMBIGUOUS", reason_code="title-write-ambiguous")
         raise
-    except (StepikAPIError, ReplacementUpdateError):
+    except StepikAPIError:
         recorder.write_result(operation_id=operation_id, status="FAILED_KNOWN", reason_code="title-write-failed-known")
         raise
     except Exception:
