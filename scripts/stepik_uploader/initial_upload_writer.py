@@ -141,7 +141,8 @@ def execute_initial_upload_one(
                 "Initial upload partial recovery: live fingerprint не доказан per-operation read-back history"
             )
     if state == "complete":
-        if not allow_complete_recovery or not _history_dispatches_are_fully_confirmed(history_before):
+        recovery_allowed = allow_complete_recovery or allow_partial_resume
+        if not recovery_allowed or not _history_dispatches_are_fully_confirmed(history_before):
             raise ContentWriteError(
                 "Initial upload обнаружил complete matching live content без полностью подтверждённой write history; automatic adoption запрещён"
             )
