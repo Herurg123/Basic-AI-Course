@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 
 import requests
 
@@ -8,10 +10,11 @@ from scripts.stepik_uploader.api import RetryPolicy, StepikAPIError, StepikClien
 
 
 class FakeResponse:
-    def __init__(self, status: int, payload: dict | None = None, headers: dict | None = None):
+    def __init__(self, status: int, payload: dict | None = None, headers: dict | None = None, content: bytes = b""):
         self.status_code = status
         self._payload = payload if payload is not None else {}
         self.headers = headers or {}
+        self.content = content
 
     def json(self):
         return self._payload
@@ -26,11 +29,15 @@ class FakeSession:
     def __init__(self):
         self.get_responses = []
         self.request_responses = []
+        self.options_responses = []
         self.request_exception: Exception | None = None
         self.get_calls = 0
         self.request_calls = 0
         self.post_calls = 0
+        self.options_calls = 0
         self.last_request = None
+        self.last_get = None
+        self.last_options = None
 
     def post(self, *args, **kwargs):
         self.post_calls += 1
@@ -38,7 +45,13 @@ class FakeSession:
 
     def get(self, *args, **kwargs):
         self.get_calls += 1
+        self.last_get = (args, kwargs)
         return self.get_responses.pop(0)
+
+    def options(self, *args, **kwargs):
+        self.options_calls += 1
+        self.last_options = (args, kwargs)
+        return self.options_responses.pop(0)
 
     def request(self, *args, **kwargs):
         self.request_calls += 1
@@ -115,6 +128,63 @@ class APITests(unittest.TestCase):
         self.assertEqual(args[0], "PUT")
         self.assertTrue(args[1].endswith("/api/step-sources/17"))
         self.assertEqual(kwargs["json"]["stepSource"]["lesson"], 23)
+
+    def test_attachment_capability_uses_options_schema(self) -> None:
+        session = FakeSession()
+        session.options_responses = [FakeResponse(
+            200,
+            {"parses": ["multipart/form-data"], "actions": {"POST": {"file": {"required": True}}}},
+            headers={"Allow": "GET, POST, HEAD, OPTIONS"},
+        )]
+        client = StepikClient("id", "credential", session=session, sleep=lambda _: None)
+        result = client.attachment_capability()
+        self.assertEqual(result["allow"], "GET, POST, HEAD, OPTIONS")
+        self.assertIn("POST", result["metadata"]["actions"])
+        self.assertEqual(session.options_calls, 1)
+
+    def test_attachment_upload_is_single_multipart_post(self) -> None:
+        session = FakeSession()
+        session.request_responses = [FakeResponse(201, {"attachments": [{
+            "id": 55,
+            "lesson": 23,
+            "name": "training.txt",
+            "size": 4,
+            "file": "/media/attachments/lesson/23/training.txt",
+        }]})]
+        client = StepikClient("id", "credential", session=session, sleep=lambda _: None)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "training.txt"
+            path.write_bytes(b"safe")
+            result = client.create_attachment(lesson_id=23, file_path=path)
+        self.assertEqual(result["id"], 55)
+        self.assertEqual(session.request_calls, 1)
+        args, kwargs = session.last_request
+        self.assertEqual(args[0], "POST")
+        self.assertTrue(args[1].endswith("/api/attachments"))
+        self.assertEqual(kwargs["data"], {"lesson": "23"})
+        self.assertEqual(kwargs["files"]["file"][0], "training.txt")
+        self.assertNotIn("json", kwargs)
+
+    def test_attachment_5xx_is_ambiguous_and_never_retried(self) -> None:
+        session = FakeSession()
+        session.request_responses = [
+            FakeResponse(503),
+            FakeResponse(201, {"attachments": [{"id": 55}]}),
+        ]
+        client = StepikClient("id", "credential", session=session, sleep=lambda _: None)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "training.txt"
+            path.write_bytes(b"safe")
+            with self.assertRaises(StepikWriteAmbiguousError):
+                client.create_attachment(lesson_id=23, file_path=path)
+        self.assertEqual(session.request_calls, 1)
+
+    def test_attachment_download_rejects_foreign_host(self) -> None:
+        session = FakeSession()
+        client = StepikClient("id", "credential", session=session, sleep=lambda _: None)
+        with self.assertRaises(StepikAPIError):
+            client.download_attachment("https://evil.example/file.txt")
+        self.assertEqual(session.get_calls, 0)
 
     def test_error_does_not_echo_credentials(self) -> None:
         session = FakeSession()
