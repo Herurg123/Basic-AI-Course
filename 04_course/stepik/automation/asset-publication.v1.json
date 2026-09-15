@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "course_id": 299189,
+  "status": "route-policy-with-one-external-prerequisite",
+  "expected_topology": {
+    "learner_link_occurrences": 45,
+    "unique_source_files": 41,
+    "extensions_by_occurrence": {
+      ".docx": 1,
+      ".md": 38,
+      ".png": 3,
+      ".svg": 2,
+      ".txt": 1
+    },
+    "fingerprint": "sha256:77833131b344938cc396f4e32e2274bdb4f141111b73252e7f9794bbbb76dabc"
+  },
+  "extension_rules": {
+    ".md": {
+      "mode": "inline-source",
+      "note": "Canonical Markdown asset remains source content and must be adapted into the owning Stepik learner step by the verified rendering layer. This policy does not prescribe a blind string replacement."
+    },
+    ".png": {
+      "mode": "stepik-image-upload",
+      "note": "Image must be materialized through the verified Stepik image route during the future write transaction and included in read-back/history evidence."
+    },
+    ".svg": {
+      "mode": "rasterize-png-stepik-image",
+      "note": "SVG is a canonical visual source. Rendering layer must deterministically rasterize it to PNG, then materialize it through the verified Stepik image route."
+    }
+  },
+  "source_overrides": {
+    "05_assets/M00/M00-L02/M00-L02-A01.docx": {
+      "mode": "confirmed-url",
+      "url": "https://stepik.org/media/attachments/lesson/2591710/M00-L02-A01.docx",
+      "source_sha256": "sha256:fb9fda11dec82e087c28077507c1053e8f29007e8d4824700e4efca0e608d31c",
+      "binding_scope": "golden-read-only-live-observation",
+      "note": "Observed in live READ_ONLY golden M00-L02. This binding is not authority to upload or replace course files."
+    },
+    "05_assets/M00/M00-L02/M00-L02-A02.png": {
+      "mode": "confirmed-url",
+      "url": "https://stepik.org/media/attachments/lesson/2591710/M00-L02-A02.png",
+      "source_sha256": "sha256:f40cc30963a6f94437120c19030ac043d47dbe6d28ee346dc5fc0bdde2b605f2",
+      "binding_scope": "golden-read-only-live-observation",
+      "note": "Observed in live READ_ONLY golden M00-L02. This binding is not authority to upload or replace course files."
+    },
+    "05_assets/M04/M04-L01/M04-L01-A01.txt": {
+      "mode": "download-url-required",
+      "reason": "mandatory-real-file-upload-practice-needs-russia-accessible-free-public-download-route",
+      "note": "Inline-only adaptation is pedagogically insufficient because the learner must actually obtain and upload a file. Current general Stepik course-file storage is documented as a paid-course feature; no URL is invented here."
+    }
+  }
+}
