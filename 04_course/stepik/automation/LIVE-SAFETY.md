@@ -43,13 +43,15 @@ Issue `#54` содержит compact current state: confirmed lesson baselines, 
 
 Непосредственно перед HTTP write должен быть durable `WRITE_DISPATCH_STARTED`. Только с этого момента history консервативно считает внешний write потенциально начатым.
 
+Перед использованием как recovery evidence весь event проходит integrity gate: stable identity, единая logical identity, связная write-chain и непротиворечивые final/committed records. Повреждённая history = STOP.
+
 ## 4. Write result classification
 
 Write не ретраится автоматически вслепую.
 
 - `WRITE_INTENT` без dispatch можно переиспользовать при неизменных semantic fields и fresh baseline/live/source guards;
-- доказанный отказ без server-side commit фиксируется как `WRITE_FAILED_KNOWN`;
-- timeout, network failure, HTTP 5xx или иной неизвестный server-side outcome после dispatch фиксируется как `WRITE_AMBIGUOUS`.
+- только доказанный API-отказ без server-side commit фиксируется как `WRITE_FAILED_KNOWN`;
+- timeout, network failure, HTTP 5xx, неожиданный runtime/client exception после durable dispatch или иной неизвестный server-side outcome фиксируется как `WRITE_AMBIGUOUS`.
 
 `WRITE_AMBIGUOUS` = `STOP` + read-only reconcile. Blind retry запрещён.
 
@@ -73,17 +75,17 @@ Recovery всегда сопоставляет event source `main` SHA, current 
 
 ### Final write подтверждён, state PATCH отсутствует
 
-Если history содержит `FINAL_READBACK_CONFIRMED`, `MACHINE_STATE_COMMITTED` отсутствует, source SHA актуален, а fresh live точно равен history-confirmed final fingerprint, разрешён `AUTO_RECOVER_MACHINE_STATE`.
+Если history содержит `FINAL_READBACK_CONFIRMED`, `MACHINE_STATE_COMMITTED` отсутствует, все dispatch operations полностью подтверждены per-operation read-back, source SHA актуален, а fresh live точно равен history-confirmed final fingerprint, разрешён `AUTO_RECOVER_MACHINE_STATE`.
 
 Такой recovery выполняет **0 Stepik writes**. Если Issue уже содержит доказанный final baseline и target pending закрыт, current state сохраняется без регрессии `updated_at`, а завершается только history/state handshake.
 
 ### Partial prefix подтверждён
 
-Если per-operation read-back доказал prefix и fresh live точно равен last confirmed intermediate fingerprint, разрешено продолжить только remaining operations. Подтверждённые operations повторно не выполняются.
+Continuation разрешён только если **каждый уже начатый dispatch** подтверждён `WRITE_COMPLETED` + `OP_READBACK_CONFIRMED`, fresh live точно равен last confirmed intermediate fingerprint и нет более позднего unresolved dispatch. Продолжать можно только operations, которые ещё не имели dispatch. Подтверждённые operations повторно не выполняются.
 
 ### Unknown/ambiguous partial state
 
-Dispatch без доказанного outcome, ambiguous response, failed read-back или live divergence после partial automation write = `STOP_OWNER_DECISION`.
+Dispatch без доказанного outcome, `WRITE_COMPLETED` без per-operation read-back, ambiguous response, failed read-back, known-failure attempt или live divergence после partial automation write = `STOP_OWNER_DECISION`.
 
 Automation не пытается угадать, какая часть live state принадлежит ей, а какая ручной правке.
 
@@ -121,7 +123,7 @@ Pending lesson закрывается только после доказанно
 
 Для stale-baseline evidence используется только последний однозначно доказуемый committed deployment state объекта. Старый history event, случайно совпавший с live, не доказывает, что current Issue baseline устарел. Неоднозначность latest committed history = fail-closed conflict.
 
-Manual/unknown drift, stale machine baseline, known-failure new attempt, conflicting events, golden lesson, structural/metadata divergence, missing baseline с неизвестным origin и auto-adoption case требуют owner decision.
+Manual/unknown drift, stale machine baseline, known-failure new attempt, corrupted/inconsistent history, conflicting events, golden lesson, structural/metadata divergence, missing baseline с неизвестным origin и auto-adoption case требуют owner decision.
 
 Совпадение `live == canonical` без доказанного event не разрешает автоматически принять live как baseline.
 
@@ -143,7 +145,7 @@ Unknown learner-facing dependency = `STOP` и красный job.
 
 ## 13. Fail-closed rule
 
-Если current-main guard, ownership, baseline comparison, history provenance, dependency mapping, write outcome, read-back или state race нельзя однозначно подтвердить, automation останавливается.
+Если current-main guard, ownership, baseline comparison, history integrity/provenance, dependency mapping, write outcome, read-back или state race нельзя однозначно подтвердить, automation останавливается.
 
 Ни live Stepik, ни current baseline не переписываются по предположению.
 
