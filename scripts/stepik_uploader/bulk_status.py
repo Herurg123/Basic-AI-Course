@@ -120,13 +120,16 @@ def _lesson_record(
     plan_operation: dict[str, Any] | None,
 ) -> dict[str, Any]:
     canonical_id = str(lesson["canonical_id"])
-    expected_title = f"{canonical_id} — {lesson['title']}"
+    human_title = str(lesson["title"])
+    legacy_title = f"{canonical_id} — {human_title}"
     current_title = str(live.get("title") or "")
-    exact_title = current_title == expected_title
-    stable_id_title = current_title.startswith(f"{canonical_id} — ")
-    if not (exact_title or stable_id_title):
+    if current_title == human_title:
+        title_state = "HUMAN_EXACT"
+    elif current_title == legacy_title:
+        title_state = "LEGACY_PREFIX_EXACT"
+    else:
         raise BulkStatusError(
-            f"{canonical_id}: live title не содержит ожидаемый stable canonical ID: {current_title!r}"
+            f"{canonical_id}: live title не равен ни canonical human title, ни exact legacy title: {current_title!r}"
         )
 
     return {
@@ -134,9 +137,10 @@ def _lesson_record(
         "module_position": int(module["position"]),
         "lesson_position": int(lesson["position"]),
         "stepik_lesson_id": int(live["id"]),
-        "expected_title": expected_title,
+        "expected_title": human_title,
+        "legacy_title": legacy_title,
         "current_title": current_title,
-        "title_state": "EXACT" if exact_title else "STALE_TITLE",
+        "title_state": title_state,
         "live_step_count": len(live.get("steps", [])),
         "planned_step_count": len(lesson.get("steps", [])),
         "golden_read_only": bool(lesson.get("golden_read_only")),
@@ -161,17 +165,13 @@ def _attach_source_compiler_state(
         free_answer_source=free_answer_source,
         lesson_id=canonical_id,
     )
-    repo_links = sorted(
-        {link for step in compiled_source for link in step.unresolved_repo_links}
-    )
+    repo_links = sorted({link for step in compiled_source for link in step.unresolved_repo_links})
     record.update(
         {
             "compiler_status": "SOURCE_COMPILED",
             "compiled_learner_step_count": len(compiled_source),
             "compiled_block_sequence": [step.block_name for step in compiled_source],
-            "compiled_asset_ids": sorted(
-                {asset_id for step in compiled_source for asset_id in step.asset_ids}
-            ),
+            "compiled_asset_ids": sorted({asset_id for step in compiled_source for asset_id in step.asset_ids}),
             "repo_relative_links_detected": repo_links,
             "repo_relative_links_pending_asset_route": list(repo_links),
         }
@@ -214,6 +214,61 @@ def _attach_asset_resolution_state(
             "asset_unresolved_sources": unresolved,
             "asset_materialization_required_sources": materialization,
             "repo_relative_links_pending_asset_route": unresolved,
+        }
+    )
+
+
+def _attach_pilot_sync_state(
+    record: dict[str, Any],
+    *,
+    repo_root: Path,
+    live: dict[str, Any],
+    baseline: dict[str, Any] | None,
+    free_answer_source: dict[str, Any],
+    hard_blockers: list[str],
+    pending_requirements: list[str],
+) -> None:
+    compiled = compile_test_lesson(
+        repo_root,
+        free_answer_source=free_answer_source,
+        lesson_id=TEST_LESSON_ID,
+    )
+    assessment = assess_sync(
+        canonical_id=TEST_LESSON_ID,
+        live_lesson=live,
+        expected_title=record["expected_title"],
+        expected_steps=compiled,
+        baseline=baseline,
+    )
+    legacy_baseline_is_stable = (
+        record["title_state"] == "LEGACY_PREFIX_EXACT"
+        and baseline is not None
+        and assessment.baseline_fingerprint is not None
+        and assessment.live_fingerprint == assessment.baseline_fingerprint
+    )
+    if legacy_baseline_is_stable:
+        status = "LEARNER_HYGIENE_REQUIRED"
+        next_action = "owner-dispatch-learner-hygiene"
+        reasons = [
+            "live Stepik всё ещё точно совпадает с подтверждённым legacy baseline; human-title/content migration выполняется отдельным guarded learner-hygiene route"
+        ]
+        pending_requirements.append(f"{TEST_LESSON_ID}:learner-hygiene")
+    else:
+        status = assessment.status
+        next_action = "sync-changed" if assessment.status == "UPDATE_REQUIRED" else "none"
+        reasons = list(assessment.reasons)
+        if assessment.status in BLOCKED_SYNC_STATUSES:
+            hard_blockers.append(f"{TEST_LESSON_ID}:{assessment.status}")
+
+    record.update(
+        {
+            "status": status,
+            "next_action": next_action,
+            "desired_fingerprint": assessment.desired_fingerprint,
+            "live_fingerprint": assessment.live_fingerprint,
+            "baseline_fingerprint": assessment.baseline_fingerprint,
+            "changed_step_positions": list(assessment.changed_step_positions),
+            "reasons": reasons,
         }
     )
 
@@ -275,43 +330,36 @@ def build_bulk_status(
 
             if canonical_id in GOLDEN_IDS:
                 record["status"] = "READ_ONLY_GOLDEN"
-                record["next_action"] = "none"
+                record["next_action"] = (
+                    "owner-decision-golden-title" if record["title_state"] == "LEGACY_PREFIX_EXACT" else "none"
+                )
+                if record["title_state"] == "LEGACY_PREFIX_EXACT":
+                    pending_requirements.append(f"{canonical_id}:golden-title-owner-required")
                 lessons.append(record)
                 continue
 
             if canonical_id == TEST_LESSON_ID:
-                compiled = compile_test_lesson(
-                    repo_root,
-                    free_answer_source=free_answer_source,
-                    lesson_id=TEST_LESSON_ID,
-                )
-                assessment = assess_sync(
-                    canonical_id=canonical_id,
-                    live_lesson=live,
-                    expected_title=record["expected_title"],
-                    expected_steps=compiled,
+                _attach_pilot_sync_state(
+                    record,
+                    repo_root=repo_root,
+                    live=live,
                     baseline=baseline,
+                    free_answer_source=free_answer_source,
+                    hard_blockers=hard_blockers,
+                    pending_requirements=pending_requirements,
                 )
-                record.update(
-                    {
-                        "status": assessment.status,
-                        "next_action": "sync-changed" if assessment.status == "UPDATE_REQUIRED" else "none",
-                        "desired_fingerprint": assessment.desired_fingerprint,
-                        "live_fingerprint": assessment.live_fingerprint,
-                        "baseline_fingerprint": assessment.baseline_fingerprint,
-                        "changed_step_positions": list(assessment.changed_step_positions),
-                        "reasons": list(assessment.reasons),
-                    }
-                )
-                if assessment.status in BLOCKED_SYNC_STATUSES:
-                    hard_blockers.append(f"{canonical_id}:{assessment.status}")
                 lessons.append(record)
                 continue
 
             if baseline is not None:
-                record["status"] = "BASELINE_PRESENT_RENDERING_PENDING_BLOCKED"
-                record["next_action"] = "verified-rendering-before-any-write"
-                hard_blockers.append(f"{canonical_id}:baseline-present-rendering-pending")
+                if record["title_state"] == "LEGACY_PREFIX_EXACT" and canonical_id == "M04-L01":
+                    record["status"] = "LEARNER_HYGIENE_REQUIRED"
+                    record["next_action"] = "owner-dispatch-learner-hygiene"
+                    pending_requirements.append(f"{canonical_id}:learner-hygiene")
+                else:
+                    record["status"] = "BASELINE_PRESENT_RENDERING_PENDING_BLOCKED"
+                    record["next_action"] = "verified-rendering-before-any-write"
+                    hard_blockers.append(f"{canonical_id}:baseline-present-rendering-pending")
             elif _is_placeholder(live):
                 record["status"] = "INITIAL_UPLOAD_REQUIRED"
                 record["next_action"] = "verified-rendering-then-first-upload"
@@ -321,7 +369,7 @@ def build_bulk_status(
                 record["next_action"] = "inspect-existing-content-before-adoption"
                 hard_blockers.append(f"{canonical_id}:existing-content-without-baseline")
 
-            if record["title_state"] == "STALE_TITLE":
+            if record["title_state"] == "LEGACY_PREFIX_EXACT":
                 pending_requirements.append(f"{canonical_id}:explicit-title-update-required")
             if record["independence_sensitive"] or record["f1_sensitive"]:
                 record["requires_integrity_pass_before_write"] = True
@@ -338,43 +386,36 @@ def build_bulk_status(
         }
     )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "scope": "all-21-lessons-read-only-preflight",
         "course_id": snapshot.get("course", {}).get("id"),
         "course_is_public": course_public,
+        "title_contract": "canonical-human-title; exact legacy ID prefix accepted only as migration state",
         "asset_route_gate_passed": asset_route_gate_passed,
         "lessons": lessons,
         "hard_blockers": sorted(set(hard_blockers)),
         "pending_requirements": sorted(set(pending_requirements)),
         "summary": {
             "lessons": len(lessons),
-            "source_compiled": sum(
-                1 for item in lessons if item.get("compiler_status") == "SOURCE_COMPILED"
-            ),
-            "compiled_learner_steps": sum(
-                int(item.get("compiled_learner_step_count", 0)) for item in lessons
-            ),
-            "repo_relative_links_detected": sum(
-                len(item.get("repo_relative_links_detected", [])) for item in lessons
-            ),
-            "repo_relative_links_pending_asset_route": sum(
-                len(item.get("repo_relative_links_pending_asset_route", [])) for item in lessons
-            ),
-            "asset_dependency_occurrences": sum(
-                int(item.get("asset_dependency_occurrences", 0)) for item in lessons
-            ),
+            "source_compiled": sum(1 for item in lessons if item.get("compiler_status") == "SOURCE_COMPILED"),
+            "compiled_learner_steps": sum(int(item.get("compiled_learner_step_count", 0)) for item in lessons),
+            "repo_relative_links_detected": sum(len(item.get("repo_relative_links_detected", [])) for item in lessons),
+            "repo_relative_links_pending_asset_route": sum(len(item.get("repo_relative_links_pending_asset_route", [])) for item in lessons),
+            "asset_dependency_occurrences": sum(int(item.get("asset_dependency_occurrences", 0)) for item in lessons),
             "asset_materialization_required_unique_files": len(materialization_sources),
             "golden_read_only": sum(1 for item in lessons if item["status"] == "READ_ONLY_GOLDEN"),
             "in_sync": sum(1 for item in lessons if item["status"] == "IN_SYNC"),
+            "learner_hygiene_required": sum(1 for item in lessons if item["status"] == "LEARNER_HYGIENE_REQUIRED"),
             "update_required": sum(1 for item in lessons if item["status"] == "UPDATE_REQUIRED"),
             "initial_upload_required": sum(1 for item in lessons if item["status"] == "INITIAL_UPLOAD_REQUIRED"),
-            "stale_titles": sum(1 for item in lessons if item["title_state"] == "STALE_TITLE"),
+            "legacy_titles": sum(1 for item in lessons if item["title_state"] == "LEGACY_PREFIX_EXACT"),
+            "human_titles": sum(1 for item in lessons if item["title_state"] == "HUMAN_EXACT"),
             "sensitive_lessons": sum(1 for item in lessons if item.get("requires_integrity_pass_before_write")),
             "hard_blockers": len(set(hard_blockers)),
         },
         "ready_for_bulk_write": False,
         "next_gate": (
-            "verified-rendering-and-first-upload"
+            "learner-hygiene-and-verified-rendering-first-upload"
             if asset_route_gate_passed
             else "asset-publication-resolution"
         ),

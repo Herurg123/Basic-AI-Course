@@ -1,12 +1,13 @@
 # Live acceptance `M04-L01` — 15 сентября 2026
 
-**Статус:** MACHINE ACCEPTANCE PASS  
+**Machine status:** PASS  
+**Human Visual Validation:** FAIL / RETEST REQUIRED  
 **Stepik course:** `299189`  
-**Canonical source:** `main@de98e60b845b51eda4c551cdc55c0c7139c35a55`  
-**GitHub Actions run:** `34969028781`  
+**Canonical source первого upload:** `main@de98e60b845b51eda4c551cdc55c0c7139c35a55`  
+**GitHub Actions run первого upload:** `34969028781`  
 **Mode:** `first-upload-m04-l01`
 
-## Итог
+## Итог machine acceptance
 
 Owner-dispatched controlled first upload завершён успешно. Это первый подтверждённый production acceptance общего verified-rendering + physical-asset + initial-upload контура на non-golden lesson.
 
@@ -31,7 +32,7 @@ Owner-dispatched controlled first upload завершён успешно. Это
 - asset baseline и lesson baseline записаны в Issue `#54`;
 - оба deployment events получили `MACHINE_STATE_COMMITTED` после успешного race-checked Issue PATCH.
 
-## Фактические write operations
+## Фактические write operations первого upload
 
 1. существующий placeholder step `11291289` обновлён как learner step position 1;
 2. созданы steps `11308577` … `11308581` для positions 2 … 6;
@@ -55,7 +56,30 @@ Verified rendering contract для `M04-L01` сохраняет shape:
 
 Author-only `M04-L01-A02` не входит в learner rendering.
 
-## Что этот PASS доказывает
+## Human Visual Validation после machine PASS
+
+После первого upload владелец открыл урок в learner-facing интерфейсе Stepik и предоставил визуальную проверку. Функциональная часть работала, но был выявлен production UX regression.
+
+Подтверждено как работающие элементы:
+
+- TXT attachment открывается/скачивается;
+- внешние ссылки на Алису AI и GigaChat кликабельны;
+- `free-answer` отображается;
+- основной learner content доступен.
+
+Выявленный дефект:
+
+- заголовок урока показывал внутренний canonical ID, например `M04-L01 — …`;
+- learner body показывал Asset/lesson ID, например `M04-L01-A01` и cross-lesson ссылки вида `M04-L03`;
+- sidebar показывал `Mxx-Lxx` в названиях уроков.
+
+Это противоречит принятому learner UX contract: внутренние canonical/Asset/Exercise/Check/production ID не должны быть нужны или видны абсолютному новичку.
+
+Поэтому machine acceptance остаётся **PASS**, но Human Visual Validation имеет статус **FAIL / RETEST REQUIRED**. Этот документ не должен трактоваться как Human PASS.
+
+Дефект зафиксирован в Issue `#70`. Исправление разрабатывается в PR `#71` и включает all-course learner-ID regression, human-facing title contract и guarded title/content migration без `DELETE` и duplicate creation.
+
+## Что machine PASS доказывает
 
 Доказан end-to-end machine route:
 
@@ -63,18 +87,24 @@ Author-only `M04-L01-A02` не входит в learner rendering.
 
 Attachment URL не угадывался и появился только после фактического Stepik response/read-back. Реальные bytes были скачаны обратно и сверены с canonical SHA-256 до фиксации baseline.
 
-## Что этот PASS не доказывает
+## Что ещё требуется после исправления learner hygiene
 
-Этот результат **не является Human Validation** и сам по себе не означает готовность общего bulk write.
+Перед признанием `M04-L01` полностью прошедшим live acceptance требуется повторная Human Visual Validation уже после guarded learner-hygiene migration. Нужно визуально подтвердить как минимум:
 
-Отдельно всё ещё требуются:
+- в sidebar и заголовке урока нет `M04-L01`;
+- в learner body нет внутренних lesson/Asset/Exercise/Check ID;
+- смысловые подписи материалов понятны без знания структуры репозитория;
+- TXT attachment по-прежнему открывается;
+- внешние ссылки по-прежнему кликабельны;
+- `free-answer` по-прежнему отображается корректно;
+- порядок и смысл шести шагов не искажены.
 
-- человеческая визуальная проверка отображения `M04-L01` в интерфейсе Stepik и открытия learner attachment;
+После этого отдельно всё ещё требуются общие production gates:
+
 - transactional materialization/read-back для PNG assets;
 - deterministic SVG→PNG route и visual verification;
 - обобщённый initial-upload orchestration для remaining lessons;
 - integrity pass independence/F1-sensitive lessons;
-- stale-title metadata route;
 - финальная private all-course staging verification;
 - Human Pilot по правилам `06_testing`.
 
@@ -83,3 +113,5 @@ Attachment URL не угадывался и появился только пос
 ## Известный независимый notice
 
 `M00-L02` продолжает иметь target-scoped `GOLDEN_OWNER_REQUIRED`: current canonical содержит 8 steps, confirmed live golden — 7. Этот notice не связан с `M04-L01` acceptance и не разрешает автоматическую запись в golden.
+
+Кроме того, learner-hygiene migration не меняет заголовки `M00-L01` и `M00-L02` обычным writer route: оба golden lesson остаются `READ_ONLY_GOLDEN`, а удаление ID из их live titles требует отдельного owner-approved решения.

@@ -164,7 +164,8 @@ class VerifiedRenderingTests(unittest.TestCase):
         step2 = plan.rendered_steps[1].text
         self.assertIn("мини-задачу", step2)
         self.assertIn("материал ниже", step2)
-        self.assertIn("<strong>Материал: M01-L01-A01 — безопасная мини-задача</strong>", step2)
+        self.assertIn("<strong>Материал: безопасная мини-задача</strong>", step2)
+        self.assertNotIn("M01-L01-A01 —", step2)
         self.assertIn("начало в 18:30", step2)
         self.assertLess(step2.index("материал ниже"), step2.index("Материал:"))
 

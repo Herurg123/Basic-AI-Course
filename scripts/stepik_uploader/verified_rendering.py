@@ -12,6 +12,9 @@ from .rendering import markdown_to_html
 LOCAL_LINK_RE = re.compile(r"\[([^\]]+)\]\((?!https?://|mailto:|#)([^)]+)\)")
 H1_RE = re.compile(r"(?m)^#\s+(.+?)\s*$")
 REPO_RELATIVE_RE = re.compile(r"\]\((?!https?://|mailto:|#)([^)]+)\)")
+INTERNAL_TITLE_PREFIX_RE = re.compile(
+    r"^M\d{2}-L\d{2}(?:-[AEC]\d{2}(?:-[A-Za-z0-9_-]+)?)?\s*(?:[—–:]\s*)?"
+)
 
 
 class VerifiedRenderingError(RuntimeError):
@@ -74,6 +77,21 @@ def _drop_h1(markdown_text: str, *, source_path: str) -> tuple[str, str]:
     if not body:
         raise VerifiedRenderingError(f"{source_path}: inline Markdown source пуст после H1")
     return title, body
+
+
+def _humanize_inline_title(title: str, *, source_path: str) -> str:
+    """Убирает production ID только из learner-visible заголовка inline-материала.
+
+    Canonical ID остаётся в имени/пути исходного файла и machine metadata. Мы меняем только
+    представление H1 при встраивании материала в Stepik, чтобы ученик видел смысловое название,
+    а не внутренний идентификатор репозитория.
+    """
+    human_title = INTERNAL_TITLE_PREFIX_RE.sub("", title, count=1).strip()
+    if not human_title:
+        raise VerifiedRenderingError(
+            f"{source_path}: после удаления production ID у inline H1 не осталось смыслового названия"
+        )
+    return human_title
 
 
 def _resolution_index(asset_report: dict[str, Any], *, lesson_id: str) -> dict[tuple[str, str], dict[str, Any]]:
@@ -160,6 +178,7 @@ def _render_local_markdown(
                 appended_sources.add(source_path)
                 raw = _read_utf8(repo_root, source_path)
                 title, body = _drop_h1(raw, source_path=source_path)
+                title = _humanize_inline_title(title, source_path=source_path)
                 nested = _render_local_markdown(
                     body,
                     repo_root=repo_root,

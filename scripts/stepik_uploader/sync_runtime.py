@@ -203,7 +203,7 @@ def main() -> int:
         if not isinstance(free_answer_source, dict):
             raise ContentCompileError("В golden profile отсутствует free_answer_source")
         compiled = compile_test_lesson(repo_root, free_answer_source=free_answer_source, lesson_id=TEST_LESSON_ID)
-        expected_title = f"{TEST_LESSON_ID} — {lesson['title']}"
+        expected_title = str(lesson["title"])
         live_lesson = _live_lesson(snapshot, module_position=int(module["position"]), lesson_position=int(lesson["position"]))
         state_path = args.sync_state if args.sync_state.is_absolute() else repo_root / args.sync_state
         state = load_state(state_path, course_id=args.course_id)
