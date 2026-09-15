@@ -9,26 +9,48 @@ class SectionWriteContractError(RuntimeError):
     pass
 
 
-def _allow_methods(raw: str) -> frozenset[str]:
-    return frozenset(part.strip().upper() for part in str(raw or "").split(",") if part.strip())
+# Stepik detail OPTIONS for sections is not usable in production (HTTP 500 was
+# reproduced twice by read-only recovery run 35013088945).  Section PUT is
+# therefore treated as a full-object replacement: start from the raw GET object,
+# override one explicitly supported authored field, and send the complete object
+# back.  These fields are server-/viewer-derived and may legitimately differ on
+# the immediate read-back even when authored section state was preserved.
+_SERVER_MANAGED_READBACK_FIELDS = frozenset(
+    {
+        "actions",
+        "exam_session",
+        "is_active",
+        "is_proctoring_can_be_scheduled",
+        "is_requirement_satisfied",
+        "proctor_session",
+        "progress",
+        "slug",
+        "update_date",
+    }
+)
+_REQUIRED_RAW_FIELDS = frozenset({"id", "course", "units", "position", "title"})
+_ALLOWED_OVERRIDES = frozenset({"position", "title"})
 
 
 @dataclass(frozen=True)
 class SectionPutContract:
     section_id: int
-    writable_fields: tuple[str, ...]
     payload: dict[str, Any]
     overrides: dict[str, Any]
+    preserved_readback_fields: tuple[str, ...]
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "section_id": self.section_id,
             "method": "PUT",
             "target": f"sections/{self.section_id}",
-            "writable_fields": list(self.writable_fields),
+            "contract_source": "raw-get-full-object-read-modify-write",
             "override_fields": sorted(self.overrides),
             "payload_fields": sorted(self.payload),
-            "preserves_all_declared_writable_fields": True,
+            "preserved_readback_fields": list(self.preserved_readback_fields),
+            "server_managed_readback_exclusions": sorted(_SERVER_MANAGED_READBACK_FIELDS),
+            "preserves_full_raw_get_payload": True,
+            "options_required": False,
         }
 
 
@@ -38,13 +60,21 @@ def prepare_section_put(
     *,
     overrides: dict[str, Any],
 ) -> SectionPutContract:
-    """Build a PUT that preserves every field Stepik declares writable for sections.
+    """Build a fail-closed raw-GET read-modify-write contract for a section PUT.
 
-    A short/partial section PUT is forbidden: production evidence showed that an omitted
-    writable ``position`` field can be reset server-side. The OPTIONS metadata is therefore
-    treated as the runtime write contract, and every declared PUT field must either be
-    copied from the live GET object or supplied explicitly as an override.
+    Production evidence showed that a short section PUT can reset omitted fields
+    (notably ``position``).  Stepik's detail OPTIONS endpoint for sections also
+    returns HTTP 500 in production, so OPTIONS cannot be the safety oracle.
+
+    The safe contract is instead: fetch the raw section object, require the
+    identity/structure fields needed to prove what object is being edited, copy
+    the *entire* raw object into the PUT payload, and change only the explicitly
+    supported authored field (``title`` or ``position``).
     """
+    # Keep the client argument for the existing call surface.  Contract building
+    # is deliberately read-only and must not call OPTIONS or any write method.
+    del client
+
     if not isinstance(live_section, dict):
         raise SectionWriteContractError("section GET должен быть JSON object")
     section_id = live_section.get("id")
@@ -53,56 +83,53 @@ def prepare_section_put(
     if not isinstance(overrides, dict) or not overrides:
         raise SectionWriteContractError("section PUT требует явный непустой overrides")
 
-    metadata, allow = client._request_options(f"/api/sections/{section_id}")
-    methods = _allow_methods(allow)
-    if "PUT" not in methods:
+    missing_required = sorted(_REQUIRED_RAW_FIELDS - set(live_section))
+    if missing_required:
         raise SectionWriteContractError(
-            f"section:{section_id}: OPTIONS Allow не подтверждает PUT: {sorted(methods)}"
+            f"section:{section_id}: raw GET не содержит обязательные поля: {missing_required}"
         )
+    if not isinstance(live_section.get("course"), int):
+        raise SectionWriteContractError(f"section:{section_id}: raw course не целочисленный")
+    if not isinstance(live_section.get("units"), list):
+        raise SectionWriteContractError(f"section:{section_id}: raw units не список")
+    if not isinstance(live_section.get("position"), int):
+        raise SectionWriteContractError(f"section:{section_id}: raw position не целочисленная")
+    if not isinstance(live_section.get("title"), str):
+        raise SectionWriteContractError(f"section:{section_id}: raw title не строка")
 
-    actions = metadata.get("actions")
-    if not isinstance(actions, dict) or not isinstance(actions.get("PUT"), dict):
+    unsupported = sorted(set(overrides) - _ALLOWED_OVERRIDES)
+    if unsupported:
         raise SectionWriteContractError(
-            f"section:{section_id}: OPTIONS не содержит actions.PUT"
+            f"section:{section_id}: запрещённые override fields: {unsupported}"
         )
-    put_fields = actions["PUT"]
-    writable_fields = tuple(sorted(str(name) for name in put_fields))
-    if not writable_fields:
-        raise SectionWriteContractError(f"section:{section_id}: actions.PUT пуст")
-
-    unknown_overrides = sorted(set(overrides) - set(writable_fields))
-    if unknown_overrides:
+    missing_override_fields = sorted(set(overrides) - set(live_section))
+    if missing_override_fields:
         raise SectionWriteContractError(
-            f"section:{section_id}: override не объявлен writable в OPTIONS: {unknown_overrides}"
+            f"section:{section_id}: override отсутствует в raw GET: {missing_override_fields}"
         )
+    if "position" in overrides and (
+        not isinstance(overrides["position"], int) or int(overrides["position"]) < 1
+    ):
+        raise SectionWriteContractError(f"section:{section_id}: position override должен быть int >= 1")
+    if "title" in overrides and not isinstance(overrides["title"], str):
+        raise SectionWriteContractError(f"section:{section_id}: title override должен быть строкой")
 
-    missing = sorted(
-        field
-        for field in writable_fields
-        if field not in overrides and field not in live_section
+    payload = deepcopy(live_section)
+    for field, value in overrides.items():
+        payload[field] = deepcopy(value)
+
+    preserved_readback_fields = tuple(
+        sorted(
+            field
+            for field in live_section
+            if field not in overrides and field not in _SERVER_MANAGED_READBACK_FIELDS
+        )
     )
-    if missing:
-        raise SectionWriteContractError(
-            f"section:{section_id}: нельзя доказуемо сохранить writable fields из OPTIONS: {missing}"
-        )
-
-    payload: dict[str, Any] = {}
-    for field in writable_fields:
-        if field in overrides:
-            payload[field] = deepcopy(overrides[field])
-        else:
-            payload[field] = deepcopy(live_section[field])
-
-    if "title" in overrides and "position" not in writable_fields:
-        raise SectionWriteContractError(
-            f"section:{section_id}: OPTIONS PUT не объявляет position; title PUT заблокирован"
-        )
-
     return SectionPutContract(
         section_id=section_id,
-        writable_fields=writable_fields,
         payload=payload,
         overrides=deepcopy(overrides),
+        preserved_readback_fields=preserved_readback_fields,
     )
 
 
@@ -119,23 +146,28 @@ def assert_section_readback(
     after: dict[str, Any],
     contract: SectionPutContract,
 ) -> None:
-    """Require exact preservation of all declared writable fields except overrides."""
+    """Require exact authored-state preservation after a full-object section PUT."""
+    if not isinstance(before, dict) or int(before.get("id", -1)) != contract.section_id:
+        raise SectionWriteContractError(
+            f"section:{contract.section_id}: before state не содержит ожидаемый id"
+        )
     if not isinstance(after, dict) or int(after.get("id", -1)) != contract.section_id:
         raise SectionWriteContractError(
             f"section:{contract.section_id}: read-back не содержит ожидаемый id"
         )
 
-    for field in contract.writable_fields:
+    for field in contract.overrides:
         expected = contract.payload[field]
-        actual = after.get(field)
-        if actual != expected:
+        if field not in after or after.get(field) != expected:
             raise SectionWriteContractError(
-                f"section:{contract.section_id}: read-back field {field!r}={actual!r} "
+                f"section:{contract.section_id}: read-back override {field!r}={after.get(field)!r} "
                 f"!= отправленного {expected!r}"
             )
 
-    for field in ("course", "units"):
-        if field in before and after.get(field) != before.get(field):
+    for field in contract.preserved_readback_fields:
+        expected = before[field]
+        if field not in after or after.get(field) != expected:
             raise SectionWriteContractError(
-                f"section:{contract.section_id}: read-back неожиданно изменил {field}"
+                f"section:{contract.section_id}: read-back неожиданно изменил preserved field "
+                f"{field!r}: {after.get(field)!r} != {expected!r}"
             )
