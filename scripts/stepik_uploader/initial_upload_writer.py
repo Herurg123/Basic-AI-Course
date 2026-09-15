@@ -52,6 +52,29 @@ def _lesson_after_updated_first_step(
     return updated
 
 
+def _history_dispatches_are_fully_confirmed(records: list[dict[str, Any]]) -> bool:
+    dispatch_ids = {
+        str(item.get("operation_id"))
+        for item in records
+        if item.get("phase") == "WRITE_DISPATCH_STARTED" and item.get("operation_id")
+    }
+    if not dispatch_ids:
+        return False
+    completed_ids = {
+        str(item.get("operation_id"))
+        for item in records
+        if item.get("phase") == "WRITE_COMPLETED" and item.get("operation_id")
+    }
+    readback_ids = {
+        str(item.get("operation_id"))
+        for item in records
+        if item.get("phase") == "OP_READBACK_CONFIRMED" and item.get("operation_id")
+    }
+    if any(item.get("phase") in {"WRITE_AMBIGUOUS", "WRITE_FAILED_KNOWN", "READBACK_FAILED"} for item in records):
+        return False
+    return dispatch_ids == completed_ids == readback_ids
+
+
 def execute_initial_upload_one(
     client: Any,
     snapshot: dict[str, Any],
@@ -64,10 +87,12 @@ def execute_initial_upload_one(
     source_sha: str,
     recorder: Any,
     allow_partial_resume: bool = False,
+    allow_complete_recovery: bool = False,
 ) -> SyncWriteResult:
     """Заполняет один существующий draft skeleton с WAL/read-back после каждого write.
 
-    DELETE не используется. Частичный prefix без доказанной recovery history не усыновляется.
+    DELETE не используется. Частичный/полный matching state без доказанной recovery history
+    не усыновляется как новый baseline.
     """
     lesson = _target_lesson(
         snapshot,
@@ -85,10 +110,16 @@ def execute_initial_upload_one(
         raise ContentWriteError(
             "Initial upload обнаружил partial matching prefix без доказанной recovery history; автоматическое продолжение запрещено"
         )
+    if state == "complete":
+        history_before = recorder.records(refresh=True)
+        if not allow_complete_recovery or not _history_dispatches_are_fully_confirmed(history_before):
+            raise ContentWriteError(
+                "Initial upload обнаружил complete matching live content без полностью подтверждённой write history; automatic adoption запрещён"
+            )
 
     working_lesson = deepcopy(lesson)
     if state == "complete":
-        result.operations.append({"action": "NOOP_ALREADY_MATCHES", "steps": len(expected_steps)})
+        result.operations.append({"action": "RESUME_PROVEN_COMPLETE", "steps": len(expected_steps)})
     elif state == "skeleton-placeholder":
         if not ordered:
             raise ContentWriteError("Skeleton placeholder отсутствует")
@@ -259,14 +290,12 @@ def execute_initial_upload_one(
         step_ids=final_step_ids,
         source_git_paths=source_paths,
     )
-    write_actions = [
-        operation for operation in result.operations
-        if operation.get("action") in {"UPDATE_PLACEHOLDER", "CREATE_STEP"}
-    ]
+    event_records = recorder.records(refresh=True)
+    event_had_writes = any(item.get("phase") == "WRITE_DISPATCH_STARTED" for item in event_records)
     recorder.final_readback(
         fingerprint_after=live_fp,
         stepik_object_ids={"lesson_id": lesson_id, "step_ids": final_step_ids},
-        status="APPLIED" if write_actions else "NOOP_CONFIRMED",
+        status="APPLIED" if event_had_writes else "NOOP_CONFIRMED",
         baseline_after=result.state_record,
     )
     return result
