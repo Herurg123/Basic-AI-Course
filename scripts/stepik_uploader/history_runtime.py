@@ -298,9 +298,11 @@ def _github_event_ids_for_object(store: GitHubHistoryStore, *, object_id: str) -
 def find_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentity, list[dict[str, Any]], dict[str, Any]]]:
     """Find deployment/reconcile events for one object without a mutable active-event index."""
     event_ids: list[str] = []
+    github_indexed = False
     if isinstance(store, MemoryHistoryStore):
         event_ids = sorted(store.records)
     elif isinstance(store, GitHubHistoryStore):
+        github_indexed = True
         event_ids = _github_event_ids_for_object(store, object_id=object_id)
     else:
         raise DeploymentHistoryError("Неизвестный history store")
@@ -312,7 +314,9 @@ def find_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentit
             continue
         identity = identity_from_records(records, expected_event_id=event_id)
         if identity.object_id != object_id:
-            raise DeploymentHistoryError("History object index не совпадает с полным event identity")
+            if github_indexed:
+                raise DeploymentHistoryError("History object index не совпадает с полным event identity")
+            continue
         found.append((identity, records, summarize_event(records)))
     return found
 
