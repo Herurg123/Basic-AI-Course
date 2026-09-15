@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from scripts.stepik_uploader.asset_inventory import build_asset_inventory
+from scripts.stepik_uploader.asset_resolution import learner_link_topology
 from scripts.stepik_uploader.canonical import build_structural_manifest
 
 
@@ -31,8 +32,10 @@ class AssetResolutionDiagnosticTests(unittest.TestCase):
                     }
                 )
 
-        print("ASSET_RESOLUTION_DIAGNOSTIC=" + json.dumps(rows, ensure_ascii=False, separators=(",", ":")))
+        topology = learner_link_topology(inventory)
+        print("ASSET_RESOLUTION_TOPOLOGY=" + json.dumps(topology, ensure_ascii=False, separators=(",", ":")))
         self.assertEqual(len(rows), inventory["summary"]["learner_repo_links"])
+        self.assertEqual(topology["learner_link_occurrences"], len(rows))
         self.assertGreater(len(rows), 0)
 
 
