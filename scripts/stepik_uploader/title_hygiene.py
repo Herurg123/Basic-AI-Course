@@ -6,6 +6,13 @@ from typing import Any
 from .api import StepikAPIError, StepikWriteAmbiguousError
 from .deployment_history import DeploymentHistoryError, DeploymentRecorder, summarize_event
 from .fingerprints import canonical_hash
+from .section_write import (
+    SectionPutContract,
+    SectionWriteContractError,
+    assert_section_readback,
+    execute_section_put,
+    prepare_section_put,
+)
 
 GOLDEN_LESSON_IDS = {"M00-L01", "M00-L02"}
 
@@ -76,7 +83,24 @@ def title_state(*, kind: str, stepik_id: int, title: str) -> dict[str, Any]:
 
 
 def title_fingerprint(*, kind: str, stepik_id: int, title: str) -> str:
+    # Event identity intentionally stays compatible with existing title-hygiene history.
+    # Structural section safety is recorded in state_before/baseline_after and verified
+    # independently by exact pre-write + post-write position checks.
     return canonical_hash(title_state(kind=kind, stepik_id=stepik_id, title=title))
+
+
+def _operation_state(
+    operation: TitleOperation,
+    *,
+    title: str,
+    position: int | None,
+) -> dict[str, Any]:
+    state = title_state(kind=operation.kind, stepik_id=operation.stepik_id, title=title)
+    if operation.kind == "section":
+        if not isinstance(position, int):
+            raise TitleHygieneError(f"{operation.object_id}: section state не содержит position")
+        state["position"] = int(position)
+    return state
 
 
 def _position_matches(items: list[dict[str, Any]], position: int) -> list[dict[str, Any]]:
@@ -110,6 +134,7 @@ def _classify_title(
                 "kind": kind,
                 "canonical_id": canonical_id,
                 "stepik_id": stepik_id,
+                "position": int(position),
                 "title": live_title,
             }
         )
@@ -208,27 +233,65 @@ def plan_title_hygiene(manifest: dict[str, Any], snapshot: dict[str, Any]) -> Ti
     return plan
 
 
-def _resource_and_payload(operation: TitleOperation) -> tuple[str, str, dict[str, Any]]:
+def _resource(operation: TitleOperation) -> str:
     if operation.kind == "lesson":
-        return "lessons", "lesson", {"lesson": {"title": operation.expected_title}}
+        return "lessons"
     if operation.kind == "section":
-        return "sections", "section", {"section": {"title": operation.expected_title}}
+        return "sections"
     raise TitleHygieneError(f"Неподдерживаемый title kind: {operation.kind}")
 
 
-def _read_title(client: Any, operation: TitleOperation) -> str:
-    resource, _payload_key, _payload = _resource_and_payload(operation)
+def _read_object(client: Any, operation: TitleOperation) -> dict[str, Any]:
+    resource = _resource(operation)
     obj = client.fetch_one(resource, operation.stepik_id)
     if int(obj.get("id", -1)) != operation.stepik_id or not isinstance(obj.get("title"), str):
         raise TitleHygieneError(f"{operation.object_id}: read-back не содержит ожидаемые id/title")
-    return str(obj["title"])
+    if operation.kind == "section" and not isinstance(obj.get("position"), int):
+        raise TitleHygieneError(f"{operation.object_id}: section read-back не содержит целочисленную position")
+    return obj
 
 
-def _write_title(client: Any, operation: TitleOperation) -> None:
-    resource, _payload_key, payload = _resource_and_payload(operation)
-    # _request_write — общий Stepik write primitive проекта: без автоматических retry и
-    # с AMBIGUOUS-классификацией network/5xx. Здесь намеренно не вводится второй transport.
-    client._request_write("PUT", f"/api/{resource}/{operation.stepik_id}", payload)
+def _prepare_section_contract(
+    client: Any,
+    operation: TitleOperation,
+    before_obj: dict[str, Any],
+) -> SectionPutContract:
+    if operation.kind != "section":
+        raise TitleHygieneError("_prepare_section_contract вызван не для section")
+    if int(before_obj["position"]) != int(operation.position):
+        raise TitleHygieneError(
+            f"{operation.object_id}: section position drift перед title PUT: "
+            f"{before_obj['position']!r} != {operation.position!r}"
+        )
+    try:
+        return prepare_section_put(
+            client,
+            before_obj,
+            overrides={"title": operation.expected_title},
+        )
+    except SectionWriteContractError as exc:
+        raise TitleHygieneError(f"{operation.object_id}: unsafe section PUT contract: {exc}") from exc
+
+
+def _write_title(
+    client: Any,
+    operation: TitleOperation,
+    *,
+    section_contract: SectionPutContract | None,
+) -> None:
+    if operation.kind == "lesson":
+        client._request_write(
+            "PUT",
+            f"/api/lessons/{operation.stepik_id}",
+            {"lesson": {"title": operation.expected_title}},
+        )
+        return
+    if operation.kind == "section":
+        if section_contract is None:
+            raise TitleHygieneError(f"{operation.object_id}: section PUT contract не подготовлен")
+        execute_section_put(client, section_contract)
+        return
+    raise TitleHygieneError(f"Неподдерживаемый title kind: {operation.kind}")
 
 
 def execute_title_only_operation(
@@ -236,17 +299,47 @@ def execute_title_only_operation(
     operation: TitleOperation,
     recorder: DeploymentRecorder,
 ) -> dict[str, Any]:
-    """Выполняет один title-only PUT с WAL и read-back.
+    """Выполняет один guarded title-only PUT с WAL и read-back.
 
-    Функция пригодна для section и для lesson без content baseline. Tracked lesson с
-    deployment baseline должен обновляться отдельным content-aware route.
+    Для section перед записью доказывается текущая canonical position, PUT строится по
+    live OPTIONS contract с сохранением всех declared writable fields, а read-back обязан
+    подтвердить и новый title, и неизменную position. Tracked lesson с deployment baseline
+    должен обновляться отдельным content-aware route.
     """
-    before_title = _read_title(client, operation)
-    before_state = title_state(kind=operation.kind, stepik_id=operation.stepik_id, title=before_title)
-    desired_state = title_state(
-        kind=operation.kind,
-        stepik_id=operation.stepik_id,
+    before_obj = _read_object(client, operation)
+    before_title = str(before_obj["title"])
+    before_position = before_obj.get("position") if operation.kind == "section" else None
+    records = recorder.records(refresh=True)
+
+    effective_position = int(operation.position)
+    if operation.kind == "section" and effective_position <= 0:
+        proven_positions = {
+            int(state["position"])
+            for record in records
+            if record.get("phase") == "FINAL_READBACK_CONFIRMED"
+            and isinstance((state := record.get("actual_confirmed_state")), dict)
+            and isinstance(state.get("position"), int)
+        }
+        if len(proven_positions) != 1:
+            raise TitleHygieneError(
+                f"{operation.object_id}: recovery без canonical position и без единственной доказанной history position запрещён"
+            )
+        effective_position = next(iter(proven_positions))
+
+    if operation.kind == "section" and int(before_position) != effective_position:
+        raise TitleHygieneError(
+            f"{operation.object_id}: section position drift: {before_position!r} != {effective_position!r}"
+        )
+
+    before_state = _operation_state(
+        operation,
+        title=before_title,
+        position=before_position if isinstance(before_position, int) else None,
+    )
+    desired_state = _operation_state(
+        operation,
         title=operation.expected_title,
+        position=effective_position if operation.kind == "section" else None,
     )
     before_fp = title_fingerprint(kind=operation.kind, stepik_id=operation.stepik_id, title=before_title)
     desired_fp = title_fingerprint(
@@ -257,11 +350,12 @@ def execute_title_only_operation(
     if recorder.identity.desired_fingerprint != desired_fp:
         raise DeploymentHistoryError(f"{operation.object_id}: event desired fingerprint не совпадает с title plan")
 
-    records = recorder.records(refresh=True)
     summary = summarize_event(records) if records else None
     if summary and summary.get("machine_state_committed"):
         if before_title != operation.expected_title:
             raise TitleHygieneError(f"{operation.object_id}: committed title event, но live title снова drifted")
+        if operation.kind == "section" and int(before_obj["position"]) != effective_position:
+            raise TitleHygieneError(f"{operation.object_id}: committed title event, но live position drifted")
         return {"action": "NOOP_COMMITTED", "operation": operation.as_dict()}
 
     if summary:
@@ -272,6 +366,8 @@ def execute_title_only_operation(
         if summary.get("final_readback_confirmed"):
             if before_title != operation.expected_title:
                 raise TitleHygieneError(f"{operation.object_id}: final history не совпадает с live title")
+            if operation.kind == "section" and int(before_obj["position"]) != effective_position:
+                raise TitleHygieneError(f"{operation.object_id}: final history не совпадает с live section position")
             recorder.state_committed(
                 baseline_after=desired_state,
                 status=str(summary.get("final_status")),
@@ -279,6 +375,10 @@ def execute_title_only_operation(
             return {"action": "RECOVER_COMMIT", "operation": operation.as_dict()}
         if summary.get("writes_started"):
             if summary.get("confirmed_operation_count") == 1 and before_title == operation.expected_title:
+                if operation.kind == "section" and int(before_obj["position"]) != effective_position:
+                    raise TitleHygieneError(
+                        f"{operation.object_id}: per-operation history подтверждает title, но section position drifted"
+                    )
                 recorder.final_readback(
                     fingerprint_after=desired_fp,
                     stepik_object_ids={f"{operation.kind}_id": operation.stepik_id},
@@ -292,7 +392,6 @@ def execute_title_only_operation(
             )
 
     if before_title == operation.expected_title:
-        # План мог устареть между inspect и dispatch. Без write просто фиксируем доказанный NOOP.
         recorder.ensure_started(
             operation_type="title-hygiene",
             state_before=desired_state,
@@ -313,6 +412,10 @@ def execute_title_only_operation(
             f"{operation.object_id}: title изменился после planning: {before_title!r} != {operation.live_title!r}"
         )
 
+    section_contract: SectionPutContract | None = None
+    if operation.kind == "section":
+        section_contract = _prepare_section_contract(client, operation, before_obj)
+
     recorder.ensure_started(
         operation_type="title-hygiene",
         state_before=before_state,
@@ -330,7 +433,7 @@ def execute_title_only_operation(
     )
     recorder.write_dispatch_started(operation_id=operation_id)
     try:
-        _write_title(client, operation)
+        _write_title(client, operation, section_contract=section_contract)
     except StepikWriteAmbiguousError:
         recorder.write_result(operation_id=operation_id, status="AMBIGUOUS", reason_code="title-write-ambiguous")
         raise
@@ -343,11 +446,21 @@ def execute_title_only_operation(
     recorder.write_result(operation_id=operation_id, status="COMPLETED")
 
     try:
-        after_title = _read_title(client, operation)
+        after_obj = _read_object(client, operation)
+        after_title = str(after_obj["title"])
         if after_title != operation.expected_title:
             raise TitleHygieneError(
                 f"{operation.object_id}: title read-back {after_title!r} != {operation.expected_title!r}"
             )
+        if operation.kind == "section":
+            if int(after_obj["position"]) != effective_position:
+                raise TitleHygieneError(
+                    f"{operation.object_id}: section position изменилась после title PUT: "
+                    f"{after_obj['position']!r} != {effective_position!r}"
+                )
+            if section_contract is None:
+                raise TitleHygieneError(f"{operation.object_id}: section read-back без PUT contract")
+            assert_section_readback(before_obj, after_obj, section_contract)
     except Exception:
         recorder.readback_failed(operation_id=operation_id, reason_code="title-readback-unavailable-or-mismatch")
         raise
@@ -360,4 +473,7 @@ def execute_title_only_operation(
         baseline_after=desired_state,
     )
     recorder.state_committed(baseline_after=desired_state, status="APPLIED")
-    return {"action": "UPDATE_TITLE", "operation": operation.as_dict()}
+    result = {"action": "UPDATE_TITLE", "operation": operation.as_dict()}
+    if section_contract is not None:
+        result["section_put_contract"] = section_contract.as_dict()
+    return result
