@@ -25,9 +25,19 @@ SOURCE_SHA = "1" * 40
 class FakeAttachmentClient:
     api_host = "https://stepik.org"
 
-    def __init__(self, content: bytes, *, existing: bool = False, ambiguous: bool = False) -> None:
+    def __init__(
+        self,
+        content: bytes,
+        *,
+        existing: bool = False,
+        ambiguous: bool = False,
+        duplicate_after_create: bool = False,
+        wrong_lesson_after_create: bool = False,
+    ) -> None:
         self.content = content
         self.ambiguous = ambiguous
+        self.duplicate_after_create = duplicate_after_create
+        self.wrong_lesson_after_create = wrong_lesson_after_create
         self.create_calls = 0
         self.record = {
             "id": 240001,
@@ -65,8 +75,15 @@ class FakeAttachmentClient:
         self.create_calls += 1
         if self.ambiguous:
             raise StepikWriteAmbiguousError("ambiguous")
-        self.attachments = [dict(self.record)]
-        return dict(self.record)
+        created = dict(self.record)
+        if self.wrong_lesson_after_create:
+            created["lesson"] = 999999
+        self.attachments = [dict(created)]
+        if self.duplicate_after_create:
+            duplicate = dict(created)
+            duplicate["id"] = 240002
+            self.attachments.append(duplicate)
+        return dict(created)
 
     @staticmethod
     def assert_lesson(lesson_id: int) -> None:
@@ -111,28 +128,25 @@ class AttachmentMaterializationTests(unittest.TestCase):
         with self.assertRaises(AttachmentMaterializationError):
             verify_attachment_capability(client)
 
-    def test_existing_exact_attachment_is_noop_confirmed(self) -> None:
+    def test_untracked_existing_exact_attachment_is_not_auto_adopted(self) -> None:
         content = b"safe training text\n"
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "M04-L01-A01.txt"
             source.write_bytes(content)
             expected = file_sha256(source)
-            store, recorder = recorder_for(expected)
+            _store, recorder = recorder_for(expected)
             client = FakeAttachmentClient(content, existing=True)
-            record, status = materialize_attachment(
-                client,
-                recorder=recorder,
-                source_file=source,
-                source_path="05_assets/M04/M04-L01/M04-L01-A01.txt",
-                expected_source_sha256=expected,
-                stepik_lesson_id=2591724,
-            )
-        self.assertEqual(status, "NOOP_CONFIRMED")
+            with self.assertRaisesRegex(AttachmentMaterializationError, "automatic adoption запрещён"):
+                materialize_attachment(
+                    client,
+                    recorder=recorder,
+                    source_file=source,
+                    source_path="05_assets/M04/M04-L01/M04-L01-A01.txt",
+                    expected_source_sha256=expected,
+                    stepik_lesson_id=2591724,
+                )
         self.assertEqual(client.create_calls, 0)
-        self.assertEqual(record["source_sha256"], expected)
-        records = recorder.records(refresh=True)
-        validate_event_records(records, expected_event_id=recorder.identity.event_id)
-        self.assertFalse(any(item.get("phase") == "WRITE_DISPATCH_STARTED" for item in records))
+        self.assertEqual(recorder.records(refresh=True), [])
 
     def test_new_attachment_uses_one_post_and_verified_download_readback(self) -> None:
         content = b"safe training text\n"
@@ -140,7 +154,7 @@ class AttachmentMaterializationTests(unittest.TestCase):
             source = Path(tmp) / "M04-L01-A01.txt"
             source.write_bytes(content)
             expected = file_sha256(source)
-            store, recorder = recorder_for(expected)
+            _store, recorder = recorder_for(expected)
             client = FakeAttachmentClient(content)
             record, status = materialize_attachment(
                 client,
@@ -157,6 +171,49 @@ class AttachmentMaterializationTests(unittest.TestCase):
         validate_event_records(records, expected_event_id=recorder.identity.event_id)
         self.assertEqual(sum(item.get("phase") == "WRITE_DISPATCH_STARTED" for item in records), 1)
         self.assertTrue(any(item.get("phase") == "OP_READBACK_CONFIRMED" for item in records))
+
+    def test_duplicate_same_name_after_post_fails_readback(self) -> None:
+        content = b"safe training text\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "M04-L01-A01.txt"
+            source.write_bytes(content)
+            expected = file_sha256(source)
+            _store, recorder = recorder_for(expected)
+            client = FakeAttachmentClient(content, duplicate_after_create=True)
+            with self.assertRaisesRegex(AttachmentMaterializationError, "duplicate/race"):
+                materialize_attachment(
+                    client,
+                    recorder=recorder,
+                    source_file=source,
+                    source_path="05_assets/M04/M04-L01/M04-L01-A01.txt",
+                    expected_source_sha256=expected,
+                    stepik_lesson_id=2591724,
+                )
+        self.assertEqual(client.create_calls, 1)
+        records = recorder.records(refresh=True)
+        self.assertTrue(any(item.get("phase") == "READBACK_FAILED" for item in records))
+        self.assertFalse(any(item.get("phase") == "FINAL_READBACK_CONFIRMED" for item in records))
+
+    def test_wrong_lesson_after_post_fails_readback(self) -> None:
+        content = b"safe training text\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "M04-L01-A01.txt"
+            source.write_bytes(content)
+            expected = file_sha256(source)
+            _store, recorder = recorder_for(expected)
+            client = FakeAttachmentClient(content, wrong_lesson_after_create=True)
+            with self.assertRaisesRegex(AttachmentMaterializationError, "target lesson"):
+                materialize_attachment(
+                    client,
+                    recorder=recorder,
+                    source_file=source,
+                    source_path="05_assets/M04/M04-L01/M04-L01-A01.txt",
+                    expected_source_sha256=expected,
+                    stepik_lesson_id=2591724,
+                )
+        records = recorder.records(refresh=True)
+        self.assertTrue(any(item.get("phase") == "READBACK_FAILED" for item in records))
+        self.assertFalse(any(item.get("phase") == "FINAL_READBACK_CONFIRMED" for item in records))
 
     def test_ambiguous_post_is_not_retried_or_marked_readback_confirmed(self) -> None:
         content = b"safe training text\n"
