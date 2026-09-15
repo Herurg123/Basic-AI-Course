@@ -35,6 +35,7 @@ STOPWORDS = {
     "если", "или", "не", "это", "как", "что", "у", "а", "но", "же", "при",
     "the", "a", "an", "to", "of", "in", "on", "and", "or", "is", "are",
 }
+SCORE_EPS = 1e-12
 
 
 class GeneralContentCompileError(RuntimeError):
@@ -119,7 +120,9 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
 
     H2/H3 становятся жирными метками внутри Stepik шага. Exercise/Check comments
     используются только как alignment anchors и learner-facing текстом не являются.
-    Остальные HTML comments удаляются.
+    Заголовок, непосредственно предшествующий скрытому Exercise/Check marker, остаётся
+    вместе с marker-шагом, чтобы название будущей проверки не утекало в предыдущий
+    independent step. Остальные HTML comments удаляются.
     """
     body = _drop_h1(markdown_text)
     chunks: list[SourceChunk] = []
@@ -145,13 +148,15 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
         if not in_fence:
             heading_match = HEADING_RE.match(line)
             if heading_match:
-                flush()
+                if paragraph_lines or pending_markers:
+                    flush()
                 pending_headings.append(heading_match.group(2).strip())
                 continue
 
             marker_matches = list(MARKER_RE.finditer(line))
             if marker_matches:
-                flush()
+                if paragraph_lines:
+                    flush()
                 pending_markers.extend(match.group(2) for match in marker_matches)
                 line = MARKER_RE.sub("", line).strip()
                 if not line:
@@ -159,7 +164,8 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
 
             line = COMMENT_RE.sub("", line).rstrip()
             if not line.strip():
-                flush()
+                if paragraph_lines:
+                    flush()
                 continue
 
         paragraph_lines.append(line)
@@ -261,7 +267,9 @@ def _align_chunks(rows: list[dict[str, Any]], chunks: list[SourceChunk]) -> list
     neg = -math.inf
     dp = [[neg] * (m + 1) for _ in range(n + 1)]
     prev: list[list[int | None]] = [[None] * (m + 1) for _ in range(n + 1)]
+    best_ways = [[0] * (m + 1) for _ in range(n + 1)]
     dp[0][0] = 0.0
+    best_ways[0][0] = 1
 
     for i in range(n):
         min_end = i + 1
@@ -281,9 +289,16 @@ def _align_chunks(rows: list[dict[str, Any]], chunks: list[SourceChunk]) -> list
                 if score == neg:
                     continue
                 candidate = dp[i][start] + score
-                if candidate > dp[i + 1][end]:
+                current = dp[i + 1][end]
+                if candidate > current + SCORE_EPS:
                     dp[i + 1][end] = candidate
                     prev[i + 1][end] = start
+                    best_ways[i + 1][end] = min(2, best_ways[i][start])
+                elif abs(candidate - current) <= SCORE_EPS:
+                    best_ways[i + 1][end] = min(
+                        2,
+                        best_ways[i + 1][end] + best_ways[i][start],
+                    )
 
     if dp[n][m] == neg:
         diagnostics = [
@@ -297,6 +312,11 @@ def _align_chunks(rows: list[dict[str, Any]], chunks: list[SourceChunk]) -> list
         raise GeneralContentCompileError(
             "Не удалось выстроить source-preserving alignment; "
             f"lesson rows={diagnostics}, source_markers={sorted(source_marker_ids)}"
+        )
+    if best_ways[n][m] != 1:
+        raise GeneralContentCompileError(
+            "Alignment неоднозначен: найдено несколько одинаково лучших разбиений source chunks; "
+            "нужна явная production-граница, автоматический выбор запрещён"
         )
 
     spans: list[list[SourceChunk]] = []
