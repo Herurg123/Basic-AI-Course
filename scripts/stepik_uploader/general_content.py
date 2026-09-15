@@ -119,15 +119,11 @@ def _flush_chunk(
 
 
 def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
-    """Разбивает lesson.md на атомарные learner-facing куски без потери текста.
+    """Разбивает lesson.md на learner-facing chunks без потери текста.
 
-    H2/H3 становятся жирными метками внутри Stepik шага. Exercise/Check comments
-    используются только как alignment anchors и learner-facing текстом не являются.
-    Заголовок непосредственно перед marker принадлежит marker-шагу.
-
-    Exercise-секция может быть разделена на практику и последующее объяснение, если
-    это требует stepik-plan. Check-секция от marker до следующего H2/H3 считается
-    атомарной: рубрика/post-action evidence не может частично съехать в recovery.
+    H2/H3 становятся жирными метками. Exercise/Check comments используются только
+    как production anchors. Заголовок непосредственно перед marker принадлежит
+    marker-шагу. Check-секция от marker до следующего H2/H3 атомарна.
     """
     body = _drop_h1(markdown_text)
     chunks: list[SourceChunk] = []
@@ -225,6 +221,20 @@ def _row_ids(row: dict[str, Any]) -> set[str]:
     return set(row.get("exercise_ids", [])) | set(row.get("check_ids", []))
 
 
+def _check_span_is_closed(span: list[SourceChunk]) -> bool:
+    """Check section may be preceded by context, but may not absorb a later section."""
+    groups = {chunk.atomic_check_group for chunk in span if chunk.atomic_check_group is not None}
+    if not groups:
+        return True
+    if len(groups) != 1:
+        return False
+    group = next(iter(groups))
+    last_group_index = max(
+        index for index, chunk in enumerate(span) if chunk.atomic_check_group == group
+    )
+    return last_group_index == len(span) - 1
+
+
 def _span_score(
     row: dict[str, Any],
     span: list[SourceChunk],
@@ -239,6 +249,8 @@ def _span_score(
     if span_markers - allowed_ids:
         return -math.inf
     if required_ids - span_markers:
+        return -math.inf
+    if not _check_span_is_closed(span):
         return -math.inf
 
     plan_tokens = _tokens(_row_text(row))
@@ -256,7 +268,6 @@ def _span_score(
     marker_bonus = 8.0 * len(span_markers & allowed_ids)
     lexical_bonus = 12.0 * lexical
     heading_bonus = 0.8 * heading_overlap
-
     source_center = (span[0].index + span[-1].index + 1) / 2.0 / max(chunk_count, 1)
     expected_center = (row_index + 0.5) / max(row_count, 1)
     position_penalty = 0.9 * abs(source_center - expected_center)
@@ -265,7 +276,7 @@ def _span_score(
 
 
 def _forbidden_check_cuts(chunks: list[SourceChunk]) -> set[int]:
-    """Возвращает границы между chunks, на которых нельзя завершать Stepik step."""
+    """Границы между chunks, на которых нельзя завершать Stepik step."""
     forbidden: set[int] = set()
     for boundary in range(1, len(chunks)):
         left = chunks[boundary - 1].atomic_check_group
@@ -390,11 +401,7 @@ def compile_lesson_source(
     free_answer_source: dict[str, Any],
     lesson_id: str,
 ) -> list[CompiledSourceStep]:
-    """Компилирует canonical learner source в Stepik-step source без live write.
-
-    Результат сохраняет весь learner-facing lesson.md, исключает author-only plan rows
-    и оставляет repo-relative assets/links явными для отдельного asset-publication gate.
-    """
+    """Компилирует canonical learner source в Stepik-step source без live write."""
     if free_answer_source != EXPECTED_FREE_ANSWER_SOURCE:
         raise GeneralContentCompileError(
             "free-answer source не совпадает с подтверждённым golden profile"
