@@ -6,39 +6,194 @@ from typing import Any
 
 from .deployment_history import (
     HISTORY_PREFIX,
+    HISTORY_SCHEMA_VERSION,
     DeploymentHistoryError,
     DeploymentRecorder,
     EventIdentity,
     GitHubHistoryStore,
     MemoryHistoryStore,
+    stable_event_id,
     summarize_event,
 )
 
 
-def identity_from_records(records: list[dict[str, Any]]) -> EventIdentity:
-    if not records:
-        raise DeploymentHistoryError("Нельзя восстановить identity из пустой history")
-    raw = records[0].get("identity")
+def _parse_identity(raw: Any) -> EventIdentity:
     if not isinstance(raw, dict):
-        raise DeploymentHistoryError("History event не содержит identity")
+        raise DeploymentHistoryError("History record не содержит корректный identity")
     workflow = raw.get("workflow") or {}
     if not isinstance(workflow, dict):
         raise DeploymentHistoryError("History identity.workflow повреждён")
+    required_strings = ("event_id", "object_id", "kind", "source_sha", "desired_fingerprint")
+    for key in required_strings:
+        if not isinstance(raw.get(key), str) or not raw.get(key):
+            raise DeploymentHistoryError(f"History identity.{key} отсутствует или повреждён")
+    try:
+        course_id = int(raw.get("course_id"))
+    except (TypeError, ValueError) as exc:
+        raise DeploymentHistoryError("History identity.course_id повреждён") from exc
+    baseline = raw.get("baseline_fingerprint_before")
+    pending_first_sha = raw.get("pending_first_sha")
+    if baseline is not None and not isinstance(baseline, str):
+        raise DeploymentHistoryError("History identity.baseline_fingerprint_before повреждён")
+    if pending_first_sha is not None and not isinstance(pending_first_sha, str):
+        raise DeploymentHistoryError("History identity.pending_first_sha повреждён")
     return EventIdentity(
-        event_id=str(raw.get("event_id")),
-        course_id=int(raw.get("course_id")),
-        object_id=str(raw.get("object_id")),
-        kind=str(raw.get("kind")),
-        source_sha=str(raw.get("source_sha")),
+        event_id=raw["event_id"],
+        course_id=course_id,
+        object_id=raw["object_id"],
+        kind=raw["kind"],
+        source_sha=raw["source_sha"],
         workflow_run_id=None if workflow.get("run_id") is None else str(workflow.get("run_id")),
         workflow_run_attempt=None if workflow.get("run_attempt") is None else str(workflow.get("run_attempt")),
         workflow_run_url=None if workflow.get("run_url") is None else str(workflow.get("run_url")),
-        desired_fingerprint=str(raw.get("desired_fingerprint")),
-        baseline_fingerprint_before=raw.get("baseline_fingerprint_before"),
-        pending_first_sha=raw.get("pending_first_sha"),
+        desired_fingerprint=raw["desired_fingerprint"],
+        baseline_fingerprint_before=baseline,
+        pending_first_sha=pending_first_sha,
         retry_of_event_id=raw.get("retry_of_event_id"),
         continuation_of_event_id=raw.get("continuation_of_event_id"),
     )
+
+
+def _identity_core(identity: EventIdentity) -> tuple[Any, ...]:
+    return (
+        identity.event_id,
+        identity.course_id,
+        identity.object_id,
+        identity.kind,
+        identity.source_sha,
+        identity.desired_fingerprint,
+        identity.baseline_fingerprint_before,
+        identity.pending_first_sha,
+    )
+
+
+def validate_event_records(records: list[dict[str, Any]], *, expected_event_id: str | None = None) -> EventIdentity:
+    """Fail closed on tampered or internally contradictory operational history."""
+    if not records:
+        raise DeploymentHistoryError("Нельзя проверить пустую deployment history")
+
+    started_records = [record for record in records if record.get("phase") == "EVENT_STARTED"]
+    if len(started_records) > 1:
+        raise DeploymentHistoryError("History event содержит несколько EVENT_STARTED")
+    anchor_record = started_records[0] if started_records else records[0]
+    anchor = _parse_identity(anchor_record.get("identity"))
+
+    calculated_event_id = stable_event_id(
+        course_id=anchor.course_id,
+        object_id=anchor.object_id,
+        kind=anchor.kind,
+        source_sha=anchor.source_sha,
+        desired_fingerprint=anchor.desired_fingerprint,
+        baseline_fingerprint=anchor.baseline_fingerprint_before,
+        pending_first_sha=anchor.pending_first_sha,
+    )
+    if anchor.event_id != calculated_event_id:
+        raise DeploymentHistoryError("History identity.event_id не соответствует stable event identity")
+    if expected_event_id is not None and anchor.event_id != expected_event_id:
+        raise DeploymentHistoryError("History directory event_id не совпадает с identity.event_id")
+
+    core = _identity_core(anchor)
+    record_ids: set[str] = set()
+    for record in records:
+        if record.get("history_schema_version") != HISTORY_SCHEMA_VERSION:
+            raise DeploymentHistoryError("History record имеет неподдерживаемую schema version")
+        record_id = record.get("record_id")
+        phase = record.get("phase")
+        if not isinstance(record_id, str) or not record_id:
+            raise DeploymentHistoryError("History record не содержит record_id")
+        if record_id in record_ids:
+            raise DeploymentHistoryError("History event содержит duplicate record_id")
+        record_ids.add(record_id)
+        if not isinstance(phase, str) or not phase:
+            raise DeploymentHistoryError("History record не содержит phase")
+        current = _parse_identity(record.get("identity"))
+        if _identity_core(current) != core:
+            raise DeploymentHistoryError("History event содержит records с разной logical identity")
+
+    singular = ("FINAL_READBACK_CONFIRMED", "MACHINE_STATE_COMMITTED")
+    for phase in singular:
+        if sum(record.get("phase") == phase for record in records) > 1:
+            raise DeploymentHistoryError(f"History event содержит несколько {phase}")
+
+    intents: dict[str, dict[str, Any]] = {}
+    dispatches: dict[str, dict[str, Any]] = {}
+    results: dict[str, list[dict[str, Any]]] = {}
+    confirmed: dict[str, dict[str, Any]] = {}
+    for record in records:
+        phase = record.get("phase")
+        if phase not in {
+            "WRITE_INTENT",
+            "WRITE_DISPATCH_STARTED",
+            "WRITE_COMPLETED",
+            "WRITE_FAILED_KNOWN",
+            "WRITE_AMBIGUOUS",
+            "OP_READBACK_CONFIRMED",
+        }:
+            continue
+        operation_id = record.get("operation_id")
+        if not isinstance(operation_id, str) or not operation_id:
+            raise DeploymentHistoryError(f"{phase} не содержит operation_id")
+        if phase == "WRITE_INTENT":
+            if operation_id in intents:
+                raise DeploymentHistoryError(f"{operation_id}: несколько WRITE_INTENT")
+            intents[operation_id] = record
+        elif phase == "WRITE_DISPATCH_STARTED":
+            if operation_id in dispatches:
+                raise DeploymentHistoryError(f"{operation_id}: несколько WRITE_DISPATCH_STARTED")
+            dispatches[operation_id] = record
+        elif phase in {"WRITE_COMPLETED", "WRITE_FAILED_KNOWN", "WRITE_AMBIGUOUS"}:
+            results.setdefault(operation_id, []).append(record)
+        elif phase == "OP_READBACK_CONFIRMED":
+            if operation_id in confirmed:
+                raise DeploymentHistoryError(f"{operation_id}: несколько OP_READBACK_CONFIRMED")
+            confirmed[operation_id] = record
+
+    for operation_id in dispatches:
+        if operation_id not in intents:
+            raise DeploymentHistoryError(f"{operation_id}: dispatch существует без WRITE_INTENT")
+    for operation_id, operation_results in results.items():
+        if operation_id not in dispatches:
+            raise DeploymentHistoryError(f"{operation_id}: write result существует без dispatch")
+        if len(operation_results) != 1:
+            raise DeploymentHistoryError(f"{operation_id}: несколько взаимоисключающих write results")
+    for operation_id in confirmed:
+        operation_results = results.get(operation_id, [])
+        if len(operation_results) != 1 or operation_results[0].get("phase") != "WRITE_COMPLETED":
+            raise DeploymentHistoryError(f"{operation_id}: read-back подтверждён без единственного WRITE_COMPLETED")
+
+    finals = [record for record in records if record.get("phase") == "FINAL_READBACK_CONFIRMED"]
+    commits = [record for record in records if record.get("phase") == "MACHINE_STATE_COMMITTED"]
+    if commits and not finals:
+        raise DeploymentHistoryError("MACHINE_STATE_COMMITTED существует без FINAL_READBACK_CONFIRMED")
+    if finals:
+        final = finals[0]
+        final_status = final.get("status")
+        if final_status not in {"APPLIED", "NOOP_CONFIRMED"}:
+            raise DeploymentHistoryError("FINAL_READBACK_CONFIRMED содержит неизвестный status")
+        if not isinstance(final.get("actual_confirmed_state"), dict):
+            raise DeploymentHistoryError("FINAL_READBACK_CONFIRMED не содержит baseline-after")
+        if final.get("fingerprint_after") != anchor.desired_fingerprint:
+            raise DeploymentHistoryError("Final fingerprint не совпадает с desired fingerprint event")
+        if final_status == "NOOP_CONFIRMED" and dispatches:
+            raise DeploymentHistoryError("NOOP_CONFIRMED несовместим с начатым Stepik write")
+        if final_status == "APPLIED" and not dispatches:
+            raise DeploymentHistoryError("APPLIED не подтверждён ни одним write dispatch")
+        if set(dispatches) != set(confirmed):
+            raise DeploymentHistoryError("Final read-back существует при незавершённой per-operation evidence")
+
+    if commits:
+        committed = commits[0]
+        final = finals[0]
+        if committed.get("status") != final.get("status"):
+            raise DeploymentHistoryError("Committed status не совпадает с final read-back")
+        if committed.get("baseline_after") != final.get("actual_confirmed_state"):
+            raise DeploymentHistoryError("Committed baseline-after не совпадает с final read-back")
+
+    return anchor
+
+
+def identity_from_records(records: list[dict[str, Any]], *, expected_event_id: str | None = None) -> EventIdentity:
+    return validate_event_records(records, expected_event_id=expected_event_id)
 
 
 def find_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentity, list[dict[str, Any]], dict[str, Any]]]:
@@ -75,7 +230,7 @@ def find_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentit
         records = store.load(event_id)
         if not records:
             continue
-        identity = identity_from_records(records)
+        identity = identity_from_records(records, expected_event_id=event_id)
         if identity.object_id != object_id:
             continue
         found.append((identity, records, summarize_event(records)))
@@ -168,7 +323,7 @@ def mark_machine_state_committed(
     baseline_after: dict[str, Any] | None,
 ) -> None:
     records = store.load(event_id)
-    identity = identity_from_records(records)
+    identity = identity_from_records(records, expected_event_id=event_id)
     summary = summarize_event(records)
     if not summary.get("final_readback_confirmed"):
         raise DeploymentHistoryError("Нельзя отметить machine state committed без FINAL_READBACK_CONFIRMED")
