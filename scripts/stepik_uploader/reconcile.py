@@ -128,6 +128,18 @@ def classify_reconcile(
             reasons=["write-not-confirmed", "readback-unavailable"],
         )
 
+    writes_started = int(summary.get("writes_started") or 0)
+    confirmed_operations = int(summary.get("confirmed_operation_count") or 0)
+    known_failed_writes = int(summary.get("known_failed_writes") or 0)
+    if confirmed_operations + known_failed_writes > writes_started:
+        return _decision(
+            "HISTORY_EVIDENCE_INCONSISTENT",
+            "STOP_OWNER_DECISION",
+            auto=False,
+            owner=True,
+            reasons=["operation-evidence-counts-inconsistent"],
+        )
+
     started_event = "EVENT_STARTED" in summary.get("phases", []) and not summary.get("machine_state_committed")
     if started_event and event_baseline_known:
         allowed_baselines = {event_baseline_fingerprint_before}
@@ -143,6 +155,14 @@ def classify_reconcile(
             )
 
     if summary.get("final_readback_confirmed") and not summary.get("machine_state_committed"):
+        if known_failed_writes or writes_started != confirmed_operations:
+            return _decision(
+                "HISTORY_EVIDENCE_INCONSISTENT",
+                "STOP_OWNER_DECISION",
+                auto=False,
+                owner=True,
+                reasons=["final-readback-with-unresolved-dispatch-evidence"],
+            )
         confirmed_fp = summary.get("final_fingerprint")
         if confirmed_fp == live_fingerprint == desired_fingerprint:
             return _decision(
@@ -188,6 +208,34 @@ def classify_reconcile(
             )
 
     partial_fp = summary.get("last_confirmed_operation_fingerprint")
+    if known_failed_writes:
+        expected_live = partial_fp or baseline_fingerprint
+        if expected_live is not None and live_fingerprint == expected_live:
+            return _decision(
+                "KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED",
+                "STOP_OWNER_DECISION",
+                auto=False,
+                owner=True,
+                reasons=["known-write-failure", "new-dispatch-attempt-needs-explicit-owner-route"],
+            )
+        return _decision(
+            "KNOWN_WRITE_FAILURE_WITH_LIVE_DIVERGENCE",
+            "STOP_OWNER_DECISION",
+            auto=False,
+            owner=True,
+            reasons=["known-write-failure", "live-no-longer-matches-last-proven-state"],
+        )
+
+    unresolved_dispatches = writes_started - confirmed_operations
+    if unresolved_dispatches > 0:
+        return _decision(
+            "WRITE_STARTED_WITHOUT_CONFIRMED_PREFIX",
+            "STOP_OWNER_DECISION",
+            auto=False,
+            owner=True,
+            reasons=["external-write-started", "unconfirmed-dispatch-remains", "blind-retry-forbidden"],
+        )
+
     if summary.get("external_write_started") and partial_fp:
         if live_fingerprint == partial_fp:
             return _decision(
@@ -203,23 +251,6 @@ def classify_reconcile(
             auto=False,
             owner=True,
             reasons=["partial-automation-residue", "subsequent-live-change"],
-        )
-
-    if summary.get("all_dispatched_writes_failed_known"):
-        if baseline_fingerprint is not None and live_fingerprint == baseline_fingerprint:
-            return _decision(
-                "KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED",
-                "STOP_OWNER_DECISION",
-                auto=False,
-                owner=True,
-                reasons=["all-dispatched-writes-failed-known", "new-dispatch-attempt-needs-explicit-owner-route"],
-            )
-        return _decision(
-            "KNOWN_WRITE_FAILURE_WITH_LIVE_DIVERGENCE",
-            "STOP_OWNER_DECISION",
-            auto=False,
-            owner=True,
-            reasons=["known-write-failure", "live-no-longer-matches-baseline"],
         )
 
     if summary.get("external_write_started"):
