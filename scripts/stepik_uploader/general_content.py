@@ -48,6 +48,7 @@ class SourceChunk:
     markdown: str
     heading: str | None
     marker_ids: tuple[str, ...]
+    atomic_check_group: str | None = None
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,7 @@ def _flush_chunk(
     paragraph_lines: list[str],
     pending_headings: list[str],
     marker_ids: list[str],
+    atomic_check_group: str | None,
 ) -> None:
     if not paragraph_lines and not pending_headings:
         return
@@ -111,6 +113,7 @@ def _flush_chunk(
             markdown=markdown,
             heading=pending_headings[-1] if pending_headings else None,
             marker_ids=tuple(dict.fromkeys(marker_ids)),
+            atomic_check_group=atomic_check_group,
         )
     )
 
@@ -120,23 +123,30 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
 
     H2/H3 становятся жирными метками внутри Stepik шага. Exercise/Check comments
     используются только как alignment anchors и learner-facing текстом не являются.
-    Заголовок, непосредственно предшествующий marker, принадлежит marker-секции.
-    Marker остаётся активным для всего содержимого секции до следующего H2/H3, чтобы
-    post-action evidence не мог частично съехать в recovery/completion row.
-    Остальные HTML comments удаляются.
+    Заголовок непосредственно перед marker принадлежит marker-шагу.
+
+    Exercise-секция может быть разделена на практику и последующее объяснение, если
+    это требует stepik-plan. Check-секция от marker до следующего H2/H3 считается
+    атомарной: рубрика/post-action evidence не может частично съехать в recovery.
     """
     body = _drop_h1(markdown_text)
     chunks: list[SourceChunk] = []
     paragraph_lines: list[str] = []
     pending_headings: list[str] = []
     pending_markers: list[str] = []
-    active_markers: list[str] = []
+    active_check_group: str | None = None
+    check_group_counter = 0
     in_fence = False
 
     def flush() -> None:
         nonlocal paragraph_lines, pending_headings, pending_markers
-        markers = list(dict.fromkeys([*active_markers, *pending_markers]))
-        _flush_chunk(chunks, paragraph_lines, pending_headings, markers)
+        _flush_chunk(
+            chunks,
+            paragraph_lines,
+            pending_headings,
+            pending_markers,
+            active_check_group,
+        )
         paragraph_lines = []
         pending_headings = []
         pending_markers = []
@@ -153,7 +163,7 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
             if heading_match:
                 if paragraph_lines or pending_markers:
                     flush()
-                active_markers = []
+                active_check_group = None
                 pending_headings.append(heading_match.group(2).strip())
                 continue
 
@@ -161,9 +171,11 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
             if marker_matches:
                 if paragraph_lines:
                     flush()
-                marker_ids = [match.group(2) for match in marker_matches]
-                pending_markers.extend(marker_ids)
-                active_markers = list(dict.fromkeys(marker_ids))
+                pending_markers.extend(match.group(2) for match in marker_matches)
+                if any(match.group(1).lower() == "check" for match in marker_matches):
+                    check_group_counter += 1
+                    marker_key = "+".join(match.group(2) for match in marker_matches)
+                    active_check_group = f"check-{check_group_counter}:{marker_key}"
                 line = MARKER_RE.sub("", line).strip()
                 if not line:
                     continue
@@ -180,7 +192,13 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
     if not chunks:
         raise GeneralContentCompileError("lesson.md не содержит learner-facing body после H1")
     return [
-        SourceChunk(index=index, markdown=chunk.markdown, heading=chunk.heading, marker_ids=chunk.marker_ids)
+        SourceChunk(
+            index=index,
+            markdown=chunk.markdown,
+            heading=chunk.heading,
+            marker_ids=chunk.marker_ids,
+            atomic_check_group=chunk.atomic_check_group,
+        )
         for index, chunk in enumerate(chunks)
     ]
 
@@ -246,6 +264,17 @@ def _span_score(
     return marker_bonus + lexical_bonus + heading_bonus - position_penalty - span_penalty
 
 
+def _forbidden_check_cuts(chunks: list[SourceChunk]) -> set[int]:
+    """Возвращает границы между chunks, на которых нельзя завершать Stepik step."""
+    forbidden: set[int] = set()
+    for boundary in range(1, len(chunks)):
+        left = chunks[boundary - 1].atomic_check_group
+        right = chunks[boundary].atomic_check_group
+        if left is not None and left == right:
+            forbidden.add(boundary)
+    return forbidden
+
+
 def _align_chunks(rows: list[dict[str, Any]], chunks: list[SourceChunk]) -> list[list[SourceChunk]]:
     if len(chunks) < len(rows):
         raise GeneralContentCompileError(
@@ -270,6 +299,7 @@ def _align_chunks(rows: list[dict[str, Any]], chunks: list[SourceChunk]) -> list
 
     n = len(rows)
     m = len(chunks)
+    forbidden_cuts = _forbidden_check_cuts(chunks)
     neg = -math.inf
     dp = [[neg] * (m + 1) for _ in range(n + 1)]
     prev: list[list[int | None]] = [[None] * (m + 1) for _ in range(n + 1)]
@@ -284,6 +314,8 @@ def _align_chunks(rows: list[dict[str, Any]], chunks: list[SourceChunk]) -> list
             if dp[i][start] == neg:
                 continue
             for end in range(max(start + 1, min_end), max_end + 1):
+                if end in forbidden_cuts:
+                    continue
                 score = _span_score(
                     rows[i],
                     chunks[start:end],
