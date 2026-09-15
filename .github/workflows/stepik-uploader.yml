@@ -31,6 +31,7 @@ on:
           - inspect
           - content-test-one
           - sync-status
+          - sync-reconcile
           - sync-changed
       course_id:
         description: 'Обычный числовой Stepik course_id. По умолчанию используется рабочий черновой курс проекта; это не секрет.'
@@ -175,11 +176,12 @@ jobs:
       group: stepik-live-course-299189
       cancel-in-progress: false
     permissions:
-      contents: read
+      contents: write
       issues: write
     env:
       STEPIC_CLIENT_ID: ${{ secrets.STEPIC_CLIENT_ID }}
       STEPIC_CLIENT_SECRET: ${{ secrets.STEPIC_CLIENT_SECRET }}
+      GITHUB_TOKEN: ${{ github.token }}
       COURSE_ID: ${{ inputs.course_id }}
       MODE: ${{ inputs.mode }}
       CONFIRM_WRITE: ${{ inputs.confirm_write }}
@@ -198,7 +200,7 @@ jobs:
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
 
       - name: Прочитать подтверждённый deployment state
-        if: inputs.mode == 'sync-status' || inputs.mode == 'sync-changed'
+        if: inputs.mode == 'sync-status' || inputs.mode == 'sync-reconcile' || inputs.mode == 'sync-changed'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -227,7 +229,7 @@ jobs:
             exit 2
           fi
 
-          if [[ "$MODE" == "sync-status" || "$MODE" == "sync-changed" ]]; then
+          if [[ "$MODE" == "sync-status" || "$MODE" == "sync-reconcile" || "$MODE" == "sync-changed" ]]; then
             args=("$MODE" --repo-root . --report-dir artifacts/stepik-uploader-live --course-id "$COURSE_ID" --sync-state artifacts/stepik-uploader-live/sync-state.previous.json)
             if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then
               args+=(--confirm-write)
@@ -244,18 +246,20 @@ jobs:
             python scripts/stepik_uploader/stepik_uploader.py "${args[@]}"
           fi
 
-      - name: Зафиксировать результат sync в журнале
+      - name: Зафиксировать результат sync в current machine state и durable history
         if: inputs.mode == 'sync-changed' && success()
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           base='artifacts/stepik-uploader-live'
           state="$base/sync-state.next.json"
           journal="$base/sync-journal.md"
-          if [[ ! -f "$journal" || ! -f "$state" ]]; then
-            echo 'Успешный sync-changed обязан сформировать journal и следующий machine state; issue update запрещён.' >&2
+          event="$base/deployment-event.json"
+          if [[ ! -f "$journal" || ! -f "$state" || ! -f "$event" ]]; then
+            echo 'Успешный sync-changed обязан сформировать journal, deployment-event и следующий machine state; issue update запрещён.' >&2
             exit 2
           fi
 
@@ -275,6 +279,11 @@ jobs:
             --output-patch "$base/sync-issue-patch.json" \
             --course-id "$COURSE_ID"
           gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$base/sync-issue-patch.json" >/dev/null
+
+          python scripts/stepik_uploader/history_cli.py mark-state-committed \
+            --event-file "$event" \
+            --state-file "$state"
+
           gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$journal"
 
       - name: Сохранить технический отчёт

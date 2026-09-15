@@ -1,174 +1,198 @@
-# Автоматизация переноса курса в Stepik
+# Автоматизация переноса и эксплуатационной синхронизации курса в Stepik
 
-**Статус:** IMPLEMENTATION HANDOFF / automation design  
+**Статус:** production automation contract / implementation handoff  
 **Дата:** 14 сентября 2026 года  
-**Канонический `main` на старте:** `3f7931a31ac723da8c73f60873ad86e844504f7a`  
-**Назначение:** зафиксировать безопасный способ автоматизированного переноса production-курса M00–M08 в уже созданный курс Stepik без ручного копирования каждого шага.
+**Курс Stepik:** `299189`  
+**Источник learner-facing содержания:** только актуальный `main`
 
-> Этот документ не меняет педагогическую архитектуру курса, Lesson/Exercise/Check/Asset ID, F1, recovery или Human Pilot. Он задаёт только технический маршрут публикации уже утверждённых материалов.
+Этот каталог описывает технический контур GitHub → Stepik. Он не меняет педагогическую архитектуру курса, Lesson/Exercise/Check/Asset ID, F1, recovery для ученика или Human Pilot.
 
-## 1. Исходное состояние
+## 1. Текущий production scope
 
-В Stepik уже создан черновой курс и вручную собраны два первых урока. Они используются как **golden sample** для проверки автоматизации перед массовой загрузкой остальных уроков.
+Автоматизация умеет:
 
-Ожидаемые первые уроки по канонической структуре — `M00-L01` и `M00-L02`, но automation-чат обязан подтвердить это по фактическому курсу, а не полагаться на предположение.
+- читать фактическую структуру существующего курса Stepik;
+- строить derived structural/build representation из canonical GitHub files;
+- выполнять offline dry-run и all-course read-only preflight;
+- распознавать два golden lessons `M00-L01/M00-L02` как `READ_ONLY`;
+- вести confirmed baseline и machine-readable PENDING в Issue `#54`;
+- определять learner-facing impact dependency-aware способом;
+- выполнять узкий guarded exploitation sync pilot lesson `M02-L01`;
+- durable-журналировать deployment/recovery operations;
+- восстанавливаться после доказуемого partial/state-patch failure без blind retry;
+- выполнять read-only baseline reconcile classification;
+- проверять эксплуатационную ownership matrix автоматическим completeness test.
 
-Владелец также подтвердил фактическую доступность интерфейса **«Файлы урока»** и вручную загрузил туда как минимум два asset-файла для второго урока. На момент проверки интерфейс показывает ограничение **25 МБ на файл**.
+Общий bulk write по-прежнему закрыт.
 
-Официальная справка Stepik на 14.09.2026 описывает `Файлы` как хранилище дополнительных материалов курса/урока; учащийся получает доступ к файлу только по ссылке, добавленной автором в шаг. Справка помечает функцию как доступную для платных курсов. Поэтому текущая фактическая доступность в черновике не считается гарантией, что функция сохранится после окончательной бесплатной публикации.
+## 2. Канонические источники и derived state
 
-## 2. Принцип автоматизации
+Learner-facing content берётся только из `main`, прежде всего из:
 
-Основной маршрут: официальный REST API Stepik.
+- `lesson.md`;
+- `stepik-plan.md`;
+- learner-facing assets;
+- утверждённых production документов Stepik.
 
-Цель v1 — автоматизировать минимум:
+Operational state разделён на три слоя:
 
-- чтение существующего курса;
-- чтение существующих модулей, уроков и шагов;
-- создание недостающих модулей M00–M08;
-- создание недостающих уроков из 21 канонического Lesson ID;
-- привязку уроков к нужным модулям через `unit`;
-- создание текстовых и поддерживаемых практических шагов;
-- сохранение порядка;
-- вставку внешних ссылок и ссылок на assets;
-- read-back verification после записи;
-- формирование non-secret карты `canonical ID → Stepik ID`.
+1. current machine state в Issue `#54`;
+2. immutable deployment/recovery history в derived branch `stepik-deployment-history-v1`;
+3. human-readable comments Issue `#54`.
 
-Автоматизация не должна создавать второй педагогический источник истины. Learner-facing содержание берётся из актуального `main`: `lesson.md`, `stepik-plan.md`, относящихся assets и утверждённых Stepik-production документов.
+Ни Issue, ни history branch не являются content source.
 
-## 3. Golden sample: два вручную созданных урока
+Подробности:
 
-Первые два вручную созданных урока являются эталоном платформенной реализации.
+- [`SYNC-POLICY.md`](SYNC-POLICY.md);
+- [`LIVE-SAFETY.md`](LIVE-SAFETY.md);
+- [`DEPLOYMENT-HISTORY.md`](DEPLOYMENT-HISTORY.md);
+- [`RECOVERY-RECONCILE.md`](RECOVERY-RECONCILE.md);
+- [`ownership-matrix.v1.json`](ownership-matrix.v1.json).
 
-До любой массовой записи uploader обязан:
+## 3. Golden sample
 
-1. получить `course_id` существующего курса;
-2. прочитать структуру курса через API;
-3. определить Stepik ID первых двух вручную созданных уроков;
-4. выгрузить их lesson/step-source/unit/section representation;
-5. сопоставить их с каноническими `M00-L01` и `M00-L02`;
-6. записать различия между ручной реализацией и предполагаемой генерацией;
-7. не изменять и не удалять эти два урока в первом production-run без отдельного явного режима.
+Первые два вручную созданных урока остаются платформенным эталоном:
 
-**Правило v1:** `M00-L01` и `M00-L02` по умолчанию `READ-ONLY / GOLDEN`. Массовая загрузка начинается с первого действительно отсутствующего урока.
+- `M00-L01`;
+- `M00-L02`.
 
-Если фактическая структура первых двух уроков показывает, что первоначальная модель uploader неверна, исправляется uploader, а не ручной эталон подгоняется под код.
+Обычный uploader/recovery не изменяет и не удаляет их. Если фактическая Stepik representation расходится с предположениями uploader, исправляется uploader, а не golden sample.
 
-## 4. Безопасная последовательность
+## 4. Безопасные режимы
 
-### Phase A — inspect only
+### Inspect / dry-run
 
-Только чтение Stepik API. Никаких POST/PUT/DELETE.
+Только чтение и локальная компиляция. POST/PUT/DELETE отсутствуют.
 
-Результат:
+### Bulk Status
 
-- course snapshot;
-- найденные sections/units/lessons/steps;
-- определение golden lessons;
-- список уже существующего контента;
-- список потенциальных конфликтов и дублей.
+`Stepik Bulk Status` читает весь курс и строит preflight для 21 canonical lessons. Даже зелёный preflight не устанавливает `ready_for_bulk_write=true` автоматически.
 
-### Phase B — compile
+Подробный контракт: [`BULK-STATUS.md`](BULK-STATUS.md).
 
-Из канонического `main` строится производный machine-readable build manifest.
+### Impact after merge
 
-Manifest обязан содержать как минимум:
+Push в `main` не пишет в Stepik. Workflow:
 
-- Module ID и позицию;
-- Lesson ID, learner-facing title и позицию;
-- Step position;
-- Stepik block type;
-- learner-facing body/source;
-- Exercise/Check ID, если относится к шагу;
-- Asset ID и требуемую ссылку;
-- признак hidden/author-only content, который запрещено публиковать в learner route;
-- признак independent/F1-sensitive step.
+- строит before/after dependency graph;
+- определяет direct/shared learner impact;
+- обновляет PENDING Issue `#54` через compare-before-PATCH guard.
 
-Manifest является derived artifact и не редактируется как независимый master.
+Unknown/ambiguous learner dependency = `STOP`.
 
-### Phase C — dry-run
+### `sync-status`
 
-Uploader показывает все будущие изменения без записи:
+Live read-only проверка pilot target против canonical desired state и confirmed baseline.
 
-- что будет создано;
-- что будет переиспользовано;
-- что будет пропущено;
-- где не хватает asset URL;
-- где тип Stepik-шагов не удалось однозначно сопоставить;
-- где обнаружен конфликт с уже существующим контентом.
+### `sync-reconcile`
 
-Любой неоднозначный destructive/update case = STOP, а не автоматическое исправление.
+Live **read-only** route для сопоставления:
 
-### Phase D — skeleton
+- current `main`;
+- current machine state;
+- fresh live Stepik;
+- immutable deployment history.
 
-Создаются только недостающие modules/lessons/units, без массового наполнения шагами, если asset route ещё не подтверждён.
+Reconcile классифицирует provenance и допустимое действие, но сам не пишет в Stepik и не делает automatic rebaseline.
 
-Это особенно полезно для `Файлов урока`: после появления реального Lesson ID можно либо загрузить туда файлы через подтверждённый технический маршрут, либо загрузить их вручную и собрать URL-map.
+### `sync-changed`
 
-### Phase E — assets
+Единственный текущий exploitation write route для pilot `M02-L01`.
 
-См. отдельный раздел ниже.
+Требует owner dispatch, `confirm_write`, current-main guard, live mutex, baseline/history checks и verified read-back.
 
-### Phase F — content
+## 5. Durable deployment history
 
-Создаются шаги только после того, как необходимые asset URL разрешены и проверены.
+До каждого внешнего Stepik write automation сохраняет `WRITE_INTENT` в derived operational history.
 
-### Phase G — read-back verification
+Для logical event сохраняются минимум:
 
-После записи uploader повторно читает курс и проверяет минимум:
+- stable event ID;
+- canonical object/kind;
+- source SHA;
+- workflow/run identity;
+- state/baseline before;
+- desired fingerprint;
+- Stepik object IDs;
+- per-operation intent/result/read-back;
+- final read-back;
+- failure/recovery reason;
+- machine-state commit.
 
-- 9 модулей M00–M08;
-- все 21 Lesson ID сопоставлены ровно одному Stepik lesson;
-- позиции модулей и уроков;
-- ожидаемое число шагов;
-- типы шагов;
-- наличие обязательных ссылок;
-- отсутствие публикации author-only материалов;
-- отсутствие изменения golden lessons, если режим этого не разрешал.
+History record append-only: identical retry является no-op, попытка переписать тот же record другим payload блокируется.
 
-Это техническая проверка переноса, а не Human Validation.
+## 6. Partial-write recovery
 
-## 5. Asset route: Stepik «Файлы» и fallback
+Blind write retry запрещён.
 
-### Route S — Stepik Files, предпочтительный при фактической доступности
+Основные случаи:
 
-Владелец уже подтвердил через UI, что `Файлы урока` доступны в текущем курсе, и вручную загрузил туда материалы.
+- write не начинался: normal route возможен только если guards всё ещё подтверждены;
+- final Stepik state уже verified, но Issue PATCH не состоялся: разрешён state-only recovery с `0` повторных Stepik writes;
+- partial prefix verified и fresh live точно совпадает с last confirmed intermediate fingerprint: можно продолжить только remaining operations;
+- timeout/network/HTTP 5xx с неизвестным server-side outcome: `WRITE_AMBIGUOUS`, STOP;
+- failed read-back: state не считается confirmed;
+- manual change после automation residue: owner decision;
+- новый `main` после начала event: old event не может закрыть новый pending.
 
-Приоритет реализации:
+## 7. Pending и baseline
 
-1. automation-чат проверяет, существует ли стабильный поддерживаемый API-маршрут загрузки lesson/course files;
-2. если да — реализует upload + получает итоговый Stepik URL;
-3. если официальная API-документация не покрывает upload, но фактический web-request можно воспроизводимо определить без обхода защиты и хрупкого UI-hack, такой маршрут сначала документируется и отдельно тестируется на одном безопасном asset;
-4. если стабильный программный upload не подтверждён, uploader **не выдумывает endpoint**.
+Issue `#54` использует sync state schema v2.
 
-В последнем случае используется skeleton-first:
+На Lesson ID существует один active pending object. Повторный merge:
 
-- uploader создаёт Lesson ID;
-- владелец загружает нужные файлы через `Настройки урока → Файлы`;
-- владелец/automation собирает полученные ссылки;
-- ссылки записываются в non-secret `asset-url-map`;
-- uploader создаёт learner-facing шаги с этими ссылками.
+- сохраняет `first_pending_sha/at`;
+- обновляет `latest_pending_sha/at`;
+- объединяет `source_paths/reason_codes`.
 
-Типичный URL Stepik attachment может иметь вид `/media/attachments/...`, но конкретный URL всегда берётся из фактического результата Stepik, а не конструируется по догадке.
+Pending закрывается только после:
 
-### Route Y — внешнее хранилище
+- `APPLIED`; или
+- `NOOP_CONFIRMED`.
 
-Если `Файлы` перестанут работать в бесплатном курсе или окажутся непригодны для автоматизации, используется внешнее стабильное хранилище, первоначальный кандидат — Яндекс.Диск.
+`APPLIED` обновляет baseline только после final verified read-back. `NOOP_CONFIRMED` не выполняет фиктивный write.
 
-Требования к fallback URL:
+## 8. Race guarantees
 
-- ученик открывает/скачивает материал без платной подписки;
-- не нужен VPN;
-- нет требования зарубежной карты;
-- ссылка проверена в незалогиненном/обычном пользовательском режиме;
-- URL не раскрывает author-only материалы;
-- ссылка сохранена в `asset-url-map` по каноническому Asset ID.
+Сохраняются одновременно:
 
-Переезд Stepik Files → Yandex Disk не меняет Asset ID и педагогический контракт урока.
+- fresh current-main guard;
+- единый mutex `stepik-live-course-299189`;
+- durable write-ahead history;
+- per-operation и final read-back;
+- Issue state guard `read expected → re-read current → compare → PATCH only if unchanged`;
+- `MACHINE_STATE_COMMITTED` только после успешного current-state PATCH.
 
-## 6. `asset-url-map`
+Unknown state = `STOP`.
 
-Рекомендуемый формат производной карты:
+## 9. API write policy
+
+Автоматический write retry отсутствует.
+
+Write result классифицируется так:
+
+- known failure: failed operation;
+- timeout/network failure/HTTP 5xx/неоднозначный response: ambiguous outcome;
+- HTTP success без подтверждённого read-back: не confirmed deployment.
+
+`DELETE` не реализуется и не разрешается recovery route.
+
+## 10. Asset route
+
+Предпочтительный route для assets остаётся Stepik Files, если он фактически и стабильно доступен.
+
+Если стабильный upload API не подтверждён, automation не выдумывает endpoint. Используется skeleton/manual upload + non-secret Asset ID → URL map.
+
+Fallback может использовать внешнее стабильное хранилище при условии, что ученик получает материал без специальных технических требований.
+
+Asset URL никогда не конструируется по догадке.
+
+## 11. Derived asset URL map
+
+Карта Asset ID → фактический URL является derived operational data. Если URL неизвестен, поле не заполняется фиктивным значением, а зависимый content route блокируется.
+
+Пример структуры:
 
 ```yaml
 M00-L02-A01:
@@ -176,91 +200,52 @@ M00-L02-A01:
   lesson_id: 123456
   url: https://stepik.org/media/attachments/lesson/123456/M00-L02-A01.docx
   checked_at: 2026-09-14
-
-M00-L02-A02:
-  storage: stepik-lesson-file
-  lesson_id: 123456
-  url: https://stepik.org/media/attachments/lesson/123456/M00-L02-A02.png
-  checked_at: 2026-09-14
 ```
 
-Если URL неизвестен, поле не заполняется фиктивным значением. Content phase для шага, требующего этот asset, блокируется.
+## 12. Защита от дублей и destructive behavior
 
-## 7. Idempotency и защита от дублей
+- существующие canonical mappings переиспользуются только при однозначном доказательстве;
+- второй объект при неоднозначном совпадении не создаётся;
+- existing manual/golden content автоматически не перезаписывается;
+- structural divergence блокируется;
+- `DELETE` запрещён;
+- destructive rollback запрещён;
+- unknown live provenance не принимается как baseline автоматически.
 
-Uploader обязан быть повторно запускаемым.
+## 13. Ownership
 
-Минимальные правила:
+Machine-checkable [`ownership-matrix.v1.json`](ownership-matrix.v1.json) задаёт для обязательных event classes:
 
-- перед созданием объекта читать текущее состояние;
-- не создавать второй M00, если M00 уже существует и однозначно идентифицирован;
-- не создавать второй Lesson для уже mapped canonical Lesson ID;
-- не удалять существующие Stepik objects автоматически;
-- `DELETE` в v1 запрещён;
-- update существующего вручную созданного урока запрещён по умолчанию;
-- любые неоднозначные совпадения прекращают run с отчётом;
-- после каждого write делать read-back check.
+- source of truth;
+- detection/initiation/execution owner;
+- approval;
+- retry/partial/reconcile/rebaseline policy;
+- mandatory STOP;
+- required evidence;
+- machine-state mutation;
+- history event.
 
-## 8. Секреты
+Матрица не является списком содержания курса.
 
-Никогда не хранить в Git:
+## 14. Что требуется от владельца
 
-- Stepik `client_secret`;
-- access token;
-- cookies;
-- пароли;
-- invitation/tester tokens.
+От владельца нужны только действия, которые automation не может или не должна принимать сама:
 
-Для OAuth использовать официальный Stepik OAuth2 flow. Для владельца предпочтительны два режима исполнения:
+- явный запуск live write route;
+- owner decision при ambiguous/manual/unknown provenance;
+- отдельное решение для golden/structural/adoption cases;
+- ручная asset upload процедура, если стабильный API route отсутствует;
+- финальный human visual review там, где он требуется production-процессом.
 
-1. **GitHub Actions** — `STEPIC_CLIENT_ID` и `STEPIC_CLIENT_SECRET` лежат только в repository Actions secrets; запуск через `workflow_dispatch`;
-2. **локальный CLI** — секреты читаются из environment / `.env`, а `.env` находится в `.gitignore`.
+Чувствительные данные не передаются в чат и не фиксируются в deployment history.
 
-Для нетехнического владельца GitHub Actions предпочтительнее после первоначальной настройки.
-
-## 9. Что требуется от владельца
-
-Automation-чат должен запрашивать только действия, которые нельзя выполнить из GitHub-кода самостоятельно.
-
-Нужно получить:
-
-- обычный URL курса Stepik или `course_id` — **не секрет**;
-- подтверждение, что два вручную созданных первых урока — действительно первые два канонических урока либо указание их фактических Stepik Lesson ID;
-- создание OAuth application Stepik от аккаунта владельца;
-- помещение `client_id` / `client_secret` в GitHub Actions Secrets либо локальный `.env` — **не присылать секреты в чат**;
-- при отсутствии рабочего API для `Файлов`: ручную загрузку конкретно перечисленных assets после skeleton phase и возврат только обычных file URLs;
-- финальный визуальный просмотр тестово загруженного урока в Stepik.
-
-## 10. Acceptance v1
-
-Автоматизация v1 считается технически готовой к массовому переносу только если одновременно:
-
-1. inspect читает существующий курс без записи;
-2. два golden lessons корректно распознаны;
-3. dry-run не создаёт дублей;
-4. тестовый create выполняется на одном ещё отсутствующем уроке либо на специально созданном throwaway lesson;
-5. read-back совпадает с build manifest;
-6. asset route проверен хотя бы на одном реальном файле или явно переключён в manual URL-map mode;
-7. rerun не создаёт новые дубли;
-8. author-only/F1-sensitive content не попадает в learner-facing маршрут;
-9. после adversarial audit нет blocking findings.
-
-После этого можно переносить оставшиеся уроки пакетно.
-
-## 11. Что этот документ НЕ разрешает
+## 15. Что этот контур не разрешает
 
 - перепроектировать курс под удобство API;
-- менять Lesson/Exercise/Check/Asset IDs;
-- превращать практическое действие во фальшивый quiz ради простоты импорта;
+- менять canonical IDs;
+- превращать практику во фальшивый quiz;
 - публиковать author-only recovery/rubric заранее;
-- изменять F1;
-- считать API read-back человеческой валидацией;
-- считать успешный upload доказательством PHONE/COMPUTER readiness.
-
-## 12. Текущий all-course preflight
-
-После доказанного write/read-back/idempotency pilot для `M02-L01` добавлен отдельный workflow **`Stepik Bulk Status`**. Его задача — перед general compiler прочитать фактическое состояние всех 21 уроков и собрать единый preflight без Stepik writes.
-
-Подробный контракт: [`BULK-STATUS.md`](BULK-STATUS.md).
-
-`bulk-status` фиксирует golden lessons, tracked baseline для уже управляемого контента, skeleton lessons, stale title, sensitive/F1 gates и source SHA-256 learner-facing assets. Даже при успешном результате `ready_for_bulk_write` остаётся `false`: массовая запись не открывается до general content compiler, разрешения asset URL/inline route и отдельного аудита write-path.
+- менять F1;
+- считать API read-back Human Validation;
+- считать successful upload доказательством PHONE/COMPUTER readiness;
+- разблокировать общий bulk write одним успешным pilot/recovery result.

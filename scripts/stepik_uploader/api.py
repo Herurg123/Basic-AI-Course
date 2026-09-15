@@ -11,6 +11,10 @@ class StepikAPIError(RuntimeError):
     """Ошибка обращения к Stepik API без утечки секретов."""
 
 
+class StepikWriteAmbiguousError(StepikAPIError):
+    """Write мог быть применён server-side, но клиент не может это доказать."""
+
+
 @dataclass(frozen=True)
 class RetryPolicy:
     attempts: int = 4
@@ -94,20 +98,38 @@ class StepikClient:
         raise StepikAPIError(f"GET {path}: Stepik вернул HTTP {last_status}")
 
     def _request_write(self, method: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """Write-запрос намеренно не ретраится: повтор POST может создать дубль."""
+        """Write намеренно не ретраится.
+
+        Network failure и HTTP 5xx после отправки считаются неоднозначными: сервер мог
+        зафиксировать изменение до потери ответа. Такой результат требует read-back/reconcile.
+        """
         if method not in {"POST", "PUT"}:
             raise ValueError(f"Неподдерживаемый write method: {method}")
         url = f"{self.api_host}{path}"
-        response = self.session.request(
-            method,
-            url,
-            headers=self.headers,
-            json=payload,
-            timeout=30,
-        )
+        try:
+            response = self.session.request(
+                method,
+                url,
+                headers=self.headers,
+                json=payload,
+                timeout=30,
+            )
+        except requests.RequestException as exc:
+            raise StepikWriteAmbiguousError(
+                f"{method} {path}: network result неоднозначен; blind retry запрещён"
+            ) from exc
+        if response.status_code >= 500:
+            raise StepikWriteAmbiguousError(
+                f"{method} {path}: HTTP {response.status_code}; server-side commit не доказан и не опровергнут"
+            )
         if response.status_code >= 400:
             raise StepikAPIError(f"{method} {path}: Stepik вернул HTTP {response.status_code}")
-        return self._json(response, f"{method} {path}")
+        try:
+            return self._json(response, f"{method} {path}")
+        except StepikAPIError as exc:
+            raise StepikWriteAmbiguousError(
+                f"{method} {path}: успешный HTTP без доказуемого JSON result; требуется read-back/reconcile"
+            ) from exc
 
     def fetch_one(self, resource: str, object_id: int) -> dict[str, Any]:
         collection = resource
@@ -160,7 +182,6 @@ class StepikClient:
         lesson_by_id = {int(lesson["id"]): lesson for lesson in lessons}
 
         step_ids = [int(step_id) for lesson in lessons for step_id in lesson.get("steps", [])]
-        # /api/steps содержит платформенное представление, /api/step-sources — редактируемый source.
         steps = self.fetch_many("steps", step_ids) if step_ids else []
         step_sources = self.fetch_many("step-sources", step_ids) if step_ids else []
         step_by_id = {int(step["id"]): step for step in steps}
@@ -214,7 +235,6 @@ class StepikClient:
             "sections": normalized_sections,
         }
 
-    # Структурные create-методы остаются закрытыми CLI этой фазы.
     def create_lesson(self, title: str) -> dict[str, Any]:
         return self._request_write("POST", "/api/lessons", {"lesson": {"title": title}})
 
