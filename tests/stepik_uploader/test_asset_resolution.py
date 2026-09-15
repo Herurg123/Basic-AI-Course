@@ -36,12 +36,13 @@ class AssetResolutionTests(unittest.TestCase):
             course_id=299189,
         )
 
-    def test_current_course_has_one_explicit_external_prerequisite(self) -> None:
+    def test_current_course_asset_route_gate_is_fully_resolved(self) -> None:
         report = self._assess()
-        self.assertFalse(report["route_gate_passed"])
+        self.assertTrue(report["route_gate_passed"])
         self.assertFalse(report["ready_for_bulk_write"])
-        self.assertEqual(report["next_gate"], "asset-publication-resolution")
+        self.assertEqual(report["next_gate"], "verified-rendering-and-first-upload")
         self.assertEqual(report["stepik_writes"], 0)
+        self.assertEqual(report["decision"], "D-2026-09-15-STEPIK-ATTACHMENTS")
         self.assertEqual(
             report["topology"]["fingerprint"],
             "sha256:ecbb9f9b8426c5bd4bba9f07816ab0e647022c13c0f38b4c29d9debd6096c20d",
@@ -50,27 +51,23 @@ class AssetResolutionTests(unittest.TestCase):
             report["summary"],
             {
                 "learner_link_occurrences": 49,
-                "resolved_occurrences": 48,
-                "unresolved_occurrences": 1,
+                "resolved_occurrences": 49,
+                "unresolved_occurrences": 0,
                 "unique_source_files": 43,
-                "resolved_unique_source_files": 42,
-                "unresolved_unique_source_files": 1,
-                "materialization_required_unique_files": 4,
+                "resolved_unique_source_files": 43,
+                "unresolved_unique_source_files": 0,
+                "materialization_required_unique_files": 5,
                 "modes_by_occurrence": {
                     "confirmed-url": 2,
-                    "download-url-required": 1,
                     "inline-source": 42,
                     "rasterize-png-stepik-image": 2,
+                    "stepik-attachment-upload": 1,
                     "stepik-image-upload": 2,
                 },
             },
         )
-        self.assertEqual(
-            report["unresolved_sources"],
-            ["05_assets/M04/M04-L01/M04-L01-A01.txt"],
-        )
-        self.assertEqual(len(report["blockers"]), 1)
-        self.assertIn("mandatory-real-file-upload-practice", report["blockers"][0])
+        self.assertEqual(report["unresolved_sources"], [])
+        self.assertEqual(report["blockers"], [])
 
     def test_full_graph_contains_non_asset_help_and_nested_dependency(self) -> None:
         report = self._assess()
@@ -149,10 +146,40 @@ class AssetResolutionTests(unittest.TestCase):
             {
                 "05_assets/M03/M03-L02/M03-L02-A03-alice.png": "stepik-image-upload",
                 "05_assets/M03/M03-L02/M03-L02-A03.png": "stepik-image-upload",
+                "05_assets/M04/M04-L01/M04-L01-A01.txt": "stepik-attachment-upload",
                 "05_assets/M04/M04-L02/M04-L02-A02.svg": "rasterize-png-stepik-image",
                 "05_assets/M05/M05-L01/M05-L01-A02.svg": "rasterize-png-stepik-image",
             },
         )
+
+    def test_txt_real_file_route_uses_owner_approved_stepik_attachment_capability(self) -> None:
+        report = self._assess()
+        item = next(
+            row for row in report["resolutions"]
+            if row["source_path"] == "05_assets/M04/M04-L01/M04-L01-A01.txt"
+        )
+        self.assertEqual(item["mode"], "stepik-attachment-upload")
+        self.assertEqual(item["capability"], "stepik_attachment_upload")
+        self.assertEqual(item["binding_scope"], "owner-approved-working-assumption")
+        self.assertTrue(item["route_resolved"])
+        self.assertTrue(item["materialization_required_at_write"])
+        self.assertTrue(item["source_sha256"].startswith("sha256:"))
+
+    def test_attachment_route_requires_explicit_approved_capability(self) -> None:
+        policy = copy.deepcopy(self.policy)
+        del policy["capability_assumptions"]["stepik_attachment_upload"]
+        with self.assertRaisesRegex(AssetResolutionError, "capability assumption"):
+            self._assess(policy=policy)
+
+    def test_attachment_route_cannot_be_enabled_as_blanket_extension_rule(self) -> None:
+        policy = copy.deepcopy(self.policy)
+        del policy["source_overrides"]["05_assets/M04/M04-L01/M04-L01-A01.txt"]
+        policy["extension_rules"][".txt"] = {
+            "mode": "stepik-attachment-upload",
+            "capability": "stepik_attachment_upload",
+        }
+        with self.assertRaisesRegex(AssetResolutionError, "только точным source_override"):
+            self._assess(policy=policy)
 
     def test_topology_drift_fails_closed(self) -> None:
         inventory = copy.deepcopy(self.inventory)
@@ -163,7 +190,8 @@ class AssetResolutionTests(unittest.TestCase):
     def test_stale_override_fails_closed(self) -> None:
         policy = copy.deepcopy(self.policy)
         policy["source_overrides"]["05_assets/DOES-NOT-EXIST.txt"] = {
-            "mode": "download-url-required"
+            "mode": "stepik-attachment-upload",
+            "capability": "stepik_attachment_upload",
         }
         with self.assertRaisesRegex(AssetResolutionError, "stale source_overrides"):
             self._assess(policy=policy)
