@@ -5,7 +5,7 @@ import re
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
 from .fingerprints import (
@@ -15,7 +15,8 @@ from .fingerprints import (
     live_lesson_payload,
 )
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+PREVIOUS_SCHEMA_VERSION = 2
 LEGACY_SCHEMA_VERSION = 1
 FINGERPRINT_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -51,6 +52,7 @@ def empty_state(course_id: int) -> dict[str, Any]:
         "course_id": int(course_id),
         "updated_at": None,
         "lessons": {},
+        "assets": {},
         "pending": empty_pending(),
     }
 
@@ -81,6 +83,21 @@ def _sha(value: Any, *, field: str) -> str:
     return value
 
 
+def _fingerprint(value: Any, *, field: str) -> str:
+    if not isinstance(value, str) or not FINGERPRINT_RE.fullmatch(value):
+        raise SyncStateError(f"{field}: ожидается sha256 fingerprint")
+    return value
+
+
+def _asset_path(value: Any, *, field: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise SyncStateError(f"{field}: ожидается непустой repo-relative source path")
+    path = PurePosixPath(value)
+    if path.is_absolute() or any(part == ".." for part in path.parts):
+        raise SyncStateError(f"{field}: source path должен оставаться внутри репозитория")
+    return str(path)
+
+
 def _baseline_ref(record: dict[str, Any] | None, *, canonical_id: str) -> dict[str, Any] | None:
     if record is None:
         return None
@@ -103,8 +120,8 @@ def _validate_baseline_ref(value: Any, *, field: str) -> None:
     if not isinstance(value.get("stepik_lesson_id"), int):
         raise SyncStateError(f"{field}: отсутствует stepik_lesson_id baseline")
     fingerprint = value.get("applied_fingerprint")
-    if fingerprint is not None and (not isinstance(fingerprint, str) or not FINGERPRINT_RE.fullmatch(fingerprint)):
-        raise SyncStateError(f"{field}: некорректный applied_fingerprint baseline")
+    if fingerprint is not None:
+        _fingerprint(fingerprint, field=f"{field}.applied_fingerprint")
     applied_sha = value.get("applied_source_sha")
     if applied_sha is not None:
         _sha(applied_sha, field=f"{field}.applied_source_sha")
@@ -139,11 +156,35 @@ def _validate_pending_record(record: Any, *, object_id: str, kind: str) -> None:
     _validate_baseline_ref(record.get("confirmed_baseline_ref"), field=object_id)
 
 
+def _validate_asset_record(record: Any, *, source_path: str) -> None:
+    if not isinstance(record, dict):
+        raise SyncStateError(f"assets.{source_path}: asset baseline должен быть object")
+    normalized_path = _asset_path(source_path, field=f"assets.{source_path}")
+    if record.get("source_path") != normalized_path:
+        raise SyncStateError(f"assets.{source_path}: source_path внутри record не совпадает с ключом")
+    _fingerprint(record.get("source_sha256"), field=f"assets.{source_path}.source_sha256")
+    url = record.get("url")
+    if not isinstance(url, str) or not url.startswith("https://"):
+        raise SyncStateError(f"assets.{source_path}.url: ожидается абсолютный https URL")
+    if not isinstance(record.get("storage"), str) or not record.get("storage"):
+        raise SyncStateError(f"assets.{source_path}.storage: ожидается непустая строка")
+    if not isinstance(record.get("stepik_attachment_id"), int):
+        raise SyncStateError(f"assets.{source_path}: отсутствует stepik_attachment_id")
+    if not isinstance(record.get("stepik_lesson_id"), int):
+        raise SyncStateError(f"assets.{source_path}: отсутствует stepik_lesson_id")
+    if not isinstance(record.get("filename"), str) or not record.get("filename"):
+        raise SyncStateError(f"assets.{source_path}: отсутствует filename")
+    size = record.get("size")
+    if not isinstance(size, int) or size < 0:
+        raise SyncStateError(f"assets.{source_path}.size: ожидается неотрицательный integer")
+    _timestamp(record.get("materialized_at"), field=f"assets.{source_path}.materialized_at")
+
+
 def validate_state(payload: Any, *, course_id: int) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise SyncStateError("Stepik sync state должен быть JSON object")
     version = payload.get("schema_version")
-    if version not in {LEGACY_SCHEMA_VERSION, SCHEMA_VERSION}:
+    if version not in {LEGACY_SCHEMA_VERSION, PREVIOUS_SCHEMA_VERSION, SCHEMA_VERSION}:
         raise SyncStateError(f"Неподдерживаемая schema_version sync state: {version!r}")
     try:
         state_course_id = int(payload.get("course_id", -1))
@@ -154,8 +195,10 @@ def validate_state(payload: Any, *, course_id: int) -> dict[str, Any]:
 
     state = deepcopy(payload)
     if version == LEGACY_SCHEMA_VERSION:
-        state["schema_version"] = SCHEMA_VERSION
         state["pending"] = empty_pending()
+    if version in {LEGACY_SCHEMA_VERSION, PREVIOUS_SCHEMA_VERSION}:
+        state["assets"] = {}
+        state["schema_version"] = SCHEMA_VERSION
 
     lessons = state.get("lessons")
     if not isinstance(lessons, dict):
@@ -165,14 +208,20 @@ def validate_state(payload: Any, *, course_id: int) -> dict[str, Any]:
             raise SyncStateError("Некорректная запись lessons в sync state")
         if record.get("canonical_id") not in {None, canonical_id}:
             raise SyncStateError(f"{canonical_id}: canonical_id внутри record не совпадает с ключом")
-        fingerprint = record.get("applied_fingerprint")
-        if not isinstance(fingerprint, str) or not FINGERPRINT_RE.fullmatch(fingerprint):
-            raise SyncStateError(f"{canonical_id}: некорректный applied_fingerprint")
+        _fingerprint(record.get("applied_fingerprint"), field=f"{canonical_id}.applied_fingerprint")
         if not isinstance(record.get("stepik_lesson_id"), int):
             raise SyncStateError(f"{canonical_id}: отсутствует stepik_lesson_id")
         step_ids = record.get("step_ids")
         if step_ids is not None and (not isinstance(step_ids, list) or any(not isinstance(value, int) for value in step_ids)):
             raise SyncStateError(f"{canonical_id}: step_ids должны быть списком integer")
+
+    assets = state.get("assets")
+    if not isinstance(assets, dict):
+        raise SyncStateError("В sync state отсутствует assets object")
+    for source_path, record in assets.items():
+        if not isinstance(source_path, str):
+            raise SyncStateError("Некорректный ключ assets")
+        _validate_asset_record(record, source_path=source_path)
 
     pending = state.get("pending")
     if not isinstance(pending, dict):
@@ -192,6 +241,11 @@ def validate_state(payload: Any, *, course_id: int) -> dict[str, Any]:
 
 def baseline_for(state: dict[str, Any], canonical_id: str) -> dict[str, Any] | None:
     record = state.get("lessons", {}).get(canonical_id)
+    return record if isinstance(record, dict) else None
+
+
+def asset_binding_for(state: dict[str, Any], source_path: str) -> dict[str, Any] | None:
+    record = state.get("assets", {}).get(source_path)
     return record if isinstance(record, dict) else None
 
 
@@ -329,4 +383,12 @@ def with_record(state: dict[str, Any], *, canonical_id: str, record: dict[str, A
     next_state = deepcopy(validate_state(state, course_id=int(state["course_id"])))
     next_state.setdefault("lessons", {})[canonical_id] = record
     next_state["updated_at"] = record.get("applied_at")
-    return next_state
+    return validate_state(next_state, course_id=int(next_state["course_id"]))
+
+
+def with_asset_record(state: dict[str, Any], *, source_path: str, record: dict[str, Any]) -> dict[str, Any]:
+    normalized_path = _asset_path(source_path, field="source_path")
+    next_state = deepcopy(validate_state(state, course_id=int(state["course_id"])))
+    next_state.setdefault("assets", {})[normalized_path] = deepcopy(record)
+    next_state["updated_at"] = record.get("materialized_at")
+    return validate_state(next_state, course_id=int(next_state["course_id"]))
