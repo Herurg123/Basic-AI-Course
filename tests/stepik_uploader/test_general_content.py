@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 from pathlib import Path
 
@@ -34,6 +35,28 @@ class GeneralContentCompilerTests(unittest.TestCase):
                 if lesson["canonical_id"] == lesson_id:
                     return lesson
         self.fail(f"lesson not found: {lesson_id}")
+
+    def test_alignment_audit_snapshot(self) -> None:
+        audit = []
+        for lesson_id in self.lesson_ids:
+            audit.append(
+                {
+                    "canonical_id": lesson_id,
+                    "steps": [
+                        {
+                            "position": step.position,
+                            "block": step.block_name,
+                            "headings": list(step.source_headings),
+                            "exercise_ids": list(step.exercise_ids),
+                            "check_ids": list(step.check_ids),
+                            "chunks": list(step.source_chunk_indexes),
+                        }
+                        for step in self.compiled[lesson_id]
+                    ],
+                }
+            )
+        print("GENERAL_COMPILER_ALIGNMENT=" + json.dumps(audit, ensure_ascii=False, separators=(",", ":")))
+        self.assertEqual(len(audit), 21)
 
     def test_all_21_lessons_compile_and_author_only_rows_are_excluded(self) -> None:
         self.assertEqual(len(self.lesson_ids), 21)
