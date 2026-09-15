@@ -125,6 +125,15 @@ def plan_replacement_put(
     )
 
 
+def dispatch_replacement_put(client: Any, plan: ReplacementPlan) -> None:
+    """Единственная write-фаза: никаких GET/OPTIONS после WAL dispatch boundary."""
+    client._request_write(
+        "PUT",
+        f"/api/{plan.resource}/{plan.object_id}",
+        plan.payload,
+    )
+
+
 def execute_replacement_put(
     client: Any,
     *,
@@ -133,6 +142,7 @@ def execute_replacement_put(
     changes: dict[str, Any],
     required_preserved_fields: Iterable[str] = (),
 ) -> ReplacementPlan:
+    """Удобный wrapper для routes без собственного WAL; guarded writers используют plan+dispatch."""
     plan = plan_replacement_put(
         client,
         resource=resource,
@@ -140,9 +150,5 @@ def execute_replacement_put(
         changes=changes,
         required_preserved_fields=required_preserved_fields,
     )
-    client._request_write(
-        "PUT",
-        f"/api/{resource}/{plan.object_id}",
-        plan.payload,
-    )
+    dispatch_replacement_put(client, plan)
     return plan
