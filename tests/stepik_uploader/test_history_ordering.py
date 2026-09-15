@@ -52,14 +52,25 @@ def committed_event(store: MemoryHistoryStore, ident: EventIdentity, fingerprint
         "step_ids": [101],
         "source_git_paths": ["lesson.md"],
     }
+    before = ident.baseline_fingerprint_before or fingerprint
     recorder.ensure_started(
         operation_type="lesson-content-sync",
         state_before={"applied_fingerprint": ident.baseline_fingerprint_before},
         expected_state={"desired_fingerprint": ident.desired_fingerprint},
         stepik_object_ids={"lesson_id": 10, "step_ids": [101]},
-        fingerprint_before=ident.baseline_fingerprint_before or fingerprint,
+        fingerprint_before=before,
         started_at=committed_at,
     )
+    recorder.write_intent(
+        operation_id="step-0001-101",
+        method="PUT",
+        target="step-sources/101",
+        fingerprint_before=before,
+        expected_fingerprint_after=fingerprint,
+    )
+    recorder.write_dispatch_started(operation_id="step-0001-101")
+    recorder.write_result(operation_id="step-0001-101", status="COMPLETED")
+    recorder.operation_readback(operation_id="step-0001-101", expected_fingerprint_after=fingerprint)
     recorder.final_readback(
         fingerprint_after=fingerprint,
         stepik_object_ids={"lesson_id": 10, "step_ids": [101]},
