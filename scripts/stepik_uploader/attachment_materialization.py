@@ -125,6 +125,18 @@ def file_sha256_bytes(content: bytes) -> str:
     return "sha256:" + hashlib.sha256(content).hexdigest()
 
 
+def _attachment_listing_payload(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = [
+        {
+            "id": int(item.get("id", -1)),
+            "name": str(item.get("name") or ""),
+            "size": int(item.get("size", -1)),
+        }
+        for item in items
+    ]
+    return sorted(rows, key=lambda item: (item["id"], item["name"], item["size"]))
+
+
 def materialize_attachment(
     client: Any,
     *,
@@ -160,16 +172,7 @@ def materialize_attachment(
             "filename": source_file.name,
         },
         stepik_object_ids={"lesson_id": int(stepik_lesson_id)},
-        fingerprint_before=canonical_hash(
-            sorted(
-                {
-                    "id": int(item.get("id", -1)),
-                    "name": str(item.get("name") or ""),
-                    "size": int(item.get("size", -1)),
-                }
-                for item in before
-            )
-        ),
+        fingerprint_before=canonical_hash(_attachment_listing_payload(before)),
     )
 
     if existing is not None:
@@ -197,9 +200,7 @@ def materialize_attachment(
         operation_id=operation_id,
         method="POST",
         target="attachments",
-        fingerprint_before=canonical_hash(
-            sorted(int(item["id"]) for item in before if "id" in item)
-        ),
+        fingerprint_before=canonical_hash(_attachment_listing_payload(before)),
         expected_fingerprint_after=expected_source_sha256,
     )
     recorder.write_dispatch_started(operation_id=operation_id)
