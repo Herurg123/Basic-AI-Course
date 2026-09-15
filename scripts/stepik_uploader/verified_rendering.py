@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from .content import CompiledStep
 from .general_content import CompiledSourceStep
-from .rendering import render_markdown
+from .rendering import markdown_to_html
 
 LOCAL_LINK_RE = re.compile(r"\[([^\]]+)\]\((?!https?://|mailto:|#)([^)]+)\)")
 H1_RE = re.compile(r"(?m)^#\s+(.+?)\s*$")
@@ -244,7 +244,7 @@ def build_rendering_plan(
             raise VerifiedRenderingError(
                 f"{lesson_id}: после local dependency adaptation осталась repo-relative ссылка"
             )
-        html = render_markdown(rewritten, asset_url_map={}).strip()
+        html = markdown_to_html(rewritten).strip()
         if not html:
             raise VerifiedRenderingError(f"{lesson_id}: step {source_step.position} rendered в пустой HTML")
         source_paths = tuple(
