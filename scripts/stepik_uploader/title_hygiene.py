@@ -9,6 +9,13 @@ from .fingerprints import canonical_hash
 
 GOLDEN_LESSON_IDS = {"M00-L01", "M00-L02"}
 
+# Только доказанные production-предшественники текущих canonical titles.
+# Это не fuzzy matching: alias привязан к точному kind/canonical_id и полному live title.
+HISTORICAL_TITLE_ALIASES: dict[tuple[str, str], frozenset[str]] = {
+    ("lesson", "M06-L02"): frozenset({"M06-L02 — Проверьте исходные числа и расчет"}),
+    ("lesson", "M07-L01"): frozenset({"M07-L01 — Соберите освоенные действия в одну работу"}),
+}
+
 
 class TitleHygieneError(RuntimeError):
     pass
@@ -76,6 +83,13 @@ def _position_matches(items: list[dict[str, Any]], position: int) -> list[dict[s
     return [item for item in items if item.get("position") == position]
 
 
+def _accepted_legacy_titles(*, kind: str, canonical_id: str, expected_title: str) -> frozenset[str]:
+    return frozenset(
+        {legacy_title(canonical_id, expected_title)}
+        | set(HISTORICAL_TITLE_ALIASES.get((kind, canonical_id), frozenset()))
+    )
+
+
 def _classify_title(
     plan: TitleHygienePlan,
     *,
@@ -100,10 +114,14 @@ def _classify_title(
             }
         )
         return
-    legacy = legacy_title(canonical_id, expected_title)
-    if live_title != legacy:
+    accepted_legacy = _accepted_legacy_titles(
+        kind=kind,
+        canonical_id=canonical_id,
+        expected_title=expected_title,
+    )
+    if live_title not in accepted_legacy:
         plan.blockers.append(
-            f"{kind}:{canonical_id}: title drift не равен ни canonical title, ни точному legacy-prefix: {live_title!r}"
+            f"{kind}:{canonical_id}: title drift не равен canonical title или точному разрешённому legacy title: {live_title!r}"
         )
         return
     if golden_read_only:
@@ -132,10 +150,11 @@ def _classify_title(
 
 
 def plan_title_hygiene(manifest: dict[str, Any], snapshot: dict[str, Any]) -> TitleHygienePlan:
-    """Планирует только доказуемое удаление exact legacy ID-prefix.
+    """Планирует только доказуемое удаление exact legacy ID-prefix/approved historical title.
 
     Identity берётся из канонической section/unit position. Произвольный stale title не
     перезаписывается: такой случай блокирует route и требует разбора владельцем.
+    Historical alias допустим только как точная строка, явно привязанная к kind/canonical_id.
     Golden lesson title остаётся owner-only.
     """
     plan = TitleHygienePlan()
