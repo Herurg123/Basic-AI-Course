@@ -54,8 +54,8 @@ class GeneralContentCompilerTests(unittest.TestCase):
         compiled_rows = sum(len(steps) for steps in self.compiled.values())
 
         self.assertEqual(structural_rows, 150)
-        self.assertEqual(author_only_rows, 1)
-        self.assertEqual(compiled_rows, 149)
+        self.assertEqual(author_only_rows, 2)
+        self.assertEqual(compiled_rows, 148)
 
         for lesson_id, steps in self.compiled.items():
             learner_rows = [
