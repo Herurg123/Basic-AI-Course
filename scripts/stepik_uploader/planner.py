@@ -10,6 +10,7 @@ GOLDEN_IDS = ("M00-L01", "M00-L02")
 class PlanResult:
     operations: list[dict[str, Any]] = field(default_factory=list)
     blockers: list[str] = field(default_factory=list)
+    notices: list[dict[str, Any]] = field(default_factory=list)
     golden: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -56,12 +57,15 @@ def _title_matches(lesson: dict[str, Any], live_title: Any) -> bool:
     return isinstance(live_title, str) and live_title in _accepted_live_titles(lesson)
 
 
-def _same_id_prefix_but_title_drifted(lesson: dict[str, Any], live_title: Any) -> bool:
+def _has_stable_id_prefix(lesson: dict[str, Any], live_title: Any) -> bool:
     if not isinstance(live_title, str):
         return False
     canonical_id = str(lesson["canonical_id"])
-    prefix = f"{canonical_id} — "
-    return live_title.startswith(prefix) and live_title not in _accepted_live_titles(lesson)
+    return live_title.startswith(f"{canonical_id} — ")
+
+
+def _same_id_prefix_but_title_drifted(lesson: dict[str, Any], live_title: Any) -> bool:
+    return _has_stable_id_prefix(lesson, live_title) and not _title_matches(lesson, live_title)
 
 
 def _matching_live_lessons(lesson: dict[str, Any], live: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -76,11 +80,67 @@ def _drifted_id_candidates(lesson: dict[str, Any], live: list[dict[str, Any]]) -
     ]
 
 
+def _golden_identity_candidates(lesson: dict[str, Any], live: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Golden mapping отделён от canonical title equality.
+
+    Stable canonical ID в Stepik title остаётся достаточным identity-candidate, чтобы
+    законное изменение canonical title не превращало неизменный READ_ONLY golden в
+    глобальный blocker. Точная live integrity проверяется отдельно golden profile.
+    """
+    return [
+        item
+        for item in live
+        if _title_matches(lesson, item.get("lesson_title"))
+        or _has_stable_id_prefix(lesson, item.get("lesson_title"))
+    ]
+
+
 def _exact_position(module: dict[str, Any], lesson: dict[str, Any], live: dict[str, Any]) -> bool:
     return (
         live.get("section_position") == module["position"]
         and live.get("unit_position") == lesson["position"]
     )
+
+
+def _golden_canonical_notices(
+    manifest: dict[str, Any],
+    golden: dict[str, Any],
+) -> list[dict[str, Any]]:
+    canonical = {lesson["canonical_id"]: (module, lesson) for module, lesson in _canonical_lessons(manifest)}
+    notices: list[dict[str, Any]] = []
+    for canonical_id in GOLDEN_IDS:
+        if canonical_id not in golden or canonical_id not in canonical:
+            continue
+        _module, lesson = canonical[canonical_id]
+        live = golden[canonical_id]
+        reason_codes: list[str] = []
+        if not _title_matches(lesson, live.get("live_title")):
+            reason_codes.append("CANONICAL_GOLDEN_TITLE_DIFFERS_FROM_CONFIRMED_LIVE")
+        canonical_step_count = len(lesson.get("steps", []))
+        live_step_count = len(live.get("steps", []))
+        if canonical_step_count != live_step_count:
+            reason_codes.append("CANONICAL_GOLDEN_STEP_COUNT_DIFFERS_FROM_CONFIRMED_LIVE")
+        if not reason_codes:
+            continue
+        notices.append(
+            {
+                "classification": "GOLDEN_OWNER_REQUIRED",
+                "scope": "golden-canonical-divergence",
+                "canonical_id": canonical_id,
+                "reason_codes": reason_codes,
+                "canonical": {
+                    "title": str(lesson.get("title", "")),
+                    "step_count": canonical_step_count,
+                },
+                "live_golden": {
+                    "title": live.get("live_title"),
+                    "step_count": live_step_count,
+                    "stepik_lesson_id": live.get("stepik_lesson_id"),
+                },
+                "automatic_write_allowed": False,
+            }
+        )
+    return notices
 
 
 def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -91,28 +151,18 @@ def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tupl
 
     for canonical_id in GOLDEN_IDS:
         module, lesson = canonical[canonical_id]
-        matches = _matching_live_lessons(lesson, live)
-        drifted = _drifted_id_candidates(lesson, live)
-        if drifted and matches:
+        candidates = _golden_identity_candidates(lesson, live)
+        if len(candidates) != 1:
+            expected = " / ".join(sorted(_accepted_live_titles(lesson)))
             blockers.append(
-                f"golden:{canonical_id}: одновременно найдены канонический lesson и lesson с тем же стабильным ID, но другим заголовком"
+                f"golden:{canonical_id}: ожидался ровно один identity-candidate по canonical ID/заголовку "
+                f"(ориентир «{expected}»), найдено {len(candidates)}"
             )
             continue
-        if len(matches) != 1:
-            if not matches and drifted:
-                blockers.append(
-                    f"golden:{canonical_id}: найден lesson со стабильным ID в заголовке, но текст заголовка отличается от канона"
-                )
-            else:
-                expected = " / ".join(sorted(_accepted_live_titles(lesson)))
-                blockers.append(
-                    f"golden:{canonical_id}: ожидался ровно один lesson с допустимым заголовком «{expected}», найдено {len(matches)}"
-                )
-            continue
-        match = matches[0]
+        match = candidates[0]
         if not _exact_position(module, lesson, match):
             blockers.append(
-                f"golden:{canonical_id}: совпал канонический заголовок, но позиция section/unit отличается от канона"
+                f"golden:{canonical_id}: identity-candidate найден, но позиция section/unit отличается от канона"
             )
             continue
         golden[canonical_id] = {
@@ -120,6 +170,7 @@ def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tupl
             "stepik_lesson_id": match["lesson_id"],
             "stepik_unit_id": match["unit_id"],
             "stepik_section_id": match["section_id"],
+            "live_title": match.get("lesson_title"),
             "steps": match["steps"],
             "status": "READ_ONLY_GOLDEN",
         }
@@ -154,6 +205,7 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
     if blockers:
         return result
 
+    result.notices.extend(_golden_canonical_notices(manifest, golden))
     live = _flat_live_lessons(snapshot)
 
     for module, lesson in _canonical_lessons(manifest):

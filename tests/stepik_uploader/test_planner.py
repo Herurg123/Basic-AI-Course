@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import unittest
 
 from scripts.stepik_uploader.planner import plan_dry_run, recognize_golden
@@ -60,11 +61,28 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(actions["M00-L03"], "SKIP")
         self.assertFalse(any(op["action"] == "PLANNED_CREATE" for op in plan.operations))
 
+    def test_golden_canonical_drift_is_notice_not_global_blocker(self) -> None:
+        changed = copy.deepcopy(manifest())
+        golden_l02 = changed["modules"][0]["lessons"][1]
+        golden_l02["title"] = "Новый второй"
+        golden_l02["steps"] = [{"position": 1}]
+
+        plan = plan_dry_run(changed, snapshot(prefixed_titles=True))
+        actions = {op["lesson"]: op["action"] for op in plan.operations}
+        self.assertEqual(actions["M00-L02"], "READ_ONLY_GOLDEN")
+        self.assertFalse(any(blocker.startswith("golden:M00-L02") for blocker in plan.blockers))
+        notice = next(item for item in plan.notices if item.get("canonical_id") == "M00-L02")
+        self.assertEqual(notice["classification"], "GOLDEN_OWNER_REQUIRED")
+        self.assertFalse(notice["automatic_write_allowed"])
+        self.assertIn("CANONICAL_GOLDEN_TITLE_DIFFERS_FROM_CONFIRMED_LIVE", notice["reason_codes"])
+        self.assertIn("CANONICAL_GOLDEN_STEP_COUNT_DIFFERS_FROM_CONFIRMED_LIVE", notice["reason_codes"])
+        self.assertIn("needs-golden-profile", plan.blockers)
+
     def test_duplicate_existing_lesson_is_blocker_not_guess(self) -> None:
         plan = plan_dry_run(manifest(), snapshot(duplicate_third=True))
         self.assertTrue(any(blocker.startswith("duplicate:M00-L03") for blocker in plan.blockers))
 
-    def test_golden_requires_exact_unique_title_and_position(self) -> None:
+    def test_golden_requires_unique_identity_and_exact_position(self) -> None:
         bad = snapshot(prefixed_titles=True)
         bad["sections"][0]["units"][1]["position"] = 9
         golden, blockers = recognize_golden(manifest(), bad)
