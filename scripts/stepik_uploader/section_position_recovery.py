@@ -48,7 +48,7 @@ else:
         plan_replacement_put,
     )
     from .reporting import write_json
-    from .stepik_uploader import source_sha
+    from .stepik_uploader.stepik_uploader import source_sha
 
 COURSE_ID = 299189
 RECOVERY_KIND = "section-position-recovery"
@@ -79,8 +79,7 @@ MALFORMED_POSITIONS = {
     "M08": 9,
 }
 
-# Incident-specific topology frozen from the last confirmed pre-recovery production snapshot.
-# Recovery is forbidden to create/delete/move units or lessons.
+# Frozen from the last confirmed pre-recovery production snapshot. Recovery never writes units/lessons.
 UNIT_LAYOUT = {
     "M00": ((2631074, 1, 2591708), (2631076, 2, 2591710), (2631077, 3, 2591711)),
     "M01": ((2631081, 1, 2591715), (2631082, 2, 2591716)),
@@ -159,8 +158,8 @@ def _manifest_specs(manifest: dict[str, Any]) -> list[SectionSpec]:
     specs: list[SectionSpec] = []
     for canonical_id, section_id in SECTION_IDS.items():
         module = by_id[canonical_id]
-        expected_position = TARGET_POSITIONS[canonical_id]
-        if int(module.get("position", -1)) != expected_position:
+        target = TARGET_POSITIONS[canonical_id]
+        if int(module.get("position", -1)) != target:
             raise SectionRecoveryError(f"{canonical_id}: canonical module position изменился")
         title = str(module.get("title") or "")
         if not title:
@@ -173,7 +172,7 @@ def _manifest_specs(manifest: dict[str, Any]) -> list[SectionSpec]:
                 section_id=section_id,
                 title=title,
                 malformed_position=MALFORMED_POSITIONS[canonical_id],
-                target_position=expected_position,
+                target_position=target,
                 units=UNIT_LAYOUT[canonical_id],
             )
         )
@@ -222,9 +221,10 @@ def _validate_snapshot_static(snapshot: dict[str, Any], specs: list[SectionSpec]
         raise SectionRecoveryError("Live course ID не совпадает с recovery target")
     if course.get("language") != "ru" or course.get("is_public") is not False:
         raise SectionRecoveryError("Recovery разрешён только для непубличного русскоязычного project course")
-    live_ids = {int(item.get("id", -1)) for item in snapshot.get("sections", [])}
+    live_sections = list(snapshot.get("sections", []))
+    live_ids = {int(item.get("id", -1)) for item in live_sections}
     expected_ids = {spec.section_id for spec in specs}
-    if live_ids != expected_ids or len(snapshot.get("sections", [])) != len(specs):
+    if live_ids != expected_ids or len(live_sections) != len(specs):
         raise SectionRecoveryError(f"Live section IDs drift: {sorted(live_ids)} != {sorted(expected_ids)}")
     for spec in specs:
         section = _normalized_section(snapshot, spec.section_id)
@@ -238,11 +238,59 @@ def _validate_snapshot_static(snapshot: dict[str, Any], specs: list[SectionSpec]
             position = int(section.get("position"))
         except (TypeError, ValueError) as exc:
             raise SectionRecoveryError(f"{spec.canonical_id}: section position повреждён") from exc
-        allowed = {spec.malformed_position, spec.target_position}
-        if position not in allowed:
+        if position not in {spec.malformed_position, spec.target_position}:
             raise SectionRecoveryError(
-                f"{spec.canonical_id}: arbitrary position drift {position}; allowed pre-recovery states={sorted(allowed)}"
+                f"{spec.canonical_id}: arbitrary position drift {position}; "
+                f"allowed pre-recovery states={sorted({spec.malformed_position, spec.target_position})}"
             )
+
+
+def _verify_raw_section(client: Any, spec: SectionSpec, expected_position: int) -> dict[str, Any]:
+    raw = client.fetch_one("sections", spec.section_id)
+    try:
+        live_id = int(raw.get("id", -1))
+        live_course = int(raw.get("course", -1))
+        live_position = int(raw.get("position", -1))
+    except (TypeError, ValueError) as exc:
+        raise SectionRecoveryError(f"{spec.canonical_id}: raw section structural fields повреждены") from exc
+    if live_id != spec.section_id or live_course != COURSE_ID:
+        raise SectionRecoveryError(f"{spec.canonical_id}: raw section id/course drift")
+    if str(raw.get("title")) != spec.title:
+        raise SectionRecoveryError(f"{spec.canonical_id}: raw section title drift")
+    if live_position != expected_position:
+        raise SectionRecoveryError(
+            f"{spec.canonical_id}: raw section position {live_position} != {expected_position}"
+        )
+    unit_ids = [row[0] for row in spec.units]
+    raw_unit_ids = [int(value) for value in raw.get("units", [])]
+    if set(raw_unit_ids) != set(unit_ids) or len(raw_unit_ids) != len(unit_ids):
+        raise SectionRecoveryError(f"{spec.canonical_id}: raw section unit IDs drift")
+    units = client.fetch_many("units", unit_ids)
+    live_layout = tuple(
+        sorted(
+            (int(unit.get("id", -1)), int(unit.get("position", -1)), int(unit.get("lesson", -1)))
+            for unit in units
+        )
+    )
+    if live_layout != tuple(sorted(spec.units)):
+        raise SectionRecoveryError(f"{spec.canonical_id}: unit positions/lesson bindings drift")
+    for unit in units:
+        if int(unit.get("section", spec.section_id)) != spec.section_id:
+            raise SectionRecoveryError(f"{spec.canonical_id}: unit section binding drift")
+    return _state(spec, position=live_position)
+
+
+def _verify_all_raw(client: Any, snapshot: dict[str, Any], specs: list[SectionSpec], *, require_target: bool) -> None:
+    for spec in specs:
+        normalized = _normalized_section(snapshot, spec.section_id)
+        position = int(normalized["position"])
+        if require_target and position != spec.target_position:
+            raise SectionRecoveryError(
+                f"{spec.canonical_id}: final normalized position {position} != {spec.target_position}"
+            )
+        raw_state = _verify_raw_section(client, spec, position)
+        if raw_state != _state(spec, position=position):
+            raise SectionRecoveryError(f"{spec.canonical_id}: raw/normalized structural state mismatch")
 
 
 def _matching_history(item: RecoveryItem, store: Any, current_sha: str) -> RecoveryItem:
@@ -270,13 +318,12 @@ def _matching_history(item: RecoveryItem, store: Any, current_sha: str) -> Recov
             )
         if identity.kind != RECOVERY_KIND or identity.course_id != COURSE_ID:
             raise SectionRecoveryError(f"{spec.object_id}: recovery history identity повреждена")
-        item.identity = identity
-        item.records = records
-        item.summary = summary
+        item.identity, item.records, item.summary = identity, records, summary
         return item
 
     committed_matches = [
-        event for event in events
+        event
+        for event in events
         if event[0].kind == RECOVERY_KIND
         and event[0].course_id == COURSE_ID
         and event[0].desired_fingerprint == desired_fp
@@ -284,15 +331,18 @@ def _matching_history(item: RecoveryItem, store: Any, current_sha: str) -> Recov
     ]
     if committed_matches:
         identity, records, summary = committed_matches[-1]
-        item.identity = identity
-        item.records = records
-        item.summary = summary
+        item.identity, item.records, item.summary = identity, records, summary
         return item
 
-    item.identity = expected_identity
-    item.records = []
-    item.summary = None
+    item.identity, item.records, item.summary = expected_identity, [], None
     return item
+
+
+def _completed_write_without_readback(records: list[dict[str, Any]] | None) -> bool:
+    if not records:
+        return False
+    phases = [record.get("phase") for record in records]
+    return phases.count("WRITE_DISPATCH_STARTED") == 1 and phases.count("WRITE_COMPLETED") == 1 and phases.count("OP_READBACK_CONFIRMED") == 0
 
 
 def _classify_items(snapshot: dict[str, Any], specs: list[SectionSpec], store: Any, current_sha: str) -> list[RecoveryItem]:
@@ -341,52 +391,14 @@ def _classify_items(snapshot: dict[str, Any], specs: list[SectionSpec], store: A
                 item.status = "FINAL_NEEDS_COMMIT"
             elif summary.get("writes_started") == 1 and summary.get("confirmed_operation_count") == 1:
                 item.status = "GLOBAL_FINAL_PENDING"
+            elif _completed_write_without_readback(item.records):
+                item.status = "OP_READBACK_RECOVERABLE"
             else:
                 raise SectionRecoveryError(
                     f"{spec.object_id}: live target cannot be explained by confirmed recovery boundary"
                 )
         items.append(item)
     return items
-
-
-def _verify_raw_section(client: Any, spec: SectionSpec, expected_position: int) -> dict[str, Any]:
-    raw = client.fetch_one("sections", spec.section_id)
-    try:
-        live_id = int(raw.get("id", -1))
-        live_course = int(raw.get("course", -1))
-        live_position = int(raw.get("position", -1))
-    except (TypeError, ValueError) as exc:
-        raise SectionRecoveryError(f"{spec.canonical_id}: raw section structural fields повреждены") from exc
-    if live_id != spec.section_id or live_course != COURSE_ID:
-        raise SectionRecoveryError(f"{spec.canonical_id}: raw section id/course drift")
-    if str(raw.get("title")) != spec.title:
-        raise SectionRecoveryError(f"{spec.canonical_id}: raw section title drift")
-    if live_position != expected_position:
-        raise SectionRecoveryError(
-            f"{spec.canonical_id}: raw section position {live_position} != {expected_position}"
-        )
-    unit_ids = [row[0] for row in spec.units]
-    raw_unit_ids = [int(value) for value in raw.get("units", [])]
-    if set(raw_unit_ids) != set(unit_ids) or len(raw_unit_ids) != len(unit_ids):
-        raise SectionRecoveryError(f"{spec.canonical_id}: raw section unit IDs drift")
-    units = client.fetch_many("units", unit_ids)
-    live_layout = tuple(
-        sorted(
-            (
-                int(unit.get("id", -1)),
-                int(unit.get("position", -1)),
-                int(unit.get("lesson", -1)),
-            )
-            for unit in units
-        )
-    )
-    expected_layout = tuple(sorted(spec.units))
-    if live_layout != expected_layout:
-        raise SectionRecoveryError(f"{spec.canonical_id}: unit positions/lesson bindings drift")
-    for unit in units:
-        if int(unit.get("section", spec.section_id)) != spec.section_id:
-            raise SectionRecoveryError(f"{spec.canonical_id}: unit section binding drift")
-    return _state(spec, position=live_position)
 
 
 def _plan_write(client: Any, item: RecoveryItem) -> ReplacementPlan:
@@ -498,7 +510,21 @@ def _execute_write(client: Any, store: Any, item: RecoveryItem, current_sha: str
     item.status = "GLOBAL_FINAL_PENDING"
 
 
-def _verify_recovered_snapshot(snapshot: dict[str, Any], specs: list[SectionSpec]) -> None:
+def _recover_completed_write_readback(client: Any, store: Any, item: RecoveryItem) -> None:
+    if item.identity is None or item.status != "OP_READBACK_RECOVERABLE":
+        raise SectionRecoveryError(f"{item.spec.object_id}: invalid read-back recovery request")
+    live = _verify_raw_section(client, item.spec, item.spec.target_position)
+    if live != item.desired_state:
+        raise SectionRecoveryError(f"{item.spec.object_id}: completed write live state is not desired")
+    recorder = DeploymentRecorder(store, item.identity)
+    recorder.operation_readback(
+        operation_id=RECOVERY_OPERATION_ID,
+        expected_fingerprint_after=_fingerprint(item.desired_state),
+    )
+    item.status = "GLOBAL_FINAL_PENDING"
+
+
+def _verify_recovered_snapshot(client: Any, snapshot: dict[str, Any], specs: list[SectionSpec]) -> None:
     _validate_snapshot_static(snapshot, specs)
     positions: dict[str, int] = {}
     for spec in specs:
@@ -511,20 +537,18 @@ def _verify_recovered_snapshot(snapshot: dict[str, Any], specs: list[SectionSpec
             )
     if sorted(positions.values()) != list(range(1, 10)):
         raise SectionRecoveryError(f"Final section positions are not exact 1..9: {positions}")
+    _verify_all_raw(client, snapshot, specs, require_target=True)
 
 
 def _close_global_boundaries(store: Any, items: list[RecoveryItem]) -> list[dict[str, Any]]:
     closed: list[dict[str, Any]] = []
     for item in items:
-        if item.spec.malformed_position == item.spec.target_position:
-            continue
-        if item.status == "ALREADY_RECOVERED":
+        if item.spec.malformed_position == item.spec.target_position or item.status == "ALREADY_RECOVERED":
             continue
         if item.identity is None:
             raise SectionRecoveryError(f"{item.spec.object_id}: missing recovery identity at global close")
         recorder = DeploymentRecorder(store, item.identity)
-        records = recorder.records(refresh=True)
-        summary = summarize_event(records)
+        summary = summarize_event(recorder.records(refresh=True))
         desired_fp = _fingerprint(item.desired_state)
         if summary.get("ambiguous") or summary.get("readback_failed") or summary.get("known_failed_writes"):
             raise SectionRecoveryError(f"{item.spec.object_id}: unsafe history at global close")
@@ -537,8 +561,7 @@ def _close_global_boundaries(store: Any, items: list[RecoveryItem]) -> list[dict
                 status="APPLIED",
                 baseline_after=item.desired_state,
             )
-        records = recorder.records(refresh=True)
-        summary = summarize_event(records)
+        summary = summarize_event(recorder.records(refresh=True))
         if not summary.get("machine_state_committed"):
             recorder.state_committed(baseline_after=item.desired_state, status="APPLIED")
         closed.append({"canonical_id": item.spec.canonical_id, "event_id": item.identity.event_id})
@@ -557,9 +580,11 @@ def run_recovery(
     specs = _manifest_specs(manifest)
     before = client.inspect_course(COURSE_ID)
     _validate_snapshot_static(before, specs)
+    # Exact preflight proves raw section.course/title/position and frozen unit bindings for all nine sections.
+    _verify_all_raw(client, before, specs, require_target=False)
     items = _classify_items(before, specs, store, current_sha)
 
-    # Complete OPTIONS/schema/read-modify-write preflight before the first WAL dispatch.
+    # Complete GET/OPTIONS/read-modify-write planning for every pending write before the first dispatch.
     capabilities: list[dict[str, Any]] = []
     for item in items:
         if item.status != "WRITE_REQUIRED":
@@ -608,11 +633,17 @@ def run_recovery(
             "stepik_writes": 0,
             "recovery_required": [item.spec.canonical_id for item in items if item.status == "WRITE_REQUIRED"],
             "recovery_pending_global": [
-                item.spec.canonical_id for item in items if item.status in {"GLOBAL_FINAL_PENDING", "FINAL_NEEDS_COMMIT"}
+                item.spec.canonical_id
+                for item in items
+                if item.status in {"OP_READBACK_RECOVERABLE", "GLOBAL_FINAL_PENDING", "FINAL_NEEDS_COMMIT"}
             ],
             "already_recovered": [item.spec.canonical_id for item in items if item.status == "ALREADY_RECOVERED"],
             "ready_for_bulk_write": False,
         }
+
+    for item in items:
+        if item.status == "OP_READBACK_RECOVERABLE":
+            _recover_completed_write_readback(client, store, item)
 
     writes = 0
     for item in items:
@@ -622,7 +653,7 @@ def run_recovery(
         writes += 1
 
     final_snapshot = client.inspect_course(COURSE_ID)
-    _verify_recovered_snapshot(final_snapshot, specs)
+    _verify_recovered_snapshot(client, final_snapshot, specs)
     if report_dir is not None:
         write_json(report_dir / "course-snapshot.after.json", final_snapshot)
 
@@ -692,7 +723,8 @@ def main() -> int:
             "course_id": COURSE_ID,
             "verdict": "BLOCKED",
             "blockers": [str(exc)],
-            "stepik_writes": 0,
+            "stepik_writes": None,
+            "write_count_status": "Не выводить из exception path; authoritative evidence = append-only recovery history + artifacts.",
             "ready_for_bulk_write": False,
         }
         write_json(report_dir / "run-report.json", report)
