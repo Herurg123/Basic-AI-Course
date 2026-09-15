@@ -12,6 +12,11 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from stepik_uploader.api import StepikAPIError, StepikClient
     from stepik_uploader.asset_inventory import AssetInventoryError, build_asset_inventory
+    from stepik_uploader.asset_resolution import (
+        AssetResolutionError,
+        assess_asset_publication,
+        load_asset_publication_policy,
+    )
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
     from stepik_uploader.content import ContentCompileError, TEST_LESSON_ID, compile_test_lesson
     from stepik_uploader.general_content import GeneralContentCompileError, compile_lesson_source
@@ -24,6 +29,11 @@ if __package__ in {None, ""}:
 else:
     from .api import StepikAPIError, StepikClient
     from .asset_inventory import AssetInventoryError, build_asset_inventory
+    from .asset_resolution import (
+        AssetResolutionError,
+        assess_asset_publication,
+        load_asset_publication_policy,
+    )
     from .canonical import CanonicalBuildError, build_structural_manifest
     from .content import ContentCompileError, TEST_LESSON_ID, compile_test_lesson
     from .general_content import GeneralContentCompileError, compile_lesson_source
@@ -35,6 +45,7 @@ else:
     from .writer import ContentWriteError
 
 GOLDEN_PROFILE_PATH = Path("04_course/stepik/automation/golden-profile.v1.json")
+ASSET_PUBLICATION_POLICY_PATH = Path("04_course/stepik/automation/asset-publication.v1.json")
 PLACEHOLDER_TEXT = "Урок сгенерирован роботом ;)"
 BLOCKED_SYNC_STATUSES = {
     "BASELINE_BOOTSTRAP_REQUIRED",
@@ -161,7 +172,48 @@ def _attach_source_compiler_state(
             "compiled_asset_ids": sorted(
                 {asset_id for step in compiled_source for asset_id in step.asset_ids}
             ),
-            "repo_relative_links_pending_asset_route": repo_links,
+            "repo_relative_links_detected": repo_links,
+            "repo_relative_links_pending_asset_route": list(repo_links),
+        }
+    )
+
+
+def _attach_asset_resolution_state(
+    record: dict[str, Any],
+    *,
+    asset_report: dict[str, Any],
+    canonical_id: str,
+) -> None:
+    resolutions = asset_report.get("resolutions")
+    if not isinstance(resolutions, list):
+        raise BulkStatusError("asset publication report не содержит resolutions")
+    lesson_rows = [
+        row for row in resolutions
+        if isinstance(row, dict) and row.get("lesson") == canonical_id
+    ]
+    unresolved = sorted(
+        {
+            str(row.get("source_path"))
+            for row in lesson_rows
+            if row.get("route_resolved") is not True
+        }
+    )
+    materialization = sorted(
+        {
+            str(row.get("source_path"))
+            for row in lesson_rows
+            if row.get("materialization_required_at_write") is True
+        }
+    )
+    modes = sorted({str(row.get("mode")) for row in lesson_rows if row.get("mode")})
+    record.update(
+        {
+            "asset_route_status": "RESOLVED" if not unresolved else "BLOCKED",
+            "asset_dependency_occurrences": len(lesson_rows),
+            "asset_publication_modes": modes,
+            "asset_unresolved_sources": unresolved,
+            "asset_materialization_required_sources": materialization,
+            "repo_relative_links_pending_asset_route": unresolved,
         }
     )
 
@@ -174,6 +226,7 @@ def build_bulk_status(
     state: dict[str, Any],
     profile: dict[str, Any],
     plan: Any,
+    asset_report: dict[str, Any],
 ) -> dict[str, Any]:
     free_answer_source = profile.get("observed_conventions", {}).get("free_answer_source")
     if not isinstance(free_answer_source, dict):
@@ -183,6 +236,10 @@ def build_bulk_status(
     lessons: list[dict[str, Any]] = []
     hard_blockers: list[str] = []
     pending_requirements: list[str] = []
+
+    asset_route_gate_passed = asset_report.get("route_gate_passed") is True
+    if not asset_route_gate_passed:
+        hard_blockers.append("asset-publication-resolution:BLOCKED")
 
     course_public = snapshot.get("course", {}).get("is_public")
     if course_public is not False:
@@ -207,6 +264,11 @@ def build_bulk_status(
                 repo_root=repo_root,
                 canonical_id=canonical_id,
                 free_answer_source=free_answer_source,
+            )
+            _attach_asset_resolution_state(
+                record,
+                asset_report=asset_report,
+                canonical_id=canonical_id,
             )
             if record["repo_relative_links_pending_asset_route"]:
                 pending_requirements.append(f"{canonical_id}:asset-publication-resolution")
@@ -248,11 +310,11 @@ def build_bulk_status(
 
             if baseline is not None:
                 record["status"] = "BASELINE_PRESENT_RENDERING_PENDING_BLOCKED"
-                record["next_action"] = "resolve-assets-and-render-before-any-write"
+                record["next_action"] = "verified-rendering-before-any-write"
                 hard_blockers.append(f"{canonical_id}:baseline-present-rendering-pending")
             elif _is_placeholder(live):
                 record["status"] = "INITIAL_UPLOAD_REQUIRED"
-                record["next_action"] = "resolve-assets-then-verified-first-upload"
+                record["next_action"] = "verified-rendering-then-first-upload"
                 pending_requirements.append(f"{canonical_id}:initial-upload")
             else:
                 record["status"] = "UNMANAGED_EXISTING_CONTENT_BLOCKED"
@@ -268,11 +330,19 @@ def build_bulk_status(
                 record["requires_integrity_pass_before_write"] = False
             lessons.append(record)
 
+    materialization_sources = sorted(
+        {
+            source
+            for item in lessons
+            for source in item.get("asset_materialization_required_sources", [])
+        }
+    )
     return {
         "schema_version": 1,
         "scope": "all-21-lessons-read-only-preflight",
         "course_id": snapshot.get("course", {}).get("id"),
         "course_is_public": course_public,
+        "asset_route_gate_passed": asset_route_gate_passed,
         "lessons": lessons,
         "hard_blockers": sorted(set(hard_blockers)),
         "pending_requirements": sorted(set(pending_requirements)),
@@ -284,9 +354,16 @@ def build_bulk_status(
             "compiled_learner_steps": sum(
                 int(item.get("compiled_learner_step_count", 0)) for item in lessons
             ),
+            "repo_relative_links_detected": sum(
+                len(item.get("repo_relative_links_detected", [])) for item in lessons
+            ),
             "repo_relative_links_pending_asset_route": sum(
                 len(item.get("repo_relative_links_pending_asset_route", [])) for item in lessons
             ),
+            "asset_dependency_occurrences": sum(
+                int(item.get("asset_dependency_occurrences", 0)) for item in lessons
+            ),
+            "asset_materialization_required_unique_files": len(materialization_sources),
             "golden_read_only": sum(1 for item in lessons if item["status"] == "READ_ONLY_GOLDEN"),
             "in_sync": sum(1 for item in lessons if item["status"] == "IN_SYNC"),
             "update_required": sum(1 for item in lessons if item["status"] == "UPDATE_REQUIRED"),
@@ -296,7 +373,11 @@ def build_bulk_status(
             "hard_blockers": len(set(hard_blockers)),
         },
         "ready_for_bulk_write": False,
-        "next_gate": "asset-publication-resolution",
+        "next_gate": (
+            "verified-rendering-and-first-upload"
+            if asset_route_gate_passed
+            else "asset-publication-resolution"
+        ),
     }
 
 
@@ -326,6 +407,14 @@ def main() -> int:
             raise BulkStatusError(
                 "asset inventory содержит отсутствующие source files: " + ", ".join(asset_inventory["missing_files"])
             )
+        asset_policy = load_asset_publication_policy(repo_root / ASSET_PUBLICATION_POLICY_PATH)
+        asset_publication = assess_asset_publication(
+            repo_root=repo_root,
+            inventory=asset_inventory,
+            policy=asset_policy,
+            course_id=args.course_id,
+        )
+        write_json(report_dir / "asset-publication-report.json", asset_publication)
 
         client_id, client_secret = _credentials()
         client = StepikClient(client_id, client_secret, api_host=args.api_host)
@@ -355,8 +444,10 @@ def main() -> int:
             state=state,
             profile=profile,
             plan=plan,
+            asset_report=asset_publication,
         )
         status["asset_summary"] = asset_inventory["summary"]
+        status["asset_publication_summary"] = asset_publication["summary"]
         write_json(report_dir / "bulk-status.json", status)
 
         report = {
@@ -369,6 +460,9 @@ def main() -> int:
             "pending_requirements": status["pending_requirements"],
             "summary": status["summary"],
             "asset_summary": asset_inventory["summary"],
+            "asset_publication_summary": asset_publication["summary"],
+            "asset_route_gate_passed": asset_publication["route_gate_passed"],
+            "asset_decision": asset_publication.get("decision"),
             "golden_profile_status": golden_status,
             "stepik_writes": 0,
             "ready_for_bulk_write": False,
@@ -379,6 +473,7 @@ def main() -> int:
         return 2 if status["hard_blockers"] else 0
     except (
         AssetInventoryError,
+        AssetResolutionError,
         BulkStatusError,
         CanonicalBuildError,
         ContentCompileError,
