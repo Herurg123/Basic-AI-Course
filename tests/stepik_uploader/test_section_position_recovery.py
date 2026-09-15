@@ -3,15 +3,25 @@ from __future__ import annotations
 import unittest
 
 from scripts.stepik_uploader.api import StepikWriteAmbiguousError
-from scripts.stepik_uploader.deployment_history import MemoryHistoryStore
+from scripts.stepik_uploader.deployment_history import (
+    DeploymentRecorder,
+    MemoryHistoryStore,
+    event_identity_from_environment,
+)
 from scripts.stepik_uploader.history_runtime import find_object_events
 from scripts.stepik_uploader.section_position_recovery import (
     COURSE_ID,
     MALFORMED_POSITIONS,
+    RECOVERY_KIND,
+    RECOVERY_OPERATION,
+    RECOVERY_OPERATION_ID,
     SECTION_IDS,
     TARGET_POSITIONS,
     UNIT_LAYOUT,
     SectionRecoveryError,
+    _fingerprint,
+    _manifest_specs,
+    _state,
     run_recovery,
 )
 
@@ -91,7 +101,6 @@ class FakeRecoveryClient:
         if self.ambiguous_section_id == section_id:
             raise StepikWriteAmbiguousError("synthetic ambiguous")
         body = payload["section"]
-        # replacement-like semantics: omitted fields would reset/disappear.
         current_units = self.sections[section_id]["units"]
         self.sections[section_id] = {
             "id": section_id,
@@ -175,7 +184,10 @@ class SectionPositionRecoveryTests(unittest.TestCase):
         )
         self.assertEqual(report["verdict"], "PASS")
         self.assertEqual(report["stepik_writes"], 7)
-        self.assertEqual([section_id for _method, section_id in client.write_calls], [SECTION_IDS[f"M0{i}"] for i in range(1, 8)])
+        self.assertEqual(
+            [section_id for _method, section_id in client.write_calls],
+            [SECTION_IDS[f"M0{i}"] for i in range(1, 8)],
+        )
         self.assertEqual(
             {module_id: client.sections[section_id]["position"] for module_id, section_id in SECTION_IDS.items()},
             TARGET_POSITIONS,
@@ -189,6 +201,19 @@ class SectionPositionRecoveryTests(unittest.TestCase):
             self.assertEqual(summary["confirmed_operation_count"], 1)
             self.assertEqual(summary["committed_baseline_after"]["position"], TARGET_POSITIONS[module_id])
 
+    def test_raw_section_course_drift_blocks_before_any_write(self) -> None:
+        client = FakeRecoveryClient()
+        client.sections[SECTION_IDS["M05"]]["course"] = 999999
+        with self.assertRaises(SectionRecoveryError):
+            run_recovery(
+                client=client,
+                store=MemoryHistoryStore(),
+                manifest=manifest(),
+                current_sha="3" * 40,
+                confirm_write=True,
+            )
+        self.assertEqual(client.write_calls, [])
+
     def test_arbitrary_position_drift_blocks_before_any_write(self) -> None:
         client = FakeRecoveryClient()
         client.sections[SECTION_IDS["M04"]]["position"] = 4
@@ -197,7 +222,7 @@ class SectionPositionRecoveryTests(unittest.TestCase):
                 client=client,
                 store=MemoryHistoryStore(),
                 manifest=manifest(),
-                current_sha="3" * 40,
+                current_sha="4" * 40,
                 confirm_write=True,
             )
         self.assertEqual(client.write_calls, [])
@@ -210,10 +235,61 @@ class SectionPositionRecoveryTests(unittest.TestCase):
                 client=client,
                 store=MemoryHistoryStore(),
                 manifest=manifest(),
-                current_sha="4" * 40,
+                current_sha="5" * 40,
                 confirm_write=True,
             )
         self.assertEqual(client.write_calls, [])
+
+    def test_completed_write_crash_recovers_readback_without_repeating_put(self) -> None:
+        client = FakeRecoveryClient()
+        store = MemoryHistoryStore()
+        sha = "6" * 40
+        spec = next(value for value in _manifest_specs(manifest()) if value.canonical_id == "M01")
+        baseline = _state(spec, position=spec.malformed_position)
+        desired = _state(spec, position=spec.target_position)
+        identity = event_identity_from_environment(
+            course_id=COURSE_ID,
+            object_id=spec.object_id,
+            kind=RECOVERY_KIND,
+            source_sha=sha,
+            desired_fingerprint=_fingerprint(desired),
+            baseline_fingerprint=_fingerprint(baseline),
+            pending_first_sha=None,
+        )
+        recorder = DeploymentRecorder(store, identity)
+        recorder.ensure_started(
+            operation_type=RECOVERY_OPERATION,
+            state_before=baseline,
+            expected_state=desired,
+            stepik_object_ids={"section_id": spec.section_id},
+            fingerprint_before=_fingerprint(baseline),
+        )
+        recorder.write_intent(
+            operation_id=RECOVERY_OPERATION_ID,
+            method="PUT",
+            target=f"sections/{spec.section_id}",
+            fingerprint_before=_fingerprint(baseline),
+            expected_fingerprint_after=_fingerprint(desired),
+        )
+        recorder.write_dispatch_started(operation_id=RECOVERY_OPERATION_ID)
+        recorder.write_result(operation_id=RECOVERY_OPERATION_ID, status="COMPLETED")
+        client.sections[spec.section_id]["position"] = spec.target_position
+
+        report = run_recovery(
+            client=client,
+            store=store,
+            manifest=manifest(),
+            current_sha=sha,
+            confirm_write=True,
+        )
+        self.assertEqual(report["verdict"], "PASS")
+        self.assertEqual(report["stepik_writes"], 6)
+        self.assertNotIn(spec.section_id, [section_id for _method, section_id in client.write_calls])
+        events = find_object_events(store, object_id=spec.object_id)
+        self.assertEqual(len(events), 1)
+        self.assertTrue(events[0][2]["final_readback_confirmed"])
+        self.assertTrue(events[0][2]["machine_state_committed"])
+        self.assertEqual(events[0][2]["confirmed_operation_count"], 1)
 
     def test_ambiguous_dispatch_is_not_blindly_retried(self) -> None:
         client = FakeRecoveryClient()
@@ -224,7 +300,7 @@ class SectionPositionRecoveryTests(unittest.TestCase):
                 client=client,
                 store=store,
                 manifest=manifest(),
-                current_sha="5" * 40,
+                current_sha="7" * 40,
                 confirm_write=True,
             )
         self.assertEqual(client.write_calls, [("PUT", SECTION_IDS["M01"])])
@@ -235,7 +311,7 @@ class SectionPositionRecoveryTests(unittest.TestCase):
                 client=client,
                 store=store,
                 manifest=manifest(),
-                current_sha="5" * 40,
+                current_sha="7" * 40,
                 confirm_write=True,
             )
         self.assertEqual(client.write_calls, [("PUT", SECTION_IDS["M01"])])
