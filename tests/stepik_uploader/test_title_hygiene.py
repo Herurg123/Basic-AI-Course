@@ -3,7 +3,12 @@ from __future__ import annotations
 import unittest
 
 from scripts.stepik_uploader.api import StepikWriteAmbiguousError
-from scripts.stepik_uploader.deployment_history import DeploymentRecorder, MemoryHistoryStore, event_identity_from_environment, summarize_event
+from scripts.stepik_uploader.deployment_history import (
+    DeploymentRecorder,
+    MemoryHistoryStore,
+    event_identity_from_environment,
+    summarize_event,
+)
 from scripts.stepik_uploader.title_hygiene import (
     TitleHygieneError,
     TitleOperation,
@@ -14,26 +19,66 @@ from scripts.stepik_uploader.title_hygiene import (
 
 
 class FakeTitleClient:
-    def __init__(self, *, resource: str, object_id: int, title: str, ambiguous: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        resource: str,
+        object_id: int,
+        title: str,
+        position: int | None = None,
+        ambiguous: bool = False,
+    ) -> None:
         self.resource = resource
         self.object_id = object_id
         self.title = title
+        self.position = position
         self.ambiguous = ambiguous
         self.write_calls = 0
+        self.last_payload: dict | None = None
 
     def fetch_one(self, resource: str, object_id: int):
         if resource != self.resource or object_id != self.object_id:
             raise AssertionError((resource, object_id))
-        return {"id": self.object_id, "title": self.title}
+        result = {"id": self.object_id, "title": self.title}
+        if self.resource == "sections":
+            result.update(
+                {
+                    "position": self.position,
+                    "course": 299189,
+                    "units": [101, 102],
+                }
+            )
+        return result
+
+    def _request_options(self, path: str):
+        if self.resource != "sections" or not path.endswith(f"/{self.object_id}"):
+            raise AssertionError(path)
+        return (
+            {
+                "actions": {
+                    "PUT": {
+                        "title": {"required": True},
+                        "course": {"required": True},
+                        "position": {"required": True},
+                    }
+                }
+            },
+            "GET, PUT, HEAD, OPTIONS",
+        )
 
     def _request_write(self, method: str, path: str, payload: dict):
         self.write_calls += 1
+        self.last_payload = payload
         if method != "PUT" or not path.endswith(f"/{self.object_id}"):
             raise AssertionError((method, path))
         if self.ambiguous:
             raise StepikWriteAmbiguousError("synthetic ambiguous")
         key = "lesson" if self.resource == "lessons" else "section"
         self.title = payload[key]["title"]
+        if self.resource == "sections":
+            # This intentionally reproduces the production incident: an omitted position
+            # is reset to 1 by the synthetic server.
+            self.position = int(payload[key].get("position", 1))
         return {self.resource: [{"id": self.object_id, "title": self.title}]}
 
 
@@ -120,6 +165,21 @@ class TitleHygieneTests(unittest.TestCase):
             ]
         }
 
+    def _recorder(self, op: TitleOperation, source_digit: str = "1"):
+        before_fp = title_fingerprint(kind=op.kind, stepik_id=op.stepik_id, title=op.live_title)
+        desired_fp = title_fingerprint(kind=op.kind, stepik_id=op.stepik_id, title=op.expected_title)
+        identity = event_identity_from_environment(
+            course_id=299189,
+            object_id=op.object_id,
+            kind="title-metadata",
+            source_sha=source_digit * 40,
+            desired_fingerprint=desired_fp,
+            baseline_fingerprint=before_fp,
+            pending_first_sha=None,
+        )
+        store = MemoryHistoryStore()
+        return store, DeploymentRecorder(store, identity)
+
     def test_plan_updates_exact_legacy_only_and_keeps_golden_owner_only(self) -> None:
         plan = plan_title_hygiene(self._manifest(), self._snapshot())
         self.assertEqual(plan.blockers, [])
@@ -130,6 +190,8 @@ class TitleHygieneTests(unittest.TestCase):
         self.assertEqual([item["canonical_id"] for item in plan.owner_required], ["M00-L01"])
         self.assertTrue(all(item.as_dict()["create_allowed"] is False for item in plan.operations))
         self.assertTrue(all(item.as_dict()["delete_allowed"] is False for item in plan.operations))
+        clean_m01 = next(item for item in plan.already_clean if item["canonical_id"] == "M01")
+        self.assertEqual(clean_m01["position"], 2)
 
     def test_arbitrary_title_drift_blocks_instead_of_overwriting(self) -> None:
         snapshot = self._snapshot()
@@ -147,19 +209,7 @@ class TitleHygieneTests(unittest.TestCase):
             live_title="M01-L01 — Доведите первый ответ до небольшой пользы",
             expected_title="Доведите первый ответ до небольшой пользы",
         )
-        before_fp = title_fingerprint(kind=op.kind, stepik_id=op.stepik_id, title=op.live_title)
-        desired_fp = title_fingerprint(kind=op.kind, stepik_id=op.stepik_id, title=op.expected_title)
-        identity = event_identity_from_environment(
-            course_id=299189,
-            object_id=op.object_id,
-            kind="title-metadata",
-            source_sha="1" * 40,
-            desired_fingerprint=desired_fp,
-            baseline_fingerprint=before_fp,
-            pending_first_sha=None,
-        )
-        store = MemoryHistoryStore()
-        recorder = DeploymentRecorder(store, identity)
+        store, recorder = self._recorder(op)
         client = FakeTitleClient(resource="lessons", object_id=2001, title=op.live_title)
 
         result = execute_title_only_operation(client, op, recorder)
@@ -172,8 +222,9 @@ class TitleHygieneTests(unittest.TestCase):
         self.assertTrue(summary["machine_state_committed"])
         self.assertEqual(summary["writes_started"], 1)
         self.assertEqual(summary["confirmed_operation_count"], 1)
+        self.assertIsNotNone(store)
 
-    def test_ambiguous_title_write_is_never_blindly_retried(self) -> None:
+    def test_section_title_put_preserves_position_and_records_structural_state(self) -> None:
         op = TitleOperation(
             kind="section",
             canonical_id="M04",
@@ -182,20 +233,65 @@ class TitleHygieneTests(unittest.TestCase):
             live_title="M04 — Решите задачу по материалу",
             expected_title="Решите задачу по материалу",
         )
-        before_fp = title_fingerprint(kind=op.kind, stepik_id=op.stepik_id, title=op.live_title)
-        desired_fp = title_fingerprint(kind=op.kind, stepik_id=op.stepik_id, title=op.expected_title)
-        identity = event_identity_from_environment(
-            course_id=299189,
-            object_id=op.object_id,
-            kind="title-metadata",
-            source_sha="2" * 40,
-            desired_fingerprint=desired_fp,
-            baseline_fingerprint=before_fp,
-            pending_first_sha=None,
+        _store, recorder = self._recorder(op, "2")
+        client = FakeTitleClient(
+            resource="sections",
+            object_id=40,
+            title=op.live_title,
+            position=5,
         )
-        store = MemoryHistoryStore()
-        recorder = DeploymentRecorder(store, identity)
-        client = FakeTitleClient(resource="sections", object_id=40, title=op.live_title, ambiguous=True)
+
+        result = execute_title_only_operation(client, op, recorder)
+
+        self.assertEqual(result["action"], "UPDATE_TITLE")
+        self.assertEqual(client.position, 5)
+        self.assertEqual(client.last_payload["section"]["position"], 5)
+        self.assertEqual(client.last_payload["section"]["course"], 299189)
+        self.assertIn("section_put_contract", result)
+        records = recorder.records(refresh=True)
+        started = next(item for item in records if item["phase"] == "EVENT_STARTED")
+        final = next(item for item in records if item["phase"] == "FINAL_READBACK_CONFIRMED")
+        self.assertEqual(started["state_before"]["position"], 5)
+        self.assertEqual(final["actual_confirmed_state"]["position"], 5)
+
+    def test_section_position_drift_blocks_before_write(self) -> None:
+        op = TitleOperation(
+            kind="section",
+            canonical_id="M04",
+            stepik_id=40,
+            position=5,
+            live_title="M04 — Решите задачу по материалу",
+            expected_title="Решите задачу по материалу",
+        )
+        _store, recorder = self._recorder(op, "3")
+        client = FakeTitleClient(
+            resource="sections",
+            object_id=40,
+            title=op.live_title,
+            position=1,
+        )
+
+        with self.assertRaises(TitleHygieneError):
+            execute_title_only_operation(client, op, recorder)
+        self.assertEqual(client.write_calls, 0)
+
+    def test_ambiguous_section_title_write_is_never_blindly_retried(self) -> None:
+        op = TitleOperation(
+            kind="section",
+            canonical_id="M04",
+            stepik_id=40,
+            position=5,
+            live_title="M04 — Решите задачу по материалу",
+            expected_title="Решите задачу по материалу",
+        )
+        _store, recorder = self._recorder(op, "4")
+        client = FakeTitleClient(
+            resource="sections",
+            object_id=40,
+            title=op.live_title,
+            position=5,
+            ambiguous=True,
+        )
 
         with self.assertRaises(StepikWriteAmbiguousError):
             execute_title_only_operation(client, op, recorder)
