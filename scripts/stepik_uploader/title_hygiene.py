@@ -6,6 +6,7 @@ from typing import Any
 from .api import StepikAPIError, StepikWriteAmbiguousError
 from .deployment_history import DeploymentHistoryError, DeploymentRecorder, summarize_event
 from .fingerprints import canonical_hash
+from .replacement_update import ReplacementUpdateError, execute_replacement_put
 
 GOLDEN_LESSON_IDS = {"M00-L01", "M00-L02"}
 
@@ -35,7 +36,7 @@ class TitleOperation:
         return f"title:{self.kind}:{self.canonical_id}"
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "action": "UPDATE_TITLE",
             "kind": self.kind,
             "canonical_id": self.canonical_id,
@@ -46,6 +47,9 @@ class TitleOperation:
             "delete_allowed": False,
             "create_allowed": False,
         }
+        if self.kind == "section":
+            result["structural_invariant"] = {"position": self.position}
+        return result
 
 
 @dataclass
@@ -71,12 +75,19 @@ def legacy_title(canonical_id: str, human_title: str) -> str:
     return f"{canonical_id} — {human_title}"
 
 
-def title_state(*, kind: str, stepik_id: int, title: str) -> dict[str, Any]:
-    return {"kind": kind, "stepik_id": int(stepik_id), "title": str(title)}
+def title_state(*, kind: str, stepik_id: int, title: str, position: int | None = None) -> dict[str, Any]:
+    state: dict[str, Any] = {"kind": kind, "stepik_id": int(stepik_id), "title": str(title)}
+    if kind == "section":
+        if not isinstance(position, int):
+            raise TitleHygieneError("section title state обязан содержать structural position")
+        state["position"] = int(position)
+    return state
 
 
 def title_fingerprint(*, kind: str, stepik_id: int, title: str) -> str:
-    return canonical_hash(title_state(kind=kind, stepik_id=stepik_id, title=title))
+    # Историческая identity title events остаётся title-only для совместимости append-only history.
+    # Для section position теперь является отдельным durable structural invariant в state/read-back.
+    return canonical_hash({"kind": kind, "stepik_id": int(stepik_id), "title": str(title)})
 
 
 def _position_matches(items: list[dict[str, Any]], position: int) -> list[dict[str, Any]]:
@@ -110,6 +121,7 @@ def _classify_title(
                 "kind": kind,
                 "canonical_id": canonical_id,
                 "stepik_id": stepik_id,
+                "position": position,
                 "title": live_title,
             }
         )
@@ -208,27 +220,47 @@ def plan_title_hygiene(manifest: dict[str, Any], snapshot: dict[str, Any]) -> Ti
     return plan
 
 
-def _resource_and_payload(operation: TitleOperation) -> tuple[str, str, dict[str, Any]]:
+def _resource(operation: TitleOperation) -> str:
     if operation.kind == "lesson":
-        return "lessons", "lesson", {"lesson": {"title": operation.expected_title}}
+        return "lessons"
     if operation.kind == "section":
-        return "sections", "section", {"section": {"title": operation.expected_title}}
+        return "sections"
     raise TitleHygieneError(f"Неподдерживаемый title kind: {operation.kind}")
 
 
-def _read_title(client: Any, operation: TitleOperation) -> str:
-    resource, _payload_key, _payload = _resource_and_payload(operation)
-    obj = client.fetch_one(resource, operation.stepik_id)
+def _read_live_state(client: Any, operation: TitleOperation) -> dict[str, Any]:
+    obj = client.fetch_one(_resource(operation), operation.stepik_id)
     if int(obj.get("id", -1)) != operation.stepik_id or not isinstance(obj.get("title"), str):
         raise TitleHygieneError(f"{operation.object_id}: read-back не содержит ожидаемые id/title")
-    return str(obj["title"])
+    if operation.kind == "section":
+        try:
+            position = int(obj.get("position"))
+        except (TypeError, ValueError) as exc:
+            raise TitleHygieneError(f"{operation.object_id}: section read-back не содержит position") from exc
+        if position != operation.position:
+            raise TitleHygieneError(
+                f"{operation.object_id}: structural position drift {position} != {operation.position}"
+            )
+        return title_state(
+            kind=operation.kind,
+            stepik_id=operation.stepik_id,
+            title=str(obj["title"]),
+            position=position,
+        )
+    return title_state(kind=operation.kind, stepik_id=operation.stepik_id, title=str(obj["title"]))
 
 
 def _write_title(client: Any, operation: TitleOperation) -> None:
-    resource, _payload_key, payload = _resource_and_payload(operation)
-    # _request_write — общий Stepik write primitive проекта: без автоматических retry и
-    # с AMBIGUOUS-классификацией network/5xx. Здесь намеренно не вводится второй transport.
-    client._request_write("PUT", f"/api/{resource}/{operation.stepik_id}", payload)
+    required = ("title", "position", "course") if operation.kind == "section" else ("title",)
+    # PUT в Stepik replacement-like. Поэтому payload строится read-modify-write из live object
+    # и OPTIONS actions.PUT schema, а не из одного title. PATCH намеренно не предполагается.
+    execute_replacement_put(
+        client,
+        resource=_resource(operation),
+        object_id=operation.stepik_id,
+        changes={"title": operation.expected_title},
+        required_preserved_fields=required,
+    )
 
 
 def execute_title_only_operation(
@@ -236,17 +268,19 @@ def execute_title_only_operation(
     operation: TitleOperation,
     recorder: DeploymentRecorder,
 ) -> dict[str, Any]:
-    """Выполняет один title-only PUT с WAL и read-back.
+    """Выполняет один schema-guarded title replacement PUT с WAL и structural read-back.
 
-    Функция пригодна для section и для lesson без content baseline. Tracked lesson с
-    deployment baseline должен обновляться отдельным content-aware route.
+    Для section position является отдельным инвариантом: он проверяется до dispatch, входит
+    в durable state_before/baseline_after и проверяется после PUT. Старые append-only title
+    events не переписываются и потому сами по себе не считаются доказательством position.
     """
-    before_title = _read_title(client, operation)
-    before_state = title_state(kind=operation.kind, stepik_id=operation.stepik_id, title=before_title)
+    before_state = _read_live_state(client, operation)
+    before_title = str(before_state["title"])
     desired_state = title_state(
         kind=operation.kind,
         stepik_id=operation.stepik_id,
         title=operation.expected_title,
+        position=operation.position if operation.kind == "section" else None,
     )
     before_fp = title_fingerprint(kind=operation.kind, stepik_id=operation.stepik_id, title=before_title)
     desired_fp = title_fingerprint(
@@ -260,8 +294,8 @@ def execute_title_only_operation(
     records = recorder.records(refresh=True)
     summary = summarize_event(records) if records else None
     if summary and summary.get("machine_state_committed"):
-        if before_title != operation.expected_title:
-            raise TitleHygieneError(f"{operation.object_id}: committed title event, но live title снова drifted")
+        if before_state != desired_state:
+            raise TitleHygieneError(f"{operation.object_id}: committed title event, но live state снова drifted")
         return {"action": "NOOP_COMMITTED", "operation": operation.as_dict()}
 
     if summary:
@@ -270,15 +304,20 @@ def execute_title_only_operation(
                 f"{operation.object_id}: незавершённая/неоднозначная write history запрещает blind retry"
             )
         if summary.get("final_readback_confirmed"):
-            if before_title != operation.expected_title:
-                raise TitleHygieneError(f"{operation.object_id}: final history не совпадает с live title")
+            if before_state != desired_state:
+                raise TitleHygieneError(f"{operation.object_id}: final history не совпадает с live state")
+            final_states = [r.get("actual_confirmed_state") for r in records if r.get("phase") == "FINAL_READBACK_CONFIRMED"]
+            if final_states and final_states[0] != desired_state:
+                raise TitleHygieneError(
+                    f"{operation.object_id}: legacy final history не доказывает текущий structural state"
+                )
             recorder.state_committed(
                 baseline_after=desired_state,
                 status=str(summary.get("final_status")),
             )
             return {"action": "RECOVER_COMMIT", "operation": operation.as_dict()}
         if summary.get("writes_started"):
-            if summary.get("confirmed_operation_count") == 1 and before_title == operation.expected_title:
+            if summary.get("confirmed_operation_count") == 1 and before_state == desired_state:
                 recorder.final_readback(
                     fingerprint_after=desired_fp,
                     stepik_object_ids={f"{operation.kind}_id": operation.stepik_id},
@@ -288,11 +327,10 @@ def execute_title_only_operation(
                 recorder.state_committed(baseline_after=desired_state, status="APPLIED")
                 return {"action": "RECOVER_FINAL", "operation": operation.as_dict()}
             raise TitleHygieneError(
-                f"{operation.object_id}: write dispatch без полного per-operation read-back; blind retry запрещён"
+                f"{operation.object_id}: write dispatch без полного per-operation structural read-back; blind retry запрещён"
             )
 
-    if before_title == operation.expected_title:
-        # План мог устареть между inspect и dispatch. Без write просто фиксируем доказанный NOOP.
+    if before_state == desired_state:
         recorder.ensure_started(
             operation_type="title-hygiene",
             state_before=desired_state,
@@ -334,7 +372,7 @@ def execute_title_only_operation(
     except StepikWriteAmbiguousError:
         recorder.write_result(operation_id=operation_id, status="AMBIGUOUS", reason_code="title-write-ambiguous")
         raise
-    except StepikAPIError:
+    except (StepikAPIError, ReplacementUpdateError):
         recorder.write_result(operation_id=operation_id, status="FAILED_KNOWN", reason_code="title-write-failed-known")
         raise
     except Exception:
@@ -343,13 +381,13 @@ def execute_title_only_operation(
     recorder.write_result(operation_id=operation_id, status="COMPLETED")
 
     try:
-        after_title = _read_title(client, operation)
-        if after_title != operation.expected_title:
+        after_state = _read_live_state(client, operation)
+        if after_state != desired_state:
             raise TitleHygieneError(
-                f"{operation.object_id}: title read-back {after_title!r} != {operation.expected_title!r}"
+                f"{operation.object_id}: structural read-back {after_state!r} != {desired_state!r}"
             )
     except Exception:
-        recorder.readback_failed(operation_id=operation_id, reason_code="title-readback-unavailable-or-mismatch")
+        recorder.readback_failed(operation_id=operation_id, reason_code="title-readback-unavailable-or-structural-mismatch")
         raise
 
     recorder.operation_readback(operation_id=operation_id, expected_fingerprint_after=desired_fp)
