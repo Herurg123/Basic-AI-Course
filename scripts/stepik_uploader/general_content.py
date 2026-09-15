@@ -19,6 +19,7 @@ REPO_LINK_RE = re.compile(r"\]\((?!https?://|mailto:|#)([^)]+)\)")
 FREE_ANSWER_HINTS = (
     "check",
     "рубри",
+    "rubric",
     "evidence",
     "reflection",
     "explanation",
