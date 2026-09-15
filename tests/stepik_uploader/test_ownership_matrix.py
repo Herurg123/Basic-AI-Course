@@ -11,6 +11,7 @@ REQUIRED_CLASSES = {
     "lesson_asset_change",
     "course_page",
     "golden_lesson",
+    "golden_canonical_divergence",
     "normal_lesson_with_baseline",
     "normal_lesson_without_baseline",
     "metadata_change",
@@ -66,6 +67,15 @@ class OwnershipMatrixTests(unittest.TestCase):
         self.assertFalse(defaults["destructive_recovery"])
         self.assertFalse(defaults["delete_allowed"])
         self.assertEqual(defaults["unknown_state"], "STOP")
+
+    def test_golden_canonical_divergence_is_target_scoped_owner_state(self) -> None:
+        payload = json.loads(MATRIX.read_text(encoding="utf-8"))
+        rule = payload["classes"]["golden_canonical_divergence"]
+        self.assertTrue(rule["owner_approval"])
+        self.assertFalse(rule["auto_rebaseline"])
+        self.assertFalse(rule["auto_retry"])
+        self.assertIn("golden target", rule["stop"])
+        self.assertIn("independent non-golden", rule["stop"])
 
 
 if __name__ == "__main__":
