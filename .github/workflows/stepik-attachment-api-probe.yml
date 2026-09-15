@@ -73,6 +73,18 @@ jobs:
                       result[key] = value
               return result
 
+          def safe_attachment_summary(item):
+              summary = {}
+              for key, value in item.items():
+                  k = str(key).lower()
+                  if key == "id" or any(part in k for part in ("name", "file", "url", "size", "type", "lesson", "course")):
+                      if isinstance(value, str) and value.startswith(("http://", "https://")):
+                          parsed = urlsplit(value)
+                          summary[key] = parsed.scheme + "://" + parsed.netloc + parsed.path
+                      elif isinstance(value, (str, int, float, bool)) or value is None:
+                          summary[key] = value
+              return summary
+
           lesson = get_one("lessons", LESSON_ID)
           course = get_one("courses", COURSE_ID)
           print("lesson_interesting=", json.dumps(interesting(lesson), ensure_ascii=False, sort_keys=True))
@@ -106,7 +118,6 @@ jobs:
                       loc = urlsplit(urljoin(HOST + "/", location))
                       print(f"{method} attachment_action redirect_path=", loc.path)
 
-          # Read-only discovery of a conventional REST collection, if it exists.
           for query in (
               f"/api/attachments?lesson={LESSON_ID}",
               f"/api/attachments?course={COURSE_ID}",
@@ -115,12 +126,39 @@ jobs:
               print(f"GET {query} status=", response.status_code)
               print(f"GET {query} content_type=", response.headers.get("Content-Type"))
               if response.status_code < 400 and "json" in (response.headers.get("Content-Type") or "").lower():
-                  try:
-                      payload = response.json()
-                  except ValueError:
-                      payload = None
+                  payload = response.json()
                   if isinstance(payload, dict):
                       print(f"GET {query} top_level_keys=", sorted(payload.keys()))
+                      objects = payload.get("attachments")
+                      if isinstance(objects, list):
+                          print(f"GET {query} attachment_count=", len(objects))
+                          for index, item in enumerate(objects):
+                              if isinstance(item, dict):
+                                  print(
+                                      f"GET {query} attachment[{index}]=",
+                                      json.dumps(safe_attachment_summary(item), ensure_ascii=False, sort_keys=True),
+                                  )
+                                  print(f"GET {query} attachment[{index}] keys=", sorted(item.keys()))
+
+          options = requests.options(
+              HOST + "/api/attachments",
+              headers=headers,
+              timeout=30,
+              allow_redirects=False,
+          )
+          print("OPTIONS /api/attachments status=", options.status_code)
+          print("OPTIONS /api/attachments content_type=", options.headers.get("Content-Type"))
+          print("OPTIONS /api/attachments allow=", options.headers.get("Allow"))
+          if options.status_code < 400 and "json" in (options.headers.get("Content-Type") or "").lower():
+              metadata = options.json()
+              if isinstance(metadata, dict):
+                  print("OPTIONS /api/attachments top_level_keys=", sorted(metadata.keys()))
+                  actions_meta = metadata.get("actions")
+                  if isinstance(actions_meta, dict):
+                      print("OPTIONS /api/attachments action_methods=", sorted(actions_meta.keys()))
+                      post_meta = actions_meta.get("POST")
+                      if isinstance(post_meta, dict):
+                          print("OPTIONS /api/attachments POST_fields=", sorted(post_meta.keys()))
 
           print("stepik_content_writes=0")
           PY
