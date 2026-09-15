@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import mimetypes
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Iterable
+from urllib.parse import urlsplit
 
 import requests
 
@@ -96,6 +99,49 @@ class StepikClient:
                 delay = self.retry_policy.base_delay_seconds * (2 ** (attempt - 1))
             self._sleep(delay)
         raise StepikAPIError(f"GET {path}: Stepik вернул HTTP {last_status}")
+
+    def _request_get_bytes(self, path_or_url: str) -> bytes:
+        parsed = urlsplit(path_or_url)
+        if parsed.scheme:
+            host = urlsplit(self.api_host)
+            if parsed.scheme != "https" or parsed.netloc != host.netloc:
+                raise StepikAPIError("Attachment download URL выходит за пределы Stepik host")
+            url = path_or_url
+            context = parsed.path
+        else:
+            if not path_or_url.startswith("/"):
+                raise StepikAPIError("Attachment download path должен быть абсолютным Stepik path")
+            url = f"{self.api_host}{path_or_url}"
+            context = path_or_url
+        attempts = self.retry_policy.attempts
+        last_status: int | None = None
+        for attempt in range(1, attempts + 1):
+            response = self.session.get(url, headers=self.headers, timeout=30)
+            last_status = response.status_code
+            if response.status_code < 400:
+                content = getattr(response, "content", None)
+                if not isinstance(content, (bytes, bytearray)):
+                    raise StepikAPIError(f"GET {context}: Stepik не вернул bytes")
+                return bytes(content)
+            if response.status_code not in self.retry_policy.retry_statuses or attempt == attempts:
+                break
+            self._sleep(self.retry_policy.base_delay_seconds * (2 ** (attempt - 1)))
+        raise StepikAPIError(f"GET {context}: Stepik вернул HTTP {last_status}")
+
+    def _request_options(self, path: str) -> tuple[dict[str, Any], str]:
+        try:
+            response = self.session.options(
+                f"{self.api_host}{path}",
+                headers=self.headers,
+                timeout=30,
+                allow_redirects=False,
+            )
+        except requests.RequestException as exc:
+            raise StepikAPIError(f"OPTIONS {path}: Stepik недоступен") from exc
+        if response.status_code >= 400:
+            raise StepikAPIError(f"OPTIONS {path}: Stepik вернул HTTP {response.status_code}")
+        allow = str(response.headers.get("Allow") or "")
+        return self._json(response, f"OPTIONS {path}"), allow
 
     def _request_write(self, method: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Write намеренно не ретраится.
@@ -234,6 +280,61 @@ class StepikClient:
             },
             "sections": normalized_sections,
         }
+
+    def attachment_capability(self) -> dict[str, Any]:
+        payload, allow = self._request_options("/api/attachments")
+        return {"metadata": payload, "allow": allow}
+
+    def list_attachments(self, *, lesson_id: int) -> list[dict[str, Any]]:
+        payload = self._request_get("/api/attachments", params=[("lesson", int(lesson_id))])
+        objects = payload.get("attachments")
+        if not isinstance(objects, list):
+            raise StepikAPIError("GET /api/attachments: отсутствует список attachments")
+        result = [item for item in objects if isinstance(item, dict)]
+        if len(result) != len(objects):
+            raise StepikAPIError("GET /api/attachments: неожиданный attachment object")
+        return result
+
+    def download_attachment(self, file_path_or_url: str) -> bytes:
+        return self._request_get_bytes(file_path_or_url)
+
+    def create_attachment(self, *, lesson_id: int, file_path: Path) -> dict[str, Any]:
+        path = Path(file_path)
+        if not path.is_file():
+            raise StepikAPIError(f"Attachment source отсутствует: {path.name}")
+        mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        try:
+            with path.open("rb") as handle:
+                response = self.session.request(
+                    "POST",
+                    f"{self.api_host}/api/attachments",
+                    headers=self.headers,
+                    data={"lesson": str(int(lesson_id))},
+                    files={"file": (path.name, handle, mime)},
+                    timeout=30,
+                )
+        except requests.RequestException as exc:
+            raise StepikWriteAmbiguousError(
+                "POST /api/attachments: network result неоднозначен; blind retry запрещён"
+            ) from exc
+        if response.status_code >= 500:
+            raise StepikWriteAmbiguousError(
+                f"POST /api/attachments: HTTP {response.status_code}; server-side commit не доказан и не опровергнут"
+            )
+        if response.status_code >= 400:
+            raise StepikAPIError(f"POST /api/attachments: Stepik вернул HTTP {response.status_code}")
+        try:
+            payload = self._json(response, "POST /api/attachments")
+        except StepikAPIError as exc:
+            raise StepikWriteAmbiguousError(
+                "POST /api/attachments: успешный HTTP без доказуемого JSON result; требуется read-back/reconcile"
+            ) from exc
+        objects = payload.get("attachments")
+        if not isinstance(objects, list) or len(objects) != 1 or not isinstance(objects[0], dict):
+            raise StepikWriteAmbiguousError(
+                "POST /api/attachments: ответ не содержит единственный attachment; требуется read-back/reconcile"
+            )
+        return objects[0]
 
     def create_lesson(self, title: str) -> dict[str, Any]:
         return self._request_write("POST", "/api/lessons", {"lesson": {"title": title}})

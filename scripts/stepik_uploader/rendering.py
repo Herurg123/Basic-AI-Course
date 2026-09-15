@@ -42,7 +42,13 @@ def resolve_asset_links(markdown_text: str, asset_url_map: dict[str, Any]) -> st
     return ASSET_LINK_RE.sub(replace, markdown_text)
 
 
-def render_markdown(markdown_text: str, *, asset_url_map: dict[str, Any] | None = None) -> str:
-    resolved = resolve_asset_links(markdown_text, asset_url_map or {})
+def markdown_to_html(markdown_text: str) -> str:
+    """Render Markdown that has already passed dependency/link resolution."""
     renderer = mistune.create_markdown(escape=False, plugins=["table", "strikethrough"])
-    return renderer(resolved)
+    return renderer(markdown_text)
+
+
+def render_markdown(markdown_text: str, *, asset_url_map: dict[str, Any] | None = None) -> str:
+    """Legacy renderer: resolve Asset-ID links first, then convert Markdown to HTML."""
+    resolved = resolve_asset_links(markdown_text, asset_url_map or {})
+    return markdown_to_html(resolved)

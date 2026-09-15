@@ -23,6 +23,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _baseline_from_state(event: dict, state: dict) -> dict | None:
+    kind = str(event.get("kind") or "lesson")
+    if kind == "asset":
+        source_path = event.get("source_path")
+        if not isinstance(source_path, str) or not source_path:
+            raise DeploymentHistoryError("Asset deployment event не содержит source_path")
+        baseline = state.get("assets", {}).get(source_path)
+        return baseline if isinstance(baseline, dict) else None
+    canonical_id = str(event.get("canonical_id"))
+    baseline = state.get("lessons", {}).get(canonical_id)
+    return baseline if isinstance(baseline, dict) else None
+
+
 def main() -> int:
     args = parse_args()
     try:
@@ -30,8 +43,7 @@ def main() -> int:
         state = json.loads(args.state_file.read_text(encoding="utf-8"))
         if not isinstance(state, dict):
             raise DeploymentHistoryError("state-file должен содержать JSON object")
-        canonical_id = str(event.get("canonical_id"))
-        baseline_after = state.get("lessons", {}).get(canonical_id)
+        baseline_after = _baseline_from_state(event, state)
         store = GitHubHistoryStore(
             repository=os.environ.get("GITHUB_REPOSITORY", ""),
             token=os.environ.get("GITHUB_TOKEN", ""),
@@ -41,7 +53,7 @@ def main() -> int:
             store,
             event_id=str(event["event_id"]),
             status=str(event.get("status")),
-            baseline_after=baseline_after if isinstance(baseline_after, dict) else None,
+            baseline_after=baseline_after,
         )
         return 0
     except (DeploymentHistoryError, OSError, json.JSONDecodeError, ValueError) as exc:
