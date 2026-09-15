@@ -14,6 +14,9 @@
 - читать фактическую структуру существующего курса Stepik;
 - строить derived structural/build representation из canonical GitHub files;
 - выполнять offline dry-run и all-course read-only preflight;
+- source-compile learner-facing content всех 21 canonical lessons без потери порядка и author-only leakage;
+- строить полный learner dependency graph, включая nested local links;
+- разрешать все текущие learner asset routes через machine-readable `asset-publication.v1.json`;
 - распознавать два golden lessons `M00-L01/M00-L02` как `READ_ONLY`;
 - отдельно проверять live integrity golden sample и отдельно классифицировать canonical-vs-golden divergence;
 - вести confirmed baseline и machine-readable PENDING в Issue `#54`;
@@ -24,7 +27,7 @@
 - выполнять read-only baseline reconcile classification;
 - проверять эксплуатационную ownership matrix автоматическим completeness test.
 
-Общий bulk write по-прежнему закрыт.
+Asset route gate закрыт, но общий bulk write по-прежнему закрыт. Следующий gate — verified rendering / controlled first upload.
 
 ## 2. Канонические источники и derived state
 
@@ -49,6 +52,8 @@ Operational state разделён на три слоя:
 - [`LIVE-SAFETY.md`](LIVE-SAFETY.md);
 - [`DEPLOYMENT-HISTORY.md`](DEPLOYMENT-HISTORY.md);
 - [`RECOVERY-RECONCILE.md`](RECOVERY-RECONCILE.md);
+- [`BULK-STATUS.md`](BULK-STATUS.md);
+- [`asset-publication.v1.json`](asset-publication.v1.json);
 - [`ownership-matrix.v1.json`](ownership-matrix.v1.json).
 
 ## 3. Golden sample
@@ -72,7 +77,13 @@ Operational state разделён на три слоя:
 
 ### Bulk Status
 
-`Stepik Bulk Status` читает весь курс и строит preflight для 21 canonical lessons. Даже зелёный preflight не устанавливает `ready_for_bulk_write=true` автоматически.
+`Stepik Bulk Status` читает весь курс и строит preflight для 21 canonical lessons. Он различает три состояния, которые нельзя смешивать:
+
+- local learner dependency обнаружена source compiler;
+- publication route архитектурно разрешён;
+- физическая materialization в Stepik ещё требуется при будущем write.
+
+Даже полностью разрешённый asset route не устанавливает `ready_for_bulk_write=true` автоматически.
 
 Подробный контракт: [`BULK-STATUS.md`](BULK-STATUS.md).
 
@@ -187,26 +198,46 @@ Write result классифицируется так:
 
 ## 10. Asset route
 
-Предпочтительный route для assets остаётся Stepik Files, если он фактически и стабильно доступен.
+Полный learner dependency topology и publication policy описаны в [`asset-publication.v1.json`](asset-publication.v1.json) и [`BULK-STATUS.md`](BULK-STATUS.md).
 
-Если стабильный upload API не подтверждён, automation не выдумывает endpoint. Используется skeleton/manual upload + non-secret Asset ID → URL map.
+Текущий route contract:
 
-Fallback может использовать внешнее стабильное хранилище при условии, что ученик получает материал без специальных технических требований.
+- Markdown source → contextual `inline-source` через будущий verified renderer;
+- non-golden PNG → verified Stepik image materialization;
+- SVG → deterministic PNG rasterization → Stepik image materialization;
+- существующие golden M00-L02 attachments → exact confirmed URLs, привязанные к source SHA-256;
+- обязательный реальный `M04-L01-A01.txt` → `stepik-attachment-upload`.
+
+`stepik-attachment-upload` принят владельцем как рабочее production-допущение [D-2026-09-15-STEPIK-ATTACHMENTS](../../../00_governance/decision-log/2026-09-15-stepik-attachment-upload-assumption.md).
+
+Фактическая основа решения:
+
+- два файла уже успешно существуют как lesson attachments в бесплатном курсе;
+- API курса подтверждает `is_paid=false`;
+- `/api/attachments` читает эти объекты;
+- `OPTIONS /api/attachments` объявляет `POST`;
+- API принимает `multipart/form-data`;
+- обязательное поле `file` объявлено как `file upload`.
+
+Это не даёт writer права немедленно отправлять файл. Первый автоматизированный attachment POST должен идти только через будущий owner-dispatched write route с write-ahead history, capability preflight, no blind retry, read-back и доказательством learner-facing URL.
+
+Если API/plan/permissions перестают подтверждать этот контракт, route fail-closed возвращается в `asset-publication-resolution`.
 
 Asset URL никогда не конструируется по догадке.
 
 ## 11. Derived asset URL map
 
-Карта Asset ID → фактический URL является derived operational data. Если URL неизвестен, поле не заполняется фиктивным значением, а зависимый content route блокируется.
+Карта physical source → фактический URL является derived operational data. Если materialization ещё не выполнена, URL не заполняется фиктивным значением. После успешного upload URL связывается с точным source SHA-256 и verified read-back.
 
 Пример структуры:
 
 ```yaml
-M00-L02-A01:
-  storage: stepik-lesson-file
+M04-L01-A01:
+  storage: stepik-lesson-attachment
   lesson_id: 123456
-  url: https://stepik.org/media/attachments/lesson/123456/M00-L02-A01.docx
-  checked_at: 2026-09-14
+  source_sha256: sha256:...
+  url: https://stepik.org/media/attachments/lesson/123456/M04-L01-A01.txt
+  checked_at: 2026-09-15
 ```
 
 ## 12. Защита от дублей и destructive behavior
@@ -243,8 +274,10 @@ Machine-checkable [`ownership-matrix.v1.json`](ownership-matrix.v1.json) зад�
 - явный запуск live write route;
 - owner decision при ambiguous/manual/unknown provenance;
 - отдельное решение для golden/structural/adoption cases;
-- ручная asset upload процедура, если стабильный API route отсутствует;
+- изменение/отмена D-2026-09-15-STEPIK-ATTACHMENTS, если владелец больше не хочет использовать Stepik attachments;
 - финальный human visual review там, где он требуется production-процессом.
+
+Если Stepik API сам обнаружит ограничение attachment route, новое ручное решение владельца не требуется для STOP: automation обязана остановиться fail-closed и вернуть проблему в asset gate.
 
 Чувствительные данные не передаются в чат и не фиксируются в deployment history.
 
@@ -257,4 +290,5 @@ Machine-checkable [`ownership-matrix.v1.json`](ownership-matrix.v1.json) зад�
 - менять F1;
 - считать API read-back Human Validation;
 - считать successful upload доказательством PHONE/COMPUTER readiness;
-- разблокировать общий bulk write одним успешным pilot/recovery result.
+- считать resolved asset route доказательством фактической materialization;
+- разблокировать общий bulk write одним успешным pilot/recovery/attachment result.

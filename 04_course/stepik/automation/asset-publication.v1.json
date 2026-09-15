@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "course_id": 299189,
+  "status": "routes-resolved-with-stepik-attachment-assumption",
+  "decision": "D-2026-09-15-STEPIK-ATTACHMENTS",
+  "capability_assumptions": {
+    "stepik_attachment_upload": {
+      "status": "owner-approved-working-assumption",
+      "scope": "course-299189",
+      "evidence": {
+        "manual_existing_attachments": [
+          "M00-L02-A01.docx",
+          "M00-L02-A02.png"
+        ],
+        "read_only_probe_runs": [
+          34955808296,
+          34955920959,
+          34956046044
+        ],
+        "api_collection": "/api/attachments",
+        "api_allows_post": true,
+        "api_accepts_multipart_form_data": true,
+        "api_file_field_type": "file upload",
+        "course_is_paid": false
+      },
+      "fail_closed_note": "If the API stops exposing POST/multipart file upload, returns a plan/permission blocker, or read-back/download cannot be proven, stop and reopen asset-publication-resolution."
+    }
+  },
+  "expected_topology": {
+    "learner_link_occurrences": 49,
+    "unique_source_files": 43,
+    "extensions_by_occurrence": {
+      ".docx": 1,
+      ".md": 42,
+      ".png": 3,
+      ".svg": 2,
+      ".txt": 1
+    },
+    "fingerprint": "sha256:ecbb9f9b8426c5bd4bba9f07816ab0e647022c13c0f38b4c29d9debd6096c20d"
+  },
+  "extension_rules": {
+    ".md": {
+      "mode": "inline-source",
+      "note": "Canonical Markdown source remains learner content and must be adapted into the owning Stepik learner step by the verified rendering layer. Nested Markdown dependencies are separate graph nodes and must be resolved by the same policy. This policy does not prescribe blind string replacement."
+    },
+    ".png": {
+      "mode": "stepik-image-upload",
+      "note": "Image must be materialized through the verified Stepik image route during the future write transaction and included in read-back/history evidence."
+    },
+    ".svg": {
+      "mode": "rasterize-png-stepik-image",
+      "note": "SVG is a canonical visual source. Rendering layer must deterministically rasterize it to PNG, then materialize it through the verified Stepik image route."
+    }
+  },
+  "source_overrides": {
+    "05_assets/M00/M00-L02/M00-L02-A01.docx": {
+      "mode": "confirmed-url",
+      "url": "https://stepik.org/media/attachments/lesson/2591710/M00-L02-A01.docx",
+      "source_sha256": "sha256:fb9fda11dec82e087c28077507c1053e8f29007e8d4824700e4efca0e608d31c",
+      "binding_scope": "golden-read-only-live-observation",
+      "note": "Observed in live READ_ONLY golden M00-L02. This binding is not authority to upload or replace course files."
+    },
+    "05_assets/M00/M00-L02/M00-L02-A02.png": {
+      "mode": "confirmed-url",
+      "url": "https://stepik.org/media/attachments/lesson/2591710/M00-L02-A02.png",
+      "source_sha256": "sha256:f40cc30963a6f94437120c19030ac043d47dbe6d28ee346dc5fc0bdde2b605f2",
+      "binding_scope": "golden-read-only-live-observation",
+      "note": "Observed in live READ_ONLY golden M00-L02. This binding is not authority to upload or replace course files."
+    },
+    "05_assets/M04/M04-L01/M04-L01-A01.txt": {
+      "mode": "stepik-attachment-upload",
+      "capability": "stepik_attachment_upload",
+      "binding_scope": "owner-approved-working-assumption",
+      "note": "Learner must obtain a real file and upload it to an AI service, so inline adaptation is insufficient. Materialize the exact current source as a Stepik lesson attachment only inside the future protected write transaction; capture source SHA-256, returned attachment identity/URL and verified learner read-back in history."
+    }
+  }
+}
