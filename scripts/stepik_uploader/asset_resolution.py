@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -29,17 +28,28 @@ MATERIALIZATION_MODES = {
     "stepik-image-upload",
     "rasterize-png-stepik-image",
 }
-REPO_RELATIVE_LINK_RE = re.compile(r"\]\((?!https?://|mailto:|#)([^)]+)\)")
+
+
+def _dependency_links(lesson_id: str, lesson: dict[str, Any]) -> list[dict[str, Any]]:
+    links = lesson.get("learner_dependency_links")
+    if links is None:
+        raise AssetResolutionError(
+            f"{lesson_id}: asset inventory не содержит learner_dependency_links; требуется schema v2"
+        )
+    if not isinstance(links, list):
+        raise AssetResolutionError(f"{lesson_id}: learner_dependency_links имеет неожиданный формат")
+    return links
 
 
 def learner_link_topology(inventory: dict[str, Any]) -> dict[str, Any]:
-    """Return a deterministic structural snapshot of learner-facing repo links.
+    """Return a deterministic snapshot of the complete learner local-link graph.
 
-    Content hashes are intentionally excluded from the topology fingerprint: normal source
-    edits must not silently become new publication *shapes*. Fixed published URL bindings are
-    hash-checked separately by the publication policy.
+    The topology includes direct lesson links and repo-relative links found recursively inside
+    linked Markdown resources. Content hashes are deliberately excluded from the fingerprint:
+    normal edits do not create a new route shape, while fixed published URL bindings are
+    validated against exact source SHA-256 separately.
     """
-    rows: list[dict[str, str]] = []
+    rows: list[dict[str, Any]] = []
     unique_sources: set[str] = set()
     extensions: dict[str, int] = {}
 
@@ -48,27 +58,39 @@ def learner_link_topology(inventory: dict[str, Any]) -> dict[str, Any]:
         raise AssetResolutionError("asset inventory не содержит lessons")
 
     for lesson_id, lesson in lessons.items():
-        links = lesson.get("learner_links", []) if isinstance(lesson, dict) else []
-        if not isinstance(links, list):
-            raise AssetResolutionError(f"{lesson_id}: learner_links имеет неожиданный формат")
-        for link in links:
+        if not isinstance(lesson, dict):
+            raise AssetResolutionError(f"{lesson_id}: неожиданный lesson inventory")
+        for link in _dependency_links(str(lesson_id), lesson):
             if not isinstance(link, dict):
-                raise AssetResolutionError(f"{lesson_id}: learner link имеет неожиданный формат")
+                raise AssetResolutionError(f"{lesson_id}: learner dependency link имеет неожиданный формат")
             if link.get("exists") is not True:
-                raise AssetResolutionError(f"{lesson_id}: learner link не существует: {link.get('source_path')}")
+                raise AssetResolutionError(
+                    f"{lesson_id}: learner dependency link не существует: {link.get('source_path')}"
+                )
             source_path = str(link.get("source_path") or "")
-            asset_id = str(link.get("asset_id") or "")
+            link_source_path = str(link.get("link_source_path") or "")
             markdown_target = str(link.get("markdown_target") or "")
             extension = str(link.get("extension") or "").lower()
-            if not source_path or not asset_id or not markdown_target or not extension:
-                raise AssetResolutionError(f"{lesson_id}: неполная learner-link запись")
+            dependency_depth = link.get("dependency_depth")
+            asset_id = link.get("asset_id")
+            if (
+                not source_path
+                or not link_source_path
+                or not markdown_target
+                or not extension
+                or not isinstance(dependency_depth, int)
+                or dependency_depth < 0
+            ):
+                raise AssetResolutionError(f"{lesson_id}: неполная learner dependency запись")
             rows.append(
                 {
                     "lesson": str(lesson_id),
-                    "asset_id": asset_id,
+                    "asset_id": str(asset_id) if asset_id else None,
+                    "link_source_path": link_source_path,
                     "source_path": source_path,
                     "markdown_target": markdown_target,
                     "extension": extension,
+                    "dependency_depth": dependency_depth,
                 }
             )
             unique_sources.add(source_path)
@@ -77,9 +99,11 @@ def learner_link_topology(inventory: dict[str, Any]) -> dict[str, Any]:
     rows.sort(
         key=lambda item: (
             item["lesson"],
+            item["dependency_depth"],
+            item["link_source_path"],
             item["source_path"],
             item["markdown_target"],
-            item["asset_id"],
+            item["asset_id"] or "",
             item["extension"],
         )
     )
@@ -116,15 +140,17 @@ def _inventory_occurrences(inventory: dict[str, Any]) -> list[dict[str, Any]]:
     for lesson_id, lesson in lessons.items():
         if not isinstance(lesson, dict):
             raise AssetResolutionError(f"{lesson_id}: неожиданный lesson inventory")
-        for link in lesson.get("learner_links", []):
+        for link in _dependency_links(str(lesson_id), lesson):
             if not isinstance(link, dict):
-                raise AssetResolutionError(f"{lesson_id}: неожиданный learner link")
+                raise AssetResolutionError(f"{lesson_id}: неожиданный learner dependency link")
             record = dict(link)
             record["lesson"] = str(lesson_id)
             result.append(record)
     result.sort(
         key=lambda item: (
             item["lesson"],
+            int(item.get("dependency_depth", 0)),
+            str(item.get("link_source_path") or ""),
             str(item.get("source_path") or ""),
             str(item.get("markdown_target") or ""),
             str(item.get("asset_id") or ""),
@@ -236,7 +262,9 @@ def assess_asset_publication(
         record: dict[str, Any] = {
             "lesson": occurrence["lesson"],
             "asset_id": occurrence.get("asset_id"),
+            "link_source_path": occurrence.get("link_source_path"),
             "source_path": source_path,
+            "dependency_depth": int(occurrence.get("dependency_depth", 0)),
             "extension": extension,
             "source_sha256": source_sha,
             "mode": mode,
@@ -252,12 +280,7 @@ def assess_asset_publication(
         if mode == "inline-source":
             if extension != ".md":
                 raise AssetResolutionError(f"{source_path}: inline-source разрешён только для .md")
-            inline_text = source_file.read_text(encoding="utf-8")
-            nested = [match.group(1).strip() for match in REPO_RELATIVE_LINK_RE.finditer(inline_text)]
-            if nested:
-                raise AssetResolutionError(
-                    f"{source_path}: inline-source содержит вложенные repo-relative links: {nested}"
-                )
+            source_file.read_text(encoding="utf-8")
 
         elif mode == "stepik-image-upload":
             if extension != ".png":
