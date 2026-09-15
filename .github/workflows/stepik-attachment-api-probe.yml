@@ -113,10 +113,6 @@ jobs:
                   print(f"{method} attachment_action status=", response.status_code)
                   print(f"{method} attachment_action content_type=", response.headers.get("Content-Type"))
                   print(f"{method} attachment_action allow=", response.headers.get("Allow"))
-                  location = response.headers.get("Location")
-                  if location:
-                      loc = urlsplit(urljoin(HOST + "/", location))
-                      print(f"{method} attachment_action redirect_path=", loc.path)
 
           for query in (
               f"/api/attachments?lesson={LESSON_ID}",
@@ -138,7 +134,6 @@ jobs:
                                       f"GET {query} attachment[{index}]=",
                                       json.dumps(safe_attachment_summary(item), ensure_ascii=False, sort_keys=True),
                                   )
-                                  print(f"GET {query} attachment[{index}] keys=", sorted(item.keys()))
 
           options = requests.options(
               HOST + "/api/attachments",
@@ -153,12 +148,25 @@ jobs:
               metadata = options.json()
               if isinstance(metadata, dict):
                   print("OPTIONS /api/attachments top_level_keys=", sorted(metadata.keys()))
+                  print("OPTIONS /api/attachments parses=", metadata.get("parses"))
                   actions_meta = metadata.get("actions")
                   if isinstance(actions_meta, dict):
                       print("OPTIONS /api/attachments action_methods=", sorted(actions_meta.keys()))
                       post_meta = actions_meta.get("POST")
                       if isinstance(post_meta, dict):
                           print("OPTIONS /api/attachments POST_fields=", sorted(post_meta.keys()))
+                          safe_fields = {}
+                          for field_name, field_meta in post_meta.items():
+                              if isinstance(field_meta, dict):
+                                  safe_fields[field_name] = {
+                                      key: field_meta.get(key)
+                                      for key in ("type", "required", "read_only", "label", "max_length")
+                                      if key in field_meta
+                                  }
+                          print(
+                              "OPTIONS /api/attachments POST_field_schema=",
+                              json.dumps(safe_fields, ensure_ascii=False, sort_keys=True),
+                          )
 
           print("stepik_content_writes=0")
           PY
