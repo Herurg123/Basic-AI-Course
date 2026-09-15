@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import unittest
 from pathlib import Path
 
@@ -35,28 +34,6 @@ class GeneralContentCompilerTests(unittest.TestCase):
                 if lesson["canonical_id"] == lesson_id:
                     return lesson
         self.fail(f"lesson not found: {lesson_id}")
-
-    def test_alignment_audit_snapshot(self) -> None:
-        audit = []
-        for lesson_id in self.lesson_ids:
-            audit.append(
-                {
-                    "canonical_id": lesson_id,
-                    "steps": [
-                        {
-                            "position": step.position,
-                            "block": step.block_name,
-                            "headings": list(step.source_headings),
-                            "exercise_ids": list(step.exercise_ids),
-                            "check_ids": list(step.check_ids),
-                            "chunks": list(step.source_chunk_indexes),
-                        }
-                        for step in self.compiled[lesson_id]
-                    ],
-                }
-            )
-        print("GENERAL_COMPILER_ALIGNMENT=" + json.dumps(audit, ensure_ascii=False, separators=(",", ":")))
-        self.assertEqual(len(audit), 21)
 
     def test_all_21_lessons_compile_and_author_only_rows_are_excluded(self) -> None:
         self.assertEqual(len(self.lesson_ids), 21)
@@ -125,6 +102,33 @@ class GeneralContentCompilerTests(unittest.TestCase):
         )
         self.assertEqual(len(self.compiled["M00-L02"]), 8)
         self.assertEqual(len(self.compiled["M06-L02"]), 6)
+
+    def test_check_steps_do_not_absorb_following_semantic_sections(self) -> None:
+        m05 = self.compiled["M05-L02"]
+        self.assertEqual(m05[8].source_headings, ("Проверьте реальное редактирование",))
+        self.assertEqual(m05[8].check_ids, ("M05-L02-C02",))
+        self.assertIn("Повторная ситуация для редактирования", m05[9].source_headings)
+
+        m07 = self.compiled["M07-L02"]
+        self.assertEqual(m07[5].source_headings, ("Финальная проверка",))
+        self.assertEqual(m07[5].check_ids, ("M07-L02-C01",))
+        self.assertIn("Если попытка стала тренировочной", m07[6].source_headings)
+
+        m08 = self.compiled["M08-L01"]
+        self.assertEqual(m08[4].source_headings, ("Короткая проверка переноса",))
+        self.assertEqual(m08[4].check_ids, ("M08-L01-C01",))
+        self.assertIn("Важная граница", m08[5].source_headings)
+        self.assertIn("Итог", m08[5].source_headings)
+
+    def test_m01_l02_transfer_precedes_final_check_as_in_canonical_lesson(self) -> None:
+        steps = self.compiled["M01-L02"]
+        self.assertEqual(steps[3].block_name, "text")
+        self.assertIn("Проверьте себя на второй ситуации", steps[3].source_headings)
+        self.assertEqual(steps[4].block_name, "free-answer")
+        self.assertEqual(steps[4].source_headings, ("Проверка урока",))
+        self.assertEqual(steps[4].check_ids, ("M01-L02-C01",))
+        self.assertIn("Если основной маршрут не работает", steps[5].source_headings)
+        self.assertIn("Итог", steps[5].source_headings)
 
     def test_unique_exercise_and_check_markers_align_to_their_plan_rows(self) -> None:
         for lesson_id, steps in self.compiled.items():
