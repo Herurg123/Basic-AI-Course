@@ -13,7 +13,7 @@
 3. fresh live Stepik read-back;
 4. immutable deployment history.
 
-Если один из обязательных источников недоступен или несколько объяснений одинаково возможны, результат = `STOP`.
+Если один из обязательных источников недоступен, history не проходит integrity gate или несколько объяснений одинаково возможны, результат = `STOP`.
 
 ## 2. Current-main и event source
 
@@ -42,6 +42,7 @@ Evidence:
 
 - `FINAL_READBACK_CONFIRMED` существует;
 - `MACHINE_STATE_COMMITTED` отсутствует;
+- все начатые write operations имеют непротиворечивую completed + per-operation read-back evidence;
 - fresh live fingerprint точно равен history-confirmed final fingerprint;
 - event source SHA всё ещё текущий `main`;
 - нет competing event.
@@ -59,19 +60,22 @@ Stepik writes: `0`. Automation PATCH-ит только target baseline/pending �
 Evidence:
 
 - один или несколько `WRITE_DISPATCH_STARTED`;
-- соответствующие write results однозначны;
-- для выполненного prefix есть `OP_READBACK_CONFIRMED`;
+- **каждый** уже начатый dispatch, относящийся к подтверждённому prefix, имеет единственный `WRITE_COMPLETED`;
+- для каждого такого dispatch есть `OP_READBACK_CONFIRMED`;
+- нет более позднего dispatch без подтверждённого read-back;
 - fresh live fingerprint точно совпадает с последним подтверждённым intermediate fingerprint;
-- нет ambiguous result/read-back failure;
+- нет ambiguous result/read-back failure/known-failure attempt;
 - source SHA всё ещё текущий.
 
-Action: `AUTO_CONTINUE_FROM_CONFIRMED_PREFIX` допустим только для remaining operations. Уже подтверждённые operations не повторяются.
+Action: `AUTO_CONTINUE_FROM_CONFIRMED_PREFIX` допустим только для operations, которые ещё **не имели dispatch**. Уже подтверждённые operations не повторяются.
+
+Если после подтверждённого prefix уже существует следующий `WRITE_DISPATCH_STARTED`, но его outcome/read-back не доказан, совпадение live с prefix **не** разрешает continuation: результат = `WRITE_STARTED_WITHOUT_CONFIRMED_PREFIX`/STOP. Иначе можно было бы повторить operation, которая фактически уже применена server-side.
 
 Если live отличается от confirmed intermediate → `STOP_OWNER_DECISION`.
 
 ### R3. Ambiguous API result
 
-Timeout/network error, HTTP 5xx после write dispatch или иной результат, при котором server-side commit нельзя доказать или опровергнуть, создаёт `WRITE_AMBIGUOUS`.
+Timeout/network error, HTTP 5xx после write dispatch, неожиданный client/runtime exception после durable dispatch или иной результат, при котором server-side commit нельзя доказать или опровергнуть, создаёт `WRITE_AMBIGUOUS`.
 
 Action: `STOP_OWNER_DECISION` + read-only reconcile. Blind retry запрещён.
 
@@ -79,12 +83,12 @@ Action: `STOP_OWNER_DECISION` + read-only reconcile. Blind retry запрещё�
 
 ### R4. Known write failure
 
-`WRITE_FAILED_KNOWN` означает, что конкретная dispatch-попытка доказанно не создала server-side commit. Это не ambiguous state.
+`WRITE_FAILED_KNOWN` означает, что конкретная dispatch-попытка доказанно получила API-отказ без server-side commit. Это не ambiguous state.
 
 Однако history v1 моделирует одну dispatch-попытку под semantic operation ID. Поэтому повторный внешний write не маскируется под старую попытку и не запускается автоматически.
 
-- live всё ещё равен baseline → `KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED`;
-- live уже отличается от baseline → `KNOWN_WRITE_FAILURE_WITH_LIVE_DIVERGENCE`.
+- live всё ещё равен последнему доказанному состоянию → `KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED`;
+- live уже отличается от последнего доказанного состояния → `KNOWN_WRITE_FAILURE_WITH_LIVE_DIVERGENCE`.
 
 Оба класса требуют owner decision. Будущий explicit retry route обязан создавать отдельную attempt identity, а не переписывать старые dispatch/result records.
 
@@ -99,9 +103,10 @@ Action: `STOP_OWNER_DECISION`, пока происхождение live state н
 Следующий run читает immutable history и fresh live.
 
 - intent сохранён, но dispatch для operation отсутствует → эта operation не считается начатой; normal guarded route может выполнить её;
-- live == last confirmed intermediate → можно продолжить только remaining operations;
+- все предыдущие dispatch подтверждены read-back, следующего dispatch нет, live == last confirmed intermediate → можно продолжить remaining operations;
 - live отличается → STOP;
-- есть `WRITE_DISPATCH_STARTED` без подтверждённого результата/read-back → STOP, никакого blind retry.
+- есть `WRITE_DISPATCH_STARTED` без подтверждённого результата/read-back → STOP, никакого blind retry;
+- есть `WRITE_COMPLETED` без `OP_READBACK_CONFIRMED` → STOP; успешный HTTP не считается подтверждённым state.
 
 ### R7. Повторный recovery run
 
@@ -121,6 +126,12 @@ Action: `STOP_OWNER_DECISION`, пока происхождение live state н
 
 Action: `STOP_OWNER_DECISION`.
 
+### R10. History повреждена или противоречива
+
+Перед recovery history проходит integrity gate: stable event identity, единая logical identity records, допустимая cardinality phases, write-chain intent→dispatch→result→read-back и exact final/committed relationship.
+
+Ручная правка или внутреннее противоречие evidence не разрешаются эвристикой. Такой event = `STOP` до расследования/owner decision; automation не выбирает «более правдоподобную» запись.
+
 ## 4. Baseline reconcile classifications
 
 `sync-reconcile` является read-only по отношению к Stepik. Он не выполняет Stepik write и не rebaseline-ит Issue автоматически, но durable-записывает `RECONCILE_CLASSIFIED` в operational history.
@@ -128,12 +139,14 @@ Action: `STOP_OWNER_DECISION`.
 Минимальные классы:
 
 - `VERIFIED_WRITE_STATE_PATCH_MISSING` → auto state-only recovery допустим;
-- `CONFIRMED_PARTIAL_AUTOMATION_STATE` → continuation допустим только из подтверждённого prefix;
+- `CONFIRMED_PARTIAL_AUTOMATION_STATE` → continuation допустим только из полностью подтверждённого prefix без более позднего unresolved dispatch;
 - `AMBIGUOUS_WRITE_RESULT` → owner decision;
 - `KNOWN_WRITE_FAILURE_OWNER_RETRY_REQUIRED` → owner decision/new attempt route;
 - `KNOWN_WRITE_FAILURE_WITH_LIVE_DIVERGENCE` → owner decision;
 - `UNCONFIRMED_WRITE_READBACK_FAILED` → owner decision;
 - `WRITE_STARTED_WITHOUT_CONFIRMED_PREFIX` → owner decision;
+- `HISTORY_EVIDENCE_INCONSISTENT` → owner decision/STOP;
+- `MACHINE_STATE_DIVERGED_DURING_EVENT` → owner decision/STOP;
 - `MANUAL_OR_UNKNOWN_DRIFT` → owner decision;
 - `BASELINE_MISSING` → owner decision;
 - `CANONICAL_MATCH_WITHOUT_PROVEN_EVENT` / `UNPROVEN_LIVE_EQUALS_CANONICAL` → owner decision;
