@@ -166,6 +166,20 @@ def recorder_for(snapshot: dict) -> tuple[MemoryHistoryStore, DeploymentRecorder
     return store, recorder
 
 
+def add_confirmed_first_step(recorder: DeploymentRecorder, live_fingerprint: str) -> None:
+    operation_id = "step-0001-1"
+    recorder.write_intent(
+        operation_id=operation_id,
+        method="PUT",
+        target="step-sources/1",
+        fingerprint_before="sha256:" + "a" * 64,
+        expected_fingerprint_after=live_fingerprint,
+    )
+    recorder.write_dispatch_started(operation_id=operation_id)
+    recorder.write_result(operation_id=operation_id, status="COMPLETED")
+    recorder.operation_readback(operation_id=operation_id, expected_fingerprint_after=live_fingerprint)
+
+
 def add_fully_confirmed_write_evidence(recorder: DeploymentRecorder) -> None:
     desired = compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED)
     for operation_id in ("step-0001-1", "step-create-0002"):
@@ -210,9 +224,8 @@ class InitialUploadWriterTests(unittest.TestCase):
 
     def test_unproven_partial_prefix_is_blocked_without_write(self) -> None:
         client = FakeClient()
-        first = EXPECTED[0]
         lesson = client.snapshot["sections"][0]["units"][0]["lesson"]
-        lesson["steps"][0]["step_source"]["block"] = first.block()
+        lesson["steps"][0]["step_source"]["block"] = EXPECTED[0].block()
         _store, recorder = recorder_for(client.inspect_course(299189))
         with self.assertRaisesRegex(ContentWriteError, "partial matching prefix"):
             execute_initial_upload_one(
@@ -232,10 +245,11 @@ class InitialUploadWriterTests(unittest.TestCase):
 
     def test_proven_partial_prefix_can_resume_only_remaining_step(self) -> None:
         client = FakeClient()
-        first = EXPECTED[0]
         lesson = client.snapshot["sections"][0]["units"][0]["lesson"]
-        lesson["steps"][0]["step_source"]["block"] = first.block()
+        lesson["steps"][0]["step_source"]["block"] = EXPECTED[0].block()
         _store, recorder = recorder_for(client.inspect_course(299189))
+        partial_fp = live_lesson_fingerprint(lesson)
+        add_confirmed_first_step(recorder, partial_fp)
         result = execute_initial_upload_one(
             client,
             client.inspect_course(299189),
@@ -253,6 +267,65 @@ class InitialUploadWriterTests(unittest.TestCase):
         self.assertEqual(client.create_calls, 1)
         self.assertEqual(result.operations[0]["action"], "RESUME_PROVEN_PARTIAL")
         self.assertEqual(result.operations[1]["action"], "CREATE_STEP")
+
+    def test_dispatch_gap_blocks_partial_resume_without_new_write(self) -> None:
+        client = FakeClient()
+        lesson = client.snapshot["sections"][0]["units"][0]["lesson"]
+        lesson["steps"][0]["step_source"]["block"] = EXPECTED[0].block()
+        _store, recorder = recorder_for(client.inspect_course(299189))
+        add_confirmed_first_step(recorder, live_lesson_fingerprint(lesson))
+        recorder.write_intent(
+            operation_id="step-create-0002",
+            method="POST",
+            target="step-sources",
+            fingerprint_before=live_lesson_fingerprint(lesson),
+            expected_fingerprint_after=compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED),
+        )
+        recorder.write_dispatch_started(operation_id="step-create-0002")
+        with self.assertRaisesRegex(ContentWriteError, "blind retry/continuation запрещён"):
+            execute_initial_upload_one(
+                client,
+                client.inspect_course(299189),
+                canonical_id="M04-L01",
+                expected_steps=EXPECTED,
+                module_position=5,
+                lesson_position=1,
+                expected_title=TITLE,
+                source_sha=SOURCE_SHA,
+                recorder=recorder,
+                allow_partial_resume=True,
+            )
+        self.assertEqual(client.create_calls, 0)
+
+    def test_known_failed_dispatch_blocks_partial_resume_without_new_write(self) -> None:
+        client = FakeClient()
+        lesson = client.snapshot["sections"][0]["units"][0]["lesson"]
+        lesson["steps"][0]["step_source"]["block"] = EXPECTED[0].block()
+        _store, recorder = recorder_for(client.inspect_course(299189))
+        add_confirmed_first_step(recorder, live_lesson_fingerprint(lesson))
+        recorder.write_intent(
+            operation_id="step-create-0002",
+            method="POST",
+            target="step-sources",
+            fingerprint_before=live_lesson_fingerprint(lesson),
+            expected_fingerprint_after=compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED),
+        )
+        recorder.write_dispatch_started(operation_id="step-create-0002")
+        recorder.write_result(operation_id="step-create-0002", status="FAILED_KNOWN", reason_code="test-known-failure")
+        with self.assertRaisesRegex(ContentWriteError, "blind retry/continuation запрещён"):
+            execute_initial_upload_one(
+                client,
+                client.inspect_course(299189),
+                canonical_id="M04-L01",
+                expected_steps=EXPECTED,
+                module_position=5,
+                lesson_position=1,
+                expected_title=TITLE,
+                source_sha=SOURCE_SHA,
+                recorder=recorder,
+                allow_partial_resume=True,
+            )
+        self.assertEqual(client.create_calls, 0)
 
     def test_complete_matching_live_without_proven_history_is_blocked(self) -> None:
         client = FakeClient()
