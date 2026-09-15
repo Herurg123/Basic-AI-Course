@@ -15,6 +15,7 @@ ALLOWED_MODES = {
     "inline-source",
     "stepik-image-upload",
     "rasterize-png-stepik-image",
+    "stepik-attachment-upload",
     "confirmed-url",
     "download-url-required",
 }
@@ -22,11 +23,13 @@ ROUTE_RESOLVED_MODES = {
     "inline-source",
     "stepik-image-upload",
     "rasterize-png-stepik-image",
+    "stepik-attachment-upload",
     "confirmed-url",
 }
 MATERIALIZATION_MODES = {
     "stepik-image-upload",
     "rasterize-png-stepik-image",
+    "stepik-attachment-upload",
 }
 
 
@@ -223,6 +226,27 @@ def _require_source_hash(occurrence: dict[str, Any], source_path: str) -> str:
     return source_sha
 
 
+def _validate_capability_assumption(
+    policy: dict[str, Any],
+    *,
+    capability_name: str,
+    source_path: str,
+) -> dict[str, Any]:
+    assumptions = policy.get("capability_assumptions")
+    if not isinstance(assumptions, dict):
+        raise AssetResolutionError(f"{source_path}: policy не содержит capability_assumptions")
+    capability = assumptions.get(capability_name)
+    if not isinstance(capability, dict):
+        raise AssetResolutionError(
+            f"{source_path}: capability assumption {capability_name!r} отсутствует"
+        )
+    if capability.get("status") != "owner-approved-working-assumption":
+        raise AssetResolutionError(
+            f"{source_path}: capability {capability_name!r} не имеет owner-approved status"
+        )
+    return capability
+
+
 def assess_asset_publication(
     *,
     repo_root: Path,
@@ -293,6 +317,25 @@ def assess_asset_publication(
             materialization_sources.add(source_path)
             record["derived_format"] = ".png"
 
+        elif mode == "stepik-attachment-upload":
+            if rule_source != "source_override":
+                raise AssetResolutionError(
+                    f"{source_path}: stepik-attachment-upload разрешён только точным source_override"
+                )
+            capability_name = str(rule.get("capability") or "")
+            if not capability_name:
+                raise AssetResolutionError(
+                    f"{source_path}: stepik-attachment-upload требует capability reference"
+                )
+            _validate_capability_assumption(
+                policy,
+                capability_name=capability_name,
+                source_path=source_path,
+            )
+            materialization_sources.add(source_path)
+            record["capability"] = capability_name
+            record["binding_scope"] = rule.get("binding_scope")
+
         elif mode == "confirmed-url":
             url = str(rule.get("url") or "")
             expected_sha = str(rule.get("source_sha256") or "")
@@ -319,6 +362,8 @@ def assess_asset_publication(
     return {
         "schema_version": 1,
         "course_id": int(course_id),
+        "policy_status": policy.get("status"),
+        "decision": policy.get("decision"),
         "topology": topology,
         "resolutions": resolutions,
         "blockers": sorted(set(blockers)),
