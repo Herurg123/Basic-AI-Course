@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -28,6 +29,7 @@ MATERIALIZATION_MODES = {
     "stepik-image-upload",
     "rasterize-png-stepik-image",
 }
+REPO_RELATIVE_LINK_RE = re.compile(r"\]\((?!https?://|mailto:|#)([^)]+)\)")
 
 
 def learner_link_topology(inventory: dict[str, Any]) -> dict[str, Any]:
@@ -188,6 +190,13 @@ def _validate_override_coverage(policy: dict[str, Any], occurrences: list[dict[s
         raise AssetResolutionError("Policy содержит stale source_overrides: " + ", ".join(stale))
 
 
+def _require_source_hash(occurrence: dict[str, Any], source_path: str) -> str:
+    source_sha = str(occurrence.get("sha256") or "")
+    if not source_sha.startswith("sha256:"):
+        raise AssetResolutionError(f"{source_path}: отсутствует доказуемый SHA-256 source")
+    return source_sha
+
+
 def assess_asset_publication(
     *,
     repo_root: Path,
@@ -212,7 +221,7 @@ def assess_asset_publication(
 
     for occurrence in occurrences:
         source_path = str(occurrence.get("source_path") or "")
-        source_sha = str(occurrence.get("sha256") or "")
+        source_sha = _require_source_hash(occurrence, source_path)
         extension = str(occurrence.get("extension") or "").lower()
         rule, rule_source = _rule_for_occurrence(policy, occurrence)
         mode = str(rule.get("mode") or "")
@@ -236,11 +245,19 @@ def assess_asset_publication(
             "materialization_required_at_write": mode in MATERIALIZATION_MODES,
         }
 
+        source_file = repo_root / source_path
+        if not source_file.is_file():
+            raise AssetResolutionError(f"{source_path}: source файл отсутствует")
+
         if mode == "inline-source":
             if extension != ".md":
                 raise AssetResolutionError(f"{source_path}: inline-source разрешён только для .md")
-            if not (repo_root / source_path).is_file():
-                raise AssetResolutionError(f"{source_path}: inline-source файл отсутствует")
+            inline_text = source_file.read_text(encoding="utf-8")
+            nested = [match.group(1).strip() for match in REPO_RELATIVE_LINK_RE.finditer(inline_text)]
+            if nested:
+                raise AssetResolutionError(
+                    f"{source_path}: inline-source содержит вложенные repo-relative links: {nested}"
+                )
 
         elif mode == "stepik-image-upload":
             if extension != ".png":
