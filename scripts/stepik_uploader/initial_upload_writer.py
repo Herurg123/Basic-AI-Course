@@ -75,6 +75,14 @@ def _history_dispatches_are_fully_confirmed(records: list[dict[str, Any]]) -> bo
     return dispatch_ids == completed_ids == readback_ids
 
 
+def _dispatch_ids(records: list[dict[str, Any]]) -> set[str]:
+    return {
+        str(item.get("operation_id"))
+        for item in records
+        if item.get("phase") == "WRITE_DISPATCH_STARTED" and item.get("operation_id")
+    }
+
+
 def execute_initial_upload_one(
     client: Any,
     snapshot: dict[str, Any],
@@ -105,17 +113,46 @@ def execute_initial_upload_one(
     state, matched = classify_existing_steps(existing, expected_steps)
     result = SyncWriteResult(lesson_id=lesson_id)
     ordered = sorted(existing, key=lambda item: _step_source(item).get("position", 10**9))
+    history_before = recorder.records(refresh=True)
+    prior_dispatch_ids = _dispatch_ids(history_before)
 
-    if state == "partial" and not allow_partial_resume:
-        raise ContentWriteError(
-            "Initial upload обнаружил partial matching prefix без доказанной recovery history; автоматическое продолжение запрещено"
-        )
+    if state == "partial":
+        if not allow_partial_resume:
+            raise ContentWriteError(
+                "Initial upload обнаружил partial matching prefix без доказанной recovery history; автоматическое продолжение запрещено"
+            )
+        if not _history_dispatches_are_fully_confirmed(history_before):
+            raise ContentWriteError(
+                "Initial upload partial recovery содержит dispatch без полностью подтверждённого COMPLETED + per-operation read-back; "
+                "blind retry/continuation запрещён"
+            )
+        if len(prior_dispatch_ids) != matched:
+            raise ContentWriteError(
+                "Initial upload partial recovery: число подтверждённых writes не совпадает с live matching prefix"
+            )
+        live_fp = live_lesson_fingerprint(lesson)
+        confirmed_fingerprints = {
+            str(item.get("fingerprint_after"))
+            for item in history_before
+            if item.get("phase") == "OP_READBACK_CONFIRMED" and item.get("fingerprint_after")
+        }
+        if live_fp not in confirmed_fingerprints:
+            raise ContentWriteError(
+                "Initial upload partial recovery: live fingerprint не доказан per-operation read-back history"
+            )
     if state == "complete":
-        history_before = recorder.records(refresh=True)
         if not allow_complete_recovery or not _history_dispatches_are_fully_confirmed(history_before):
             raise ContentWriteError(
                 "Initial upload обнаружил complete matching live content без полностью подтверждённой write history; automatic adoption запрещён"
             )
+        if len(prior_dispatch_ids) != len(expected_steps):
+            raise ContentWriteError(
+                "Initial upload complete recovery: число подтверждённых writes не совпадает с числом rendered steps"
+            )
+    if state == "skeleton-placeholder" and prior_dispatch_ids:
+        raise ContentWriteError(
+            "Initial upload видит исходный skeleton, но history уже содержит write dispatch; blind retry запрещён"
+        )
 
     working_lesson = deepcopy(lesson)
     if state == "complete":
