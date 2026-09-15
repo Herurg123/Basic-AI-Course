@@ -1,0 +1,126 @@
+name: Stepik Attachment API Probe
+
+on:
+  push:
+    branches:
+      - diagnostic/stepik-attachment-api-probe
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+
+      - name: Install requests
+        run: python -m pip install 'requests>=2.32,<3'
+
+      - name: Read-only attachment capability probe
+        env:
+          STEPIC_CLIENT_ID: ${{ secrets.STEPIC_CLIENT_ID }}
+          STEPIC_CLIENT_SECRET: ${{ secrets.STEPIC_CLIENT_SECRET }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from urllib.parse import urljoin, urlsplit
+          import requests
+
+          HOST = "https://stepik.org"
+          COURSE_ID = 299189
+          LESSON_ID = 2591710
+
+          cid = os.environ.get("STEPIC_CLIENT_ID", "").strip()
+          secret = os.environ.get("STEPIC_CLIENT_SECRET", "").strip()
+          if not cid or not secret:
+              raise SystemExit("Missing Stepik OAuth secrets")
+
+          token_response = requests.post(
+              HOST + "/oauth2/token/",
+              data={"grant_type": "client_credentials"},
+              auth=(cid, secret),
+              timeout=30,
+          )
+          print("oauth_status=", token_response.status_code)
+          token_response.raise_for_status()
+          token = token_response.json().get("access_token")
+          if not token:
+              raise SystemExit("OAuth response has no access_token")
+          headers = {"Authorization": f"Bearer {token}"}
+
+          def get_one(resource, object_id):
+              response = requests.get(
+                  f"{HOST}/api/{resource}/{object_id}", headers=headers, timeout=30
+              )
+              print(f"GET /api/{resource}/{object_id} status=", response.status_code)
+              response.raise_for_status()
+              payload = response.json()
+              objects = payload.get(resource)
+              if not isinstance(objects, list) or len(objects) != 1:
+                  raise SystemExit(f"Unexpected {resource} response")
+              return objects[0]
+
+          def interesting(obj):
+              result = {}
+              for key, value in obj.items():
+                  k = str(key).lower()
+                  if any(part in k for part in ("attach", "file", "action", "paid", "price", "tariff", "plan")):
+                      result[key] = value
+              return result
+
+          lesson = get_one("lessons", LESSON_ID)
+          course = get_one("courses", COURSE_ID)
+          print("lesson_interesting=", json.dumps(interesting(lesson), ensure_ascii=False, sort_keys=True))
+          print("course_interesting=", json.dumps(interesting(course), ensure_ascii=False, sort_keys=True))
+
+          actions = lesson.get("actions")
+          attachment_action = actions.get("attachments") if isinstance(actions, dict) else None
+          print("lesson_actions_type=", type(actions).__name__)
+          print("attachment_action_present=", bool(attachment_action))
+          if attachment_action:
+              action_url = urljoin(HOST + "/", str(attachment_action))
+              parsed = urlsplit(action_url)
+              if parsed.netloc != "stepik.org":
+                  raise SystemExit("Attachment action points outside stepik.org; refusing probe")
+              safe_action = parsed.path + (("?" + parsed.query) if parsed.query else "")
+              print("attachment_action_path=", safe_action)
+
+              for method in ("GET", "OPTIONS"):
+                  response = requests.request(
+                      method,
+                      action_url,
+                      headers=headers,
+                      timeout=30,
+                      allow_redirects=False,
+                  )
+                  print(f"{method} attachment_action status=", response.status_code)
+                  print(f"{method} attachment_action content_type=", response.headers.get("Content-Type"))
+                  print(f"{method} attachment_action allow=", response.headers.get("Allow"))
+                  location = response.headers.get("Location")
+                  if location:
+                      loc = urlsplit(urljoin(HOST + "/", location))
+                      print(f"{method} attachment_action redirect_path=", loc.path)
+
+          # Read-only discovery of a conventional REST collection, if it exists.
+          for query in (
+              f"/api/attachments?lesson={LESSON_ID}",
+              f"/api/attachments?course={COURSE_ID}",
+          ):
+              response = requests.get(HOST + query, headers=headers, timeout=30, allow_redirects=False)
+              print(f"GET {query} status=", response.status_code)
+              print(f"GET {query} content_type=", response.headers.get("Content-Type"))
+              if response.status_code < 400 and "json" in (response.headers.get("Content-Type") or "").lower():
+                  try:
+                      payload = response.json()
+                  except ValueError:
+                      payload = None
+                  if isinstance(payload, dict):
+                      print(f"GET {query} top_level_keys=", sorted(payload.keys()))
+
+          print("stepik_content_writes=0")
+          PY
