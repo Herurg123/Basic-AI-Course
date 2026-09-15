@@ -45,6 +45,20 @@ Issue `#54` содержит compact current state: confirmed lesson baselines, 
 
 Перед использованием как recovery evidence весь event проходит integrity gate: stable identity, единая logical identity, связная write-chain и непротиворечивые final/committed records. Повреждённая history = STOP.
 
+### 3.1. Live golden integrity и canonical golden divergence — разные состояния
+
+`golden-profile.v1.json` является observation fixture фактических READ_ONLY lessons `M00-L01/M00-L02`. Он проверяет live Stepik: IDs, positions, visibility/language, сохранённый live title, block sequence, step count, learner-visible hashes и free-answer configuration.
+
+Текущий canonical `main` **не обязан навсегда совпадать** с этим исторически подтверждённым live sample. Если педагогически утверждённый `lesson.md`/`stepik-plan.md` golden lesson изменился, а сам live golden остаётся неизменным и profile-integrity проходит, это классифицируется как non-blocking notice:
+
+- `classification = GOLDEN_OWNER_REQUIRED`;
+- `scope = golden-canonical-divergence`;
+- `automatic_write_allowed = false`.
+
+Такое расхождение не является глобальным blocker для read-only или guarded sync независимого non-golden объекта. Оно **не** означает adoption/rebaseline и не разрешает обычному uploader менять golden lesson.
+
+Любая фактическая мутация live golden относительно observation fixture остаётся hard blocker. Неоднозначная identity/position golden также остаётся hard blocker.
+
 ## 4. Write result classification
 
 Write не ретраится автоматически вслепую.
@@ -123,7 +137,9 @@ Pending lesson закрывается только после доказанно
 
 Для stale-baseline evidence используется только последний однозначно доказуемый committed deployment state объекта. Старый history event, случайно совпавший с live, не доказывает, что current Issue baseline устарел. Неоднозначность latest committed history = fail-closed conflict.
 
-Manual/unknown drift, stale machine baseline, known-failure new attempt, corrupted/inconsistent history, conflicting events, golden lesson, structural/metadata divergence, missing baseline с неизвестным origin и auto-adoption case требуют owner decision.
+Manual/unknown drift, stale machine baseline, known-failure new attempt, corrupted/inconsistent history, conflicting events, golden target, structural/metadata divergence, missing baseline с неизвестным origin и auto-adoption case требуют owner decision.
+
+Canonical-vs-live divergence **другого** READ_ONLY golden lesson не превращается в blocker target reconcile, если fresh live golden integrity подтверждена observation fixture. Такой divergence остаётся отдельным `GOLDEN_OWNER_REQUIRED` notice для golden object.
 
 Совпадение `live == canonical` без доказанного event не разрешает автоматически принять live как baseline.
 
@@ -131,8 +147,9 @@ Manual/unknown drift, stale machine baseline, known-failure new attempt, corrupt
 
 - `DELETE` запрещён;
 - destructive rollback запрещён;
-- неподтверждённые изменения количества/порядка steps и metadata блокируются;
+- неподтверждённые изменения количества/порядка steps и metadata блокируются для target write;
 - `M00-L01/M00-L02` остаются golden `READ_ONLY`;
+- canonical changes golden lessons не являются разрешением менять их live representation;
 - `M02-L01` остаётся pilot lesson с confirmed baseline;
 - общий bulk write закрыт;
 - Stepik Bulk Status остаётся read-only preflight.
