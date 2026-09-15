@@ -5,7 +5,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
 
-from .api import StepikWriteAmbiguousError
+from .api import StepikAPIError, StepikWriteAmbiguousError
 from .content import CompiledStep
 from .fingerprints import compiled_lesson_fingerprint, html_fingerprint, live_lesson_fingerprint
 from .sync_state import SyncAssessment, assess_sync, build_record
@@ -314,12 +314,28 @@ def execute_content_sync_one(
                 position=expected.position,
                 block=expected.block(),
             )
-        except Exception as exc:
+        except StepikWriteAmbiguousError:
             if recorder is not None:
                 recorder.write_result(
                     operation_id=operation_id,
-                    status="AMBIGUOUS" if isinstance(exc, StepikWriteAmbiguousError) else "FAILED_KNOWN",
-                    reason_code="stepik-write-ambiguous" if isinstance(exc, StepikWriteAmbiguousError) else "stepik-write-failed-known",
+                    status="AMBIGUOUS",
+                    reason_code="stepik-write-ambiguous",
+                )
+            raise
+        except StepikAPIError:
+            if recorder is not None:
+                recorder.write_result(
+                    operation_id=operation_id,
+                    status="FAILED_KNOWN",
+                    reason_code="stepik-write-failed-known",
+                )
+            raise
+        except Exception:
+            if recorder is not None:
+                recorder.write_result(
+                    operation_id=operation_id,
+                    status="AMBIGUOUS",
+                    reason_code="write-exception-unclassified-after-dispatch",
                 )
             raise
         if recorder is not None:
