@@ -92,7 +92,7 @@ def _flush_chunk(
     chunks: list[SourceChunk],
     paragraph_lines: list[str],
     pending_headings: list[str],
-    pending_markers: list[str],
+    marker_ids: list[str],
 ) -> None:
     if not paragraph_lines and not pending_headings:
         return
@@ -110,7 +110,7 @@ def _flush_chunk(
             index=len(chunks),
             markdown=markdown,
             heading=pending_headings[-1] if pending_headings else None,
-            marker_ids=tuple(dict.fromkeys(pending_markers)),
+            marker_ids=tuple(dict.fromkeys(marker_ids)),
         )
     )
 
@@ -120,20 +120,23 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
 
     H2/H3 становятся жирными метками внутри Stepik шага. Exercise/Check comments
     используются только как alignment anchors и learner-facing текстом не являются.
-    Заголовок, непосредственно предшествующий скрытому Exercise/Check marker, остаётся
-    вместе с marker-шагом, чтобы название будущей проверки не утекало в предыдущий
-    independent step. Остальные HTML comments удаляются.
+    Заголовок, непосредственно предшествующий marker, принадлежит marker-секции.
+    Marker остаётся активным для всего содержимого секции до следующего H2/H3, чтобы
+    post-action evidence не мог частично съехать в recovery/completion row.
+    Остальные HTML comments удаляются.
     """
     body = _drop_h1(markdown_text)
     chunks: list[SourceChunk] = []
     paragraph_lines: list[str] = []
     pending_headings: list[str] = []
     pending_markers: list[str] = []
+    active_markers: list[str] = []
     in_fence = False
 
     def flush() -> None:
         nonlocal paragraph_lines, pending_headings, pending_markers
-        _flush_chunk(chunks, paragraph_lines, pending_headings, pending_markers)
+        markers = list(dict.fromkeys([*active_markers, *pending_markers]))
+        _flush_chunk(chunks, paragraph_lines, pending_headings, markers)
         paragraph_lines = []
         pending_headings = []
         pending_markers = []
@@ -150,6 +153,7 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
             if heading_match:
                 if paragraph_lines or pending_markers:
                     flush()
+                active_markers = []
                 pending_headings.append(heading_match.group(2).strip())
                 continue
 
@@ -157,7 +161,9 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
             if marker_matches:
                 if paragraph_lines:
                     flush()
-                pending_markers.extend(match.group(2) for match in marker_matches)
+                marker_ids = [match.group(2) for match in marker_matches]
+                pending_markers.extend(marker_ids)
+                active_markers = list(dict.fromkeys(marker_ids))
                 line = MARKER_RE.sub("", line).strip()
                 if not line:
                     continue
