@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 from pathlib import Path
 from typing import Any
@@ -196,32 +197,113 @@ def identity_from_records(records: list[dict[str, Any]], *, expected_event_id: s
     return validate_event_records(records, expected_event_id=expected_event_id)
 
 
+def _anchor_identity_from_blob(store: GitHubHistoryStore, *, event_id: str, blob_sha: str) -> EventIdentity:
+    cache = getattr(store, "_history_anchor_identity_cache", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        setattr(store, "_history_anchor_identity_cache", cache)
+    cached = cache.get(blob_sha)
+    if isinstance(cached, EventIdentity):
+        if cached.event_id != event_id:
+            raise DeploymentHistoryError("History anchor cache конфликтует с event directory")
+        return cached
+
+    response = store._request("GET", f"/repos/{store.repository}/git/blobs/{blob_sha}")
+    if response.status_code != 200:
+        raise DeploymentHistoryError(f"Не удалось прочитать history anchor blob: HTTP {response.status_code}")
+    data = response.json()
+    if not isinstance(data, dict) or data.get("encoding") != "base64" or not isinstance(data.get("content"), str):
+        raise DeploymentHistoryError("History anchor blob имеет неожиданный формат")
+    try:
+        raw = base64.b64decode(data["content"]).decode("utf-8")
+        record = json.loads(raw)
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise DeploymentHistoryError("History anchor blob повреждён") from exc
+    if not isinstance(record, dict):
+        raise DeploymentHistoryError("History anchor должен быть JSON object")
+    if record.get("history_schema_version") != HISTORY_SCHEMA_VERSION:
+        raise DeploymentHistoryError("History anchor имеет неподдерживаемую schema version")
+    if not isinstance(record.get("record_id"), str) or not isinstance(record.get("phase"), str):
+        raise DeploymentHistoryError("History anchor не содержит record_id/phase")
+    identity = _parse_identity(record.get("identity"))
+    calculated_event_id = stable_event_id(
+        course_id=identity.course_id,
+        object_id=identity.object_id,
+        kind=identity.kind,
+        source_sha=identity.source_sha,
+        desired_fingerprint=identity.desired_fingerprint,
+        baseline_fingerprint=identity.baseline_fingerprint_before,
+        pending_first_sha=identity.pending_first_sha,
+    )
+    if identity.event_id != event_id or calculated_event_id != event_id:
+        raise DeploymentHistoryError("History anchor identity не соответствует event directory")
+    cache[blob_sha] = identity
+    return identity
+
+
+def _github_event_ids_for_object(store: GitHubHistoryStore, *, object_id: str) -> list[str]:
+    """Индексирует history по одному immutable anchor blob на event, а не перечитывает все records.
+
+    Recursive tree перечитывается на каждый lookup, поэтому events, созданные текущим write-run,
+    появляются сразу. Содержимое уже известных anchors кэшируется по immutable blob SHA.
+    Полный event загружается ниже только если anchor относится к нужному object_id.
+    """
+    store.ensure_branch()
+    response = store._request(
+        "GET",
+        f"/repos/{store.repository}/git/trees/{store.branch}",
+        params={"recursive": "1"},
+    )
+    if response.status_code != 200:
+        raise DeploymentHistoryError(f"Не удалось построить history object index: HTTP {response.status_code}")
+    data = response.json()
+    tree = data.get("tree") if isinstance(data, dict) else None
+    if not isinstance(tree, list):
+        raise DeploymentHistoryError("History recursive tree имеет неожиданный формат")
+    if data.get("truncated") is True:
+        raise DeploymentHistoryError("History recursive tree truncated; object index недоказуем")
+
+    prefix = f"{HISTORY_PREFIX}/"
+    by_event: dict[str, list[dict[str, Any]]] = {}
+    for item in tree:
+        if not isinstance(item, dict) or item.get("type") != "blob":
+            continue
+        path = str(item.get("path") or "")
+        if not path.startswith(prefix) or not path.endswith(".json"):
+            continue
+        relative = path[len(prefix):]
+        if "/" not in relative:
+            continue
+        event_id, filename = relative.split("/", 1)
+        if "/" in filename or not event_id.startswith("evt-"):
+            continue
+        if not isinstance(item.get("sha"), str) or not item.get("sha"):
+            raise DeploymentHistoryError("History tree blob не содержит SHA")
+        by_event.setdefault(event_id, []).append(item)
+
+    event_ids: list[str] = []
+    for event_id, items in sorted(by_event.items()):
+        started = [item for item in items if str(item.get("path", "")).rsplit("/", 1)[-1].startswith("event-started-")]
+        anchor_item = min(started or items, key=lambda item: str(item.get("path", "")))
+        identity = _anchor_identity_from_blob(
+            store,
+            event_id=event_id,
+            blob_sha=str(anchor_item["sha"]),
+        )
+        if identity.object_id == object_id:
+            event_ids.append(event_id)
+    return event_ids
+
+
 def find_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentity, list[dict[str, Any]], dict[str, Any]]]:
     """Find deployment/reconcile events for one object without a mutable active-event index."""
     event_ids: list[str] = []
+    github_indexed = False
     if isinstance(store, MemoryHistoryStore):
         event_ids = sorted(store.records)
     elif isinstance(store, GitHubHistoryStore):
-        store.ensure_branch()
-        response = store._request(
-            "GET",
-            f"/repos/{store.repository}/contents/{HISTORY_PREFIX}",
-            params={"ref": store.branch},
-        )
-        if response.status_code == 404:
-            return []
-        if response.status_code != 200:
-            raise DeploymentHistoryError(f"Не удалось перечислить deployment events: HTTP {response.status_code}")
-        listing = response.json()
-        if not isinstance(listing, list):
-            raise DeploymentHistoryError("Deployment history root имеет неожиданный формат")
-        event_ids = sorted(
-            str(item.get("name"))
-            for item in listing
-            if isinstance(item, dict)
-            and item.get("type") == "dir"
-            and str(item.get("name", "")).startswith("evt-")
-        )
+        github_indexed = True
+        event_ids = _github_event_ids_for_object(store, object_id=object_id)
     else:
         raise DeploymentHistoryError("Неизвестный history store")
 
@@ -232,6 +314,8 @@ def find_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentit
             continue
         identity = identity_from_records(records, expected_event_id=event_id)
         if identity.object_id != object_id:
+            if github_indexed:
+                raise DeploymentHistoryError("History object index не совпадает с полным event identity")
             continue
         found.append((identity, records, summarize_event(records)))
     return found
