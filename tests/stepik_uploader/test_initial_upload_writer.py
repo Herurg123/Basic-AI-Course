@@ -78,6 +78,21 @@ class FakeClient:
     def _steps(self) -> list[dict]:
         return self.snapshot["sections"][0]["units"][0]["lesson"]["steps"]
 
+    def make_complete(self) -> None:
+        self._steps()[0]["step_source"]["block"] = copy.deepcopy(EXPECTED[0].block())
+        self._steps().append(
+            {
+                "id": 2,
+                "step_source": {
+                    "id": 2,
+                    "lesson": 204,
+                    "position": 2,
+                    "block": copy.deepcopy(EXPECTED[1].block()),
+                },
+            }
+        )
+        self.next_id = 3
+
     def update_step_source(self, *, step_id: int, lesson_id: int, position: int, block: dict) -> dict:
         self.update_calls += 1
         item = next(value for value in self._steps() if value["id"] == step_id)
@@ -151,10 +166,25 @@ def recorder_for(snapshot: dict) -> tuple[MemoryHistoryStore, DeploymentRecorder
     return store, recorder
 
 
+def add_fully_confirmed_write_evidence(recorder: DeploymentRecorder) -> None:
+    desired = compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED)
+    for operation_id in ("step-0001-1", "step-create-0002"):
+        recorder.write_intent(
+            operation_id=operation_id,
+            method="PUT" if operation_id == "step-0001-1" else "POST",
+            target="step-sources/1" if operation_id == "step-0001-1" else "step-sources",
+            fingerprint_before="sha256:" + "a" * 64,
+            expected_fingerprint_after=desired,
+        )
+        recorder.write_dispatch_started(operation_id=operation_id)
+        recorder.write_result(operation_id=operation_id, status="COMPLETED")
+        recorder.operation_readback(operation_id=operation_id, expected_fingerprint_after=desired)
+
+
 class InitialUploadWriterTests(unittest.TestCase):
     def test_skeleton_upload_has_wal_readbacks_and_final_baseline(self) -> None:
         client = FakeClient()
-        store, recorder = recorder_for(client.inspect_course(299189))
+        _store, recorder = recorder_for(client.inspect_course(299189))
         result = execute_initial_upload_one(
             client,
             client.inspect_course(299189),
@@ -175,7 +205,8 @@ class InitialUploadWriterTests(unittest.TestCase):
         validate_event_records(records, expected_event_id=recorder.identity.event_id)
         self.assertEqual(sum(item.get("phase") == "WRITE_INTENT" for item in records), 2)
         self.assertEqual(sum(item.get("phase") == "OP_READBACK_CONFIRMED" for item in records), 2)
-        self.assertTrue(any(item.get("phase") == "FINAL_READBACK_CONFIRMED" for item in records))
+        final = next(item for item in records if item.get("phase") == "FINAL_READBACK_CONFIRMED")
+        self.assertEqual(final["status"], "APPLIED")
 
     def test_unproven_partial_prefix_is_blocked_without_write(self) -> None:
         client = FakeClient()
@@ -222,6 +253,52 @@ class InitialUploadWriterTests(unittest.TestCase):
         self.assertEqual(client.create_calls, 1)
         self.assertEqual(result.operations[0]["action"], "RESUME_PROVEN_PARTIAL")
         self.assertEqual(result.operations[1]["action"], "CREATE_STEP")
+
+    def test_complete_matching_live_without_proven_history_is_blocked(self) -> None:
+        client = FakeClient()
+        client.make_complete()
+        _store, recorder = recorder_for(client.inspect_course(299189))
+        with self.assertRaisesRegex(ContentWriteError, "automatic adoption запрещён"):
+            execute_initial_upload_one(
+                client,
+                client.inspect_course(299189),
+                canonical_id="M04-L01",
+                expected_steps=EXPECTED,
+                module_position=5,
+                lesson_position=1,
+                expected_title=TITLE,
+                source_sha=SOURCE_SHA,
+                recorder=recorder,
+            )
+        self.assertEqual(client.update_calls, 0)
+        self.assertEqual(client.create_calls, 0)
+        self.assertFalse(any(item.get("phase") == "FINAL_READBACK_CONFIRMED" for item in recorder.records(refresh=True)))
+
+    def test_proven_complete_recovery_adds_final_applied_without_new_write(self) -> None:
+        client = FakeClient()
+        _store, recorder = recorder_for(client.inspect_course(299189))
+        add_fully_confirmed_write_evidence(recorder)
+        client.make_complete()
+        result = execute_initial_upload_one(
+            client,
+            client.inspect_course(299189),
+            canonical_id="M04-L01",
+            expected_steps=EXPECTED,
+            module_position=5,
+            lesson_position=1,
+            expected_title=TITLE,
+            source_sha=SOURCE_SHA,
+            recorder=recorder,
+            allow_complete_recovery=True,
+        )
+        self.assertTrue(result.verified)
+        self.assertEqual(client.update_calls, 0)
+        self.assertEqual(client.create_calls, 0)
+        self.assertEqual(result.operations, [{"action": "RESUME_PROVEN_COMPLETE", "steps": 2}])
+        records = recorder.records(refresh=True)
+        validate_event_records(records, expected_event_id=recorder.identity.event_id)
+        final = next(item for item in records if item.get("phase") == "FINAL_READBACK_CONFIRMED")
+        self.assertEqual(final["status"], "APPLIED")
 
     def test_unexpected_existing_content_fails_before_any_write(self) -> None:
         client = FakeClient()
