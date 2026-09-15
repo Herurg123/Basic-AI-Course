@@ -98,8 +98,9 @@ Reconcile-only observation может существовать без `EVENT_STA
 После ответа:
 
 - однозначный success → `WRITE_COMPLETED`;
-- доказанный отказ без server-side commit → `WRITE_FAILED_KNOWN`;
-- timeout/network failure/HTTP 5xx/неоднозначный успешный ответ → `WRITE_AMBIGUOUS`.
+- доказанный API-отказ без server-side commit → `WRITE_FAILED_KNOWN`;
+- timeout/network failure/HTTP 5xx/неоднозначный успешный ответ → `WRITE_AMBIGUOUS`;
+- любое непредусмотренное исключение после durable dispatch, для которого клиент не доказал отсутствие server-side effect, также → `WRITE_AMBIGUOUS`.
 
 `WRITE_AMBIGUOUS` никогда не приводит к blind retry. Новый dispatch после `WRITE_FAILED_KNOWN` также не маскируется под прежнюю попытку: history v1 требует отдельного owner-directed retry route/attempt identity.
 
@@ -149,7 +150,24 @@ Reconcile-only records не превращаются в deployment event, пок
 
 Для `STALE_MACHINE_BASELINE` используется только последний однозначно доказуемый `MACHINE_STATE_COMMITTED` объекта. Старый event, случайно совпавший с current live, не является достаточным evidence. Если несколько latest committed records с одинаковым временем дают разные fingerprints, состояние считается неоднозначным и fail-closed.
 
-## 10. Что event обязан позволять определить
+## 10. Integrity gate перед recovery/reconcile
+
+Operational history является доказательством только после machine validation. Наличие JSON-файла в history branch само по себе ничего не доказывает.
+
+Перед использованием event automation fail-closed проверяет:
+
+- `event_id` повторно вычисляется из stable identity и обязан совпасть с directory/event identity;
+- все records одного event обязаны иметь одну logical identity: course/object/kind/source SHA/desired/baseline-before/pending link;
+- schema version, record ID и phase обязательны;
+- `EVENT_STARTED`, `FINAL_READBACK_CONFIRMED` и `MACHINE_STATE_COMMITTED` не могут иметь противоречивые дубликаты;
+- write-chain обязана быть связной: intent → dispatch → единственный result; confirmed operation read-back допустим только после `WRITE_COMPLETED`;
+- `FINAL_READBACK_CONFIRMED(APPLIED)` недопустим без write evidence и недопустим, пока хотя бы один dispatch не имеет подтверждённого per-operation read-back;
+- `NOOP_CONFIRMED` несовместим с начатым write;
+- `MACHINE_STATE_COMMITTED` обязан совпадать с final status/baseline-after.
+
+Любая ручная правка, повреждение или внутреннее противоречие history = `STOP`; automation не пытается «догадаться», какая запись правильная. Это особенно важно, поскольку branch protection/rulesets намеренно не входят в текущий этап.
+
+## 11. Что event обязан позволять определить
 
 Для recovery/reconcile event содержит или позволяет однозначно восстановить:
 
@@ -177,7 +195,7 @@ Reconcile-only records не превращаются в deployment event, пок
 
 Secrets, OAuth tokens, cookies и credentials в history запрещены.
 
-## 11. Legacy history до schema v1
+## 12. Legacy history до schema v1
 
 До введения этого контракта Issue `#54` уже содержал подтверждённый baseline `M02-L01` и human-readable evidence раннего pilot write.
 
