@@ -7,16 +7,17 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from stepik_uploader.api import StepikAPIError, StepikClient, StepikWriteAmbiguousError
+    from stepik_uploader.api import StepikAPIError, StepikClient
     from stepik_uploader.asset_inventory import build_asset_inventory
     from stepik_uploader.asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from stepik_uploader.attachment_materialization import AttachmentMaterializationError, file_sha256_bytes, materialize_attachment
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
     from stepik_uploader.content import ContentCompileError
-    from stepik_uploader.deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, event_identity_from_environment, summarize_event
+    from stepik_uploader.deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, event_identity_from_environment
     from stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
     from stepik_uploader.general_content import compile_lesson_source
     from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
@@ -29,13 +30,13 @@ if __package__ in {None, ""}:
     from stepik_uploader.verified_rendering import AssetBinding, VerifiedRenderingError, build_rendering_plan, require_render_ready
     from stepik_uploader.writer import ContentWriteError, PLACEHOLDER_TEXT, _placeholder
 else:
-    from .api import StepikAPIError, StepikClient, StepikWriteAmbiguousError
+    from .api import StepikAPIError, StepikClient
     from .asset_inventory import build_asset_inventory
     from .asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from .attachment_materialization import AttachmentMaterializationError, file_sha256_bytes, materialize_attachment
     from .canonical import CanonicalBuildError, build_structural_manifest
     from .content import ContentCompileError
-    from .deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, event_identity_from_environment, summarize_event
+    from .deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, event_identity_from_environment
     from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
     from .general_content import compile_lesson_source
     from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
@@ -128,13 +129,25 @@ def _verified_binding_from_record(client: StepikClient, record: dict[str, Any], 
     matches = [item for item in attachments if int(item.get("id", -2)) == attachment_id]
     if len(matches) != 1:
         raise ContentWriteError("Asset baseline attachment ID больше не существует или неоднозначен")
-    actual_sha = file_sha256_bytes(client.download_attachment(str(record.get("url") or "")))
+    live_attachment = matches[0]
+    if live_attachment.get("name") != record.get("filename"):
+        raise ContentWriteError("Asset baseline filename отличается от live attachment")
+    try:
+        if int(live_attachment.get("size", -1)) != int(record.get("size", -2)):
+            raise ContentWriteError("Asset baseline size отличается от live attachment")
+    except (TypeError, ValueError) as exc:
+        raise ContentWriteError("Asset baseline/live size повреждён") from exc
+    live_file = str(live_attachment.get("file") or "")
+    record_url = str(record.get("url") or "")
+    if not live_file or urlsplit(record_url).path != live_file:
+        raise ContentWriteError("Asset baseline URL больше не совпадает с live attachment file path")
+    actual_sha = file_sha256_bytes(client.download_attachment(record_url))
     if actual_sha != expected_sha:
         raise ContentWriteError("Asset baseline URL больше не отдаёт canonical bytes")
     return AssetBinding(
         source_path=ASSET_PATH,
         source_sha256=expected_sha,
-        url=str(record["url"]),
+        url=record_url,
         storage=str(record["storage"]),
         verified=True,
     )
@@ -159,6 +172,14 @@ def _final_status(records: list[dict[str, Any]]) -> str:
     if final is None or final.get("status") not in {"APPLIED", "NOOP_CONFIRMED"}:
         raise DeploymentHistoryError("History event не содержит подтверждённый final status")
     return str(final["status"])
+
+
+def _recover_final_state(records: list[dict[str, Any]], *, label: str) -> tuple[dict[str, Any], str]:
+    final = final_confirmed_record(records)
+    recovered = final.get("actual_confirmed_state") if isinstance(final, dict) else None
+    if not isinstance(recovered, dict):
+        raise DeploymentHistoryError(f"{label} final history не содержит actual_confirmed_state")
+    return recovered, _final_status(records)
 
 
 def parse_args() -> argparse.Namespace:
@@ -212,8 +233,7 @@ def main() -> int:
 
         state_path = args.sync_state if args.sync_state.is_absolute() else repo_root / args.sync_state
         state = load_state(state_path, course_id=args.course_id)
-        if baseline_for(state, TARGET_ID) is not None:
-            raise ContentWriteError("M04-L01 уже имеет lesson baseline; initial-upload route больше не разрешён")
+        existing_lesson_baseline = baseline_for(state, TARGET_ID)
         pending = state.get("pending", {}).get("lessons", {}).get(TARGET_ID)
         pending_first_sha = pending.get("first_pending_sha") if isinstance(pending, dict) else None
 
@@ -239,28 +259,40 @@ def main() -> int:
         expected_asset_sha = str(row["source_sha256"])
         store = _history_store(sha)
 
+        asset_object_id = f"asset:{ASSET_PATH}"
+        incomplete_assets = find_incomplete_object_events(store, object_id=asset_object_id)
+        if len(incomplete_assets) > 1:
+            raise DeploymentHistoryError("Найдено несколько incomplete asset events")
         asset_record = asset_binding_for(state, ASSET_PATH)
         asset_event_artifact: dict[str, Any] | None = None
         if asset_record is not None:
             binding = _verified_binding_from_record(client, asset_record, expected_asset_sha, int(live_lesson["id"]))
             asset_status = "BASELINE_REUSED"
+            if incomplete_assets:
+                asset_identity, asset_records, asset_summary = incomplete_assets[0]
+                if asset_identity.source_sha != sha or asset_identity.desired_fingerprint != expected_asset_sha:
+                    raise DeploymentHistoryError("Incomplete asset event относится к другому main/source hash")
+                if not asset_summary.get("final_readback_confirmed"):
+                    raise DeploymentHistoryError("Machine asset baseline существует без final asset read-back")
+                recovered, asset_status = _recover_final_state(asset_records, label="Asset")
+                if recovered != asset_record:
+                    raise DeploymentHistoryError("Machine asset baseline не совпадает с immutable final history")
+                asset_event_artifact = _event_artifact(
+                    identity=asset_identity,
+                    status=asset_status,
+                    kind="asset",
+                    source_sha_value=sha,
+                    source_path=ASSET_PATH,
+                )
         else:
-            asset_object_id = f"asset:{ASSET_PATH}"
-            incomplete_assets = find_incomplete_object_events(store, object_id=asset_object_id)
-            if len(incomplete_assets) > 1:
-                raise DeploymentHistoryError("Найдено несколько incomplete asset events")
             if incomplete_assets:
                 asset_identity, asset_records, asset_summary = incomplete_assets[0]
                 if asset_identity.source_sha != sha or asset_identity.desired_fingerprint != expected_asset_sha:
                     raise DeploymentHistoryError("Incomplete asset event относится к другому main/source hash")
                 if asset_summary.get("final_readback_confirmed"):
-                    final = final_confirmed_record(asset_records)
-                    recovered = final.get("actual_confirmed_state") if isinstance(final, dict) else None
-                    if not isinstance(recovered, dict):
-                        raise DeploymentHistoryError("Asset final history не содержит actual_confirmed_state")
+                    recovered, asset_status = _recover_final_state(asset_records, label="Asset")
                     binding = _verified_binding_from_record(client, recovered, expected_asset_sha, int(live_lesson["id"]))
                     asset_record = recovered
-                    asset_status = _final_status(asset_records)
                     asset_event_artifact = _event_artifact(
                         identity=asset_identity,
                         status=asset_status,
@@ -304,6 +336,8 @@ def main() -> int:
                     source_path=ASSET_PATH,
                 )
 
+        if not isinstance(asset_record, dict):
+            raise DeploymentHistoryError("Verified asset baseline отсутствует")
         rendering = build_rendering_plan(
             repo_root=repo_root,
             lesson_id=TARGET_ID,
@@ -322,6 +356,7 @@ def main() -> int:
             module_position=int(module["position"]),
             lesson_position=int(lesson_manifest["position"]),
         )
+        current_live_fp = live_lesson_fingerprint(current_lesson)
         incomplete_lessons = find_incomplete_object_events(store, object_id=TARGET_ID)
         if len(incomplete_lessons) > 1:
             raise DeploymentHistoryError("Найдено несколько incomplete lesson first-upload events")
@@ -329,24 +364,34 @@ def main() -> int:
         result = None
         lesson_record: dict[str, Any]
         lesson_status: str
-        if incomplete_lessons:
+        if existing_lesson_baseline is not None:
+            if int(existing_lesson_baseline.get("stepik_lesson_id", -1)) != int(current_lesson["id"]):
+                raise DeploymentHistoryError("Machine lesson baseline относится к другому Stepik lesson")
+            if existing_lesson_baseline.get("applied_fingerprint") != desired_fp or current_live_fp != desired_fp:
+                raise DeploymentHistoryError("Machine lesson baseline/live больше не совпадают с текущим rendered desired")
+            if not incomplete_lessons:
+                raise ContentWriteError("M04-L01 initial upload уже полностью committed; дальнейшие изменения идут через sync route")
+            lesson_identity, lesson_records, lesson_summary = incomplete_lessons[0]
+            if lesson_identity.source_sha != sha or lesson_identity.desired_fingerprint != desired_fp:
+                raise DeploymentHistoryError("Incomplete lesson event относится к другому main/rendered desired")
+            if not lesson_summary.get("final_readback_confirmed"):
+                raise DeploymentHistoryError("Machine lesson baseline существует без final lesson read-back")
+            recovered, lesson_status = _recover_final_state(lesson_records, label="Lesson")
+            if recovered != existing_lesson_baseline:
+                raise DeploymentHistoryError("Machine lesson baseline не совпадает с immutable final history")
+            lesson_record = recovered
+        elif incomplete_lessons:
             lesson_identity, lesson_records, lesson_summary = incomplete_lessons[0]
             if lesson_identity.source_sha != sha or lesson_identity.desired_fingerprint != desired_fp:
                 raise DeploymentHistoryError("Incomplete lesson event относится к другому main/rendered desired")
             if lesson_summary.get("final_readback_confirmed"):
-                final = final_confirmed_record(lesson_records)
-                recovered = final.get("actual_confirmed_state") if isinstance(final, dict) else None
-                if not isinstance(recovered, dict):
-                    raise DeploymentHistoryError("Lesson final history не содержит baseline-after")
-                if live_lesson_fingerprint(current_lesson) != desired_fp:
+                lesson_record, lesson_status = _recover_final_state(lesson_records, label="Lesson")
+                if current_live_fp != desired_fp:
                     raise DeploymentHistoryError("Live lesson больше не совпадает с final history")
-                lesson_record = recovered
-                lesson_status = _final_status(lesson_records)
             else:
                 if lesson_summary.get("ambiguous") or lesson_summary.get("readback_failed"):
                     raise DeploymentHistoryError("Lesson event содержит ambiguous/read-back failure; автоматическое продолжение запрещено")
                 last_confirmed = lesson_summary.get("last_confirmed_operation_fingerprint")
-                current_live_fp = live_lesson_fingerprint(current_lesson)
                 allow_partial = bool(last_confirmed and last_confirmed == current_live_fp)
                 if lesson_summary.get("writes_started") and not allow_partial:
                     raise DeploymentHistoryError("Live lesson не совпадает с последним подтверждённым intermediate state")
@@ -382,7 +427,7 @@ def main() -> int:
                 state_before=None,
                 expected_state={"desired_fingerprint": desired_fp, "source_sha": sha},
                 stepik_object_ids={"lesson_id": int(current_lesson["id"])},
-                fingerprint_before=live_lesson_fingerprint(current_lesson),
+                fingerprint_before=current_live_fp,
             )
             result = execute_initial_upload_one(
                 client,
@@ -469,7 +514,6 @@ def main() -> int:
     except (
         RuntimeError,
         StepikAPIError,
-        StepikWriteAmbiguousError,
         CanonicalBuildError,
         ContentCompileError,
         GoldenProfileError,
