@@ -33,14 +33,6 @@ def _live_lesson(snapshot: dict[str, Any], lesson_id: int) -> tuple[dict[str, An
     return None
 
 
-def _manifest_lesson(manifest: dict[str, Any], canonical_id: str) -> dict[str, Any] | None:
-    for module in manifest.get("modules", []):
-        for lesson in module.get("lessons", []):
-            if lesson.get("canonical_id") == canonical_id:
-                return lesson
-    return None
-
-
 def _text_sha256(item: dict[str, Any]) -> str:
     text = item.get("step_source", {}).get("block", {}).get("text") or ""
     return hashlib.sha256(str(text).encode("utf-8")).hexdigest()
@@ -53,13 +45,23 @@ def validate_golden_profile(
     *,
     allow_course_publication_change: bool = False,
 ) -> list[str]:
-    """Проверяет неизменность golden lessons.
+    """Проверяет неизменность фактических live golden lessons.
+
+    Golden profile является observation fixture реального Stepik, а не снимком текущего
+    canonical main. Поэтому изменение canonical lesson/stepik-plan само по себе не
+    является нарушением live golden integrity. Canonical-vs-golden divergence
+    классифицируется отдельно planner/reporting слоем как GOLDEN_OWNER_REQUIRED и
+    не разрешает обычный write route для самого golden объекта.
+
+    Параметр ``manifest`` сохранён для обратной совместимости вызывающего кода, но
+    canonical alignment намеренно не входит в эту функцию.
 
     По умолчанию курс обязан совпадать с исходным golden course_state целиком. Для
     exploitation-sync после публикации можно разрешить только изменение
     `course.is_public`: это ожидаемый жизненный цикл курса и не ослабляет проверку
     learner-visible HTML, step types, lesson visibility, IDs и позиций golden lessons.
     """
+    del manifest
     blockers: list[str] = []
     course = snapshot.get("course", {})
     if course.get("id") != profile.get("course_id"):
@@ -80,16 +82,6 @@ def validate_golden_profile(
 
     expected_free_answer_source = profile.get("observed_conventions", {}).get("free_answer_source", {})
     for canonical_id, expected in profile.get("golden_lessons", {}).items():
-        if manifest is not None:
-            canonical = _manifest_lesson(manifest, canonical_id)
-            if canonical is None:
-                blockers.append(f"golden-profile:{canonical_id}: lesson отсутствует в derived manifest")
-            elif len(canonical.get("steps", [])) != expected.get("plan_rows"):
-                blockers.append(
-                    f"golden-profile:{canonical_id}: Stepik-plan rows изменились: ожидалось {expected.get('plan_rows')}, "
-                    f"получено {len(canonical.get('steps', []))}"
-                )
-
         live = _live_lesson(snapshot, int(expected["stepik_lesson_id"]))
         if live is None:
             blockers.append(
@@ -111,6 +103,13 @@ def validate_golden_profile(
                     f"golden-profile:{canonical_id}: lesson.{field} изменился: ожидалось {expected.get(field)!r}, "
                     f"прочитано {lesson.get(field)!r}"
                 )
+
+        expected_title = expected.get("lesson_title")
+        if isinstance(expected_title, str) and lesson.get("title") != expected_title:
+            blockers.append(
+                f"golden-profile:{canonical_id}: lesson.title изменился: ожидалось {expected_title!r}, "
+                f"прочитано {lesson.get('title')!r}"
+            )
 
         steps = lesson.get("steps", [])
         sequence = [item.get("step_source", {}).get("block", {}).get("name") for item in steps]
