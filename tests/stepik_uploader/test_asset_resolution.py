@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import unittest
+from collections import Counter
 from pathlib import Path
 
 from scripts.stepik_uploader.asset_inventory import build_asset_inventory
@@ -11,14 +12,18 @@ from scripts.stepik_uploader.asset_resolution import (
     load_asset_publication_policy,
 )
 from scripts.stepik_uploader.canonical import build_structural_manifest
+from scripts.stepik_uploader.general_content import (
+    EXPECTED_FREE_ANSWER_SOURCE,
+    compile_all_lesson_sources,
+)
 
 
 class AssetResolutionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.repo_root = Path(__file__).resolve().parents[2]
-        manifest = build_structural_manifest(cls.repo_root, source_sha="asset-resolution-test")
-        cls.inventory = build_asset_inventory(cls.repo_root, manifest)
+        cls.manifest = build_structural_manifest(cls.repo_root, source_sha="asset-resolution-test")
+        cls.inventory = build_asset_inventory(cls.repo_root, cls.manifest)
         cls.policy = load_asset_publication_policy(
             cls.repo_root / "04_course/stepik/automation/asset-publication.v1.json"
         )
@@ -39,22 +44,22 @@ class AssetResolutionTests(unittest.TestCase):
         self.assertEqual(report["stepik_writes"], 0)
         self.assertEqual(
             report["topology"]["fingerprint"],
-            "sha256:77833131b344938cc396f4e32e2274bdb4f141111b73252e7f9794bbbb76dabc",
+            "sha256:ecbb9f9b8426c5bd4bba9f07816ab0e647022c13c0f38b4c29d9debd6096c20d",
         )
         self.assertEqual(
             report["summary"],
             {
-                "learner_link_occurrences": 45,
-                "resolved_occurrences": 44,
+                "learner_link_occurrences": 49,
+                "resolved_occurrences": 48,
                 "unresolved_occurrences": 1,
-                "unique_source_files": 41,
-                "resolved_unique_source_files": 40,
+                "unique_source_files": 43,
+                "resolved_unique_source_files": 42,
                 "unresolved_unique_source_files": 1,
                 "materialization_required_unique_files": 4,
                 "modes_by_occurrence": {
                     "confirmed-url": 2,
                     "download-url-required": 1,
-                    "inline-source": 38,
+                    "inline-source": 42,
                     "rasterize-png-stepik-image": 2,
                     "stepik-image-upload": 2,
                 },
@@ -66,6 +71,56 @@ class AssetResolutionTests(unittest.TestCase):
         )
         self.assertEqual(len(report["blockers"]), 1)
         self.assertIn("mandatory-real-file-upload-practice", report["blockers"][0])
+
+    def test_full_graph_contains_non_asset_help_and_nested_dependency(self) -> None:
+        report = self._assess()
+        rows = report["topology"]["rows"]
+        help_rows = [
+            row for row in rows
+            if row["source_path"] == "04_course/stepik/how-to-save-practice.md"
+        ]
+        self.assertEqual(len(help_rows), 3)
+        self.assertTrue(all(row["asset_id"] is None for row in help_rows))
+        self.assertEqual(
+            {row["lesson"] for row in help_rows},
+            {"M06-L04", "M07-L01", "M07-L02"},
+        )
+
+        nested = [
+            row for row in rows
+            if row["source_path"] == "05_assets/M06/M06-L04/M06-L04-A02.md"
+        ]
+        self.assertEqual(len(nested), 1)
+        self.assertEqual(nested[0]["dependency_depth"], 1)
+        self.assertEqual(
+            nested[0]["link_source_path"],
+            "05_assets/M06/M06-L04/M06-L04-A01.md",
+        )
+
+    def test_inventory_direct_links_match_general_compiler_links_exactly(self) -> None:
+        lesson_ids = [
+            str(lesson["canonical_id"])
+            for module in self.manifest["modules"]
+            for lesson in module["lessons"]
+        ]
+        compiled = compile_all_lesson_sources(
+            self.repo_root,
+            free_answer_source=EXPECTED_FREE_ANSWER_SOURCE,
+            lesson_ids=lesson_ids,
+        )
+        compiler_links = Counter(
+            (lesson_id, target)
+            for lesson_id in lesson_ids
+            for step in compiled[lesson_id]
+            for target in step.unresolved_repo_links
+        )
+        inventory_direct = Counter(
+            (lesson_id, link["markdown_target"])
+            for lesson_id, lesson in self.inventory["lessons"].items()
+            for link in lesson["learner_links"]
+        )
+        self.assertEqual(compiler_links, inventory_direct)
+        self.assertEqual(sum(compiler_links.values()), 48)
 
     def test_golden_existing_urls_are_bound_to_exact_source_hashes(self) -> None:
         report = self._assess()
@@ -101,7 +156,7 @@ class AssetResolutionTests(unittest.TestCase):
 
     def test_topology_drift_fails_closed(self) -> None:
         inventory = copy.deepcopy(self.inventory)
-        inventory["lessons"]["M08-L01"]["learner_links"].clear()
+        inventory["lessons"]["M08-L01"]["learner_dependency_links"].clear()
         with self.assertRaisesRegex(AssetResolutionError, "asset topology drift"):
             self._assess(inventory=inventory)
 
@@ -115,7 +170,7 @@ class AssetResolutionTests(unittest.TestCase):
 
     def test_confirmed_url_hash_drift_fails_closed(self) -> None:
         inventory = copy.deepcopy(self.inventory)
-        links = inventory["lessons"]["M00-L02"]["learner_links"]
+        links = inventory["lessons"]["M00-L02"]["learner_dependency_links"]
         target = next(
             item for item in links
             if item["source_path"] == "05_assets/M00/M00-L02/M00-L02-A01.docx"
