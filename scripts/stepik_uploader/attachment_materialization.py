@@ -98,7 +98,7 @@ def _attachment_record(
     }
 
 
-def _find_verified_same_name(
+def _find_same_name(
     client: Any,
     attachments: list[dict[str, Any]],
     *,
@@ -156,12 +156,17 @@ def materialize_attachment(
         )
 
     before = client.list_attachments(lesson_id=stepik_lesson_id)
-    existing = _find_verified_same_name(
+    existing = _find_same_name(
         client,
         before,
         filename=source_file.name,
         expected_sha256=expected_source_sha256,
     )
+    if existing is not None:
+        raise AttachmentMaterializationError(
+            f"Stepik уже содержит exact attachment {source_file.name}, но его provenance не подтверждена machine state/history; automatic adoption запрещён"
+        )
+
     recorder.ensure_started(
         operation_type="asset-materialization",
         state_before={"attachment_ids": sorted(int(item["id"]) for item in before if "id" in item)},
@@ -174,25 +179,6 @@ def materialize_attachment(
         stepik_object_ids={"lesson_id": int(stepik_lesson_id)},
         fingerprint_before=canonical_hash(_attachment_listing_payload(before)),
     )
-
-    if existing is not None:
-        record = _attachment_record(
-            client,
-            existing,
-            source_path=source_path,
-            source_sha256=expected_source_sha256,
-            materialized_at=utc_now(),
-        )
-        recorder.final_readback(
-            fingerprint_after=expected_source_sha256,
-            stepik_object_ids={
-                "lesson_id": int(stepik_lesson_id),
-                "attachment_id": int(record["stepik_attachment_id"]),
-            },
-            status="NOOP_CONFIRMED",
-            baseline_after=record,
-        )
-        return record, "NOOP_CONFIRMED"
 
     verify_attachment_capability(client)
     operation_id = f"attachment-{source_file.name.lower().replace('.', '-')[:80]}"
@@ -232,12 +218,18 @@ def materialize_attachment(
     try:
         created_id = int(created["id"])
         after = client.list_attachments(lesson_id=stepik_lesson_id)
-        matching_id = [item for item in after if int(item.get("id", -1)) == created_id]
-        if len(matching_id) != 1:
-            raise AttachmentMaterializationError("Attachment POST read-back не нашёл единственный created id")
-        candidate = matching_id[0]
-        if candidate.get("name") != source_file.name:
-            raise AttachmentMaterializationError("Attachment POST read-back вернул другое имя файла")
+        same_name_after = [item for item in after if item.get("name") == source_file.name]
+        if len(same_name_after) != 1:
+            raise AttachmentMaterializationError(
+                f"После POST найдено {len(same_name_after)} attachments с именем {source_file.name}; duplicate/race требует owner review"
+            )
+        candidate = same_name_after[0]
+        if int(candidate.get("id", -1)) != created_id:
+            raise AttachmentMaterializationError("Единственный same-name attachment не совпадает с created id")
+        if int(candidate.get("lesson", -1)) != int(stepik_lesson_id):
+            raise AttachmentMaterializationError("Attachment POST read-back привязан не к target lesson")
+        if int(candidate.get("size", -1)) != source_file.stat().st_size:
+            raise AttachmentMaterializationError("Attachment POST read-back size не совпал с canonical file")
         downloaded_sha = file_sha256_bytes(
             client.download_attachment(_absolute_stepik_url(client, candidate.get("file")))
         )
