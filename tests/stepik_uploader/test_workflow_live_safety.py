@@ -47,6 +47,38 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
             2,
         )
 
+    def test_first_upload_is_explicit_owner_mode_with_confirmation(self) -> None:
+        self.assertIn("- first-upload-m04-l01", self.uploader)
+        self.assertIn('[[ "$MODE" == "first-upload-m04-l01" ]]', self.uploader)
+        self.assertIn("python scripts/stepik_uploader/first_upload_runtime.py", self.uploader)
+        self.assertIn("--confirm-write", self.uploader)
+        self.assertIn("inputs.mode == 'first-upload-m04-l01' && success()", self.uploader)
+
+    def test_first_upload_reads_and_race_checks_machine_state(self) -> None:
+        read_condition = (
+            "inputs.mode == 'sync-status' || inputs.mode == 'sync-reconcile' || "
+            "inputs.mode == 'sync-changed' || inputs.mode == 'first-upload-m04-l01'"
+        )
+        self.assertIn(read_condition, self.uploader)
+        first_commit = self.uploader.index("Зафиксировать first upload")
+        first_block = self.uploader[first_commit:]
+        self.assertIn("sync-state.previous.json", first_block)
+        self.assertIn("sync_issue_state.py compare", first_block)
+        self.assertIn("sync_issue_state.py replace", first_block)
+        self.assertIn("asset-deployment-event.json", first_block)
+        self.assertIn("lesson-deployment-event.json", first_block)
+        self.assertGreaterEqual(first_block.count("history_cli.py mark-state-committed"), 2)
+
+    def test_first_upload_cannot_bypass_current_main_guard_or_mutex(self) -> None:
+        live_index = self.uploader.index("  live:\n")
+        live_block = self.uploader[live_index:]
+        self.assertIn("group: stepik-live-course-299189", live_block)
+        self.assertIn("python scripts/stepik_uploader/live_guard.py", live_block)
+        self.assertLess(
+            live_block.index("python scripts/stepik_uploader/live_guard.py"),
+            live_block.index("python scripts/stepik_uploader/first_upload_runtime.py"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
