@@ -14,6 +14,7 @@ if __package__ in {None, ""}:
     from stepik_uploader.asset_inventory import AssetInventoryError, build_asset_inventory
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
     from stepik_uploader.content import ContentCompileError, TEST_LESSON_ID, compile_test_lesson
+    from stepik_uploader.general_content import GeneralContentCompileError, compile_lesson_source
     from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
     from stepik_uploader.planner import GOLDEN_IDS, plan_dry_run
     from stepik_uploader.reporting import write_json
@@ -25,6 +26,7 @@ else:
     from .asset_inventory import AssetInventoryError, build_asset_inventory
     from .canonical import CanonicalBuildError, build_structural_manifest
     from .content import ContentCompileError, TEST_LESSON_ID, compile_test_lesson
+    from .general_content import GeneralContentCompileError, compile_lesson_source
     from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
     from .planner import GOLDEN_IDS, plan_dry_run
     from .reporting import write_json
@@ -116,7 +118,7 @@ def _lesson_record(
             f"{canonical_id}: live title не содержит ожидаемый stable canonical ID: {current_title!r}"
         )
 
-    record: dict[str, Any] = {
+    return {
         "canonical_id": canonical_id,
         "module_position": int(module["position"]),
         "lesson_position": int(lesson["position"]),
@@ -134,7 +136,34 @@ def _lesson_record(
         "live_is_public": live.get("is_public"),
         "plan_action": None if plan_operation is None else plan_operation.get("action"),
     }
-    return record
+
+
+def _attach_source_compiler_state(
+    record: dict[str, Any],
+    *,
+    repo_root: Path,
+    canonical_id: str,
+    free_answer_source: dict[str, Any],
+) -> None:
+    compiled_source = compile_lesson_source(
+        repo_root,
+        free_answer_source=free_answer_source,
+        lesson_id=canonical_id,
+    )
+    repo_links = sorted(
+        {link for step in compiled_source for link in step.unresolved_repo_links}
+    )
+    record.update(
+        {
+            "compiler_status": "SOURCE_COMPILED",
+            "compiled_learner_step_count": len(compiled_source),
+            "compiled_block_sequence": [step.block_name for step in compiled_source],
+            "compiled_asset_ids": sorted(
+                {asset_id for step in compiled_source for asset_id in step.asset_ids}
+            ),
+            "repo_relative_links_pending_asset_route": repo_links,
+        }
+    )
 
 
 def build_bulk_status(
@@ -173,6 +202,14 @@ def build_bulk_status(
                 baseline=baseline,
                 plan_operation=plan_actions.get(canonical_id),
             )
+            _attach_source_compiler_state(
+                record,
+                repo_root=repo_root,
+                canonical_id=canonical_id,
+                free_answer_source=free_answer_source,
+            )
+            if record["repo_relative_links_pending_asset_route"]:
+                pending_requirements.append(f"{canonical_id}:asset-publication-resolution")
 
             if canonical_id in GOLDEN_IDS:
                 record["status"] = "READ_ONLY_GOLDEN"
@@ -210,12 +247,12 @@ def build_bulk_status(
                 continue
 
             if baseline is not None:
-                record["status"] = "BASELINE_PRESENT_COMPILER_UNAVAILABLE_BLOCKED"
-                record["next_action"] = "implement-general-compiler-before-any-write"
-                hard_blockers.append(f"{canonical_id}:baseline-present-without-general-compiler")
+                record["status"] = "BASELINE_PRESENT_RENDERING_PENDING_BLOCKED"
+                record["next_action"] = "resolve-assets-and-render-before-any-write"
+                hard_blockers.append(f"{canonical_id}:baseline-present-rendering-pending")
             elif _is_placeholder(live):
                 record["status"] = "INITIAL_UPLOAD_REQUIRED"
-                record["next_action"] = "compile-and-verified-first-upload"
+                record["next_action"] = "resolve-assets-then-verified-first-upload"
                 pending_requirements.append(f"{canonical_id}:initial-upload")
             else:
                 record["status"] = "UNMANAGED_EXISTING_CONTENT_BLOCKED"
@@ -241,6 +278,15 @@ def build_bulk_status(
         "pending_requirements": sorted(set(pending_requirements)),
         "summary": {
             "lessons": len(lessons),
+            "source_compiled": sum(
+                1 for item in lessons if item.get("compiler_status") == "SOURCE_COMPILED"
+            ),
+            "compiled_learner_steps": sum(
+                int(item.get("compiled_learner_step_count", 0)) for item in lessons
+            ),
+            "repo_relative_links_pending_asset_route": sum(
+                len(item.get("repo_relative_links_pending_asset_route", [])) for item in lessons
+            ),
             "golden_read_only": sum(1 for item in lessons if item["status"] == "READ_ONLY_GOLDEN"),
             "in_sync": sum(1 for item in lessons if item["status"] == "IN_SYNC"),
             "update_required": sum(1 for item in lessons if item["status"] == "UPDATE_REQUIRED"),
@@ -250,7 +296,7 @@ def build_bulk_status(
             "hard_blockers": len(set(hard_blockers)),
         },
         "ready_for_bulk_write": False,
-        "next_gate": "general-content-compiler-plus-asset-publication-resolution",
+        "next_gate": "asset-publication-resolution",
     }
 
 
@@ -336,6 +382,7 @@ def main() -> int:
         BulkStatusError,
         CanonicalBuildError,
         ContentCompileError,
+        GeneralContentCompileError,
         ContentWriteError,
         GoldenProfileError,
         SyncStateError,
