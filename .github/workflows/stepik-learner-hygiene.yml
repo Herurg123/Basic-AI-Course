@@ -122,7 +122,7 @@ jobs:
             --sync-state artifacts/stepik-learner-hygiene/sync-state.previous.json
           )
           if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then
-            python scripts/stepik_uploader/learner_hygiene_entrypoint.py "${args[@]}" --confirm-write
+            python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py "${args[@]}" --confirm-write
           else
             python scripts/stepik_uploader/learner_hygiene_preflight.py "${args[@]}"
           fi

@@ -12,6 +12,7 @@ from scripts.stepik_uploader.verified_rendering import (
     AssetBinding,
     MaterializationRequired,
     build_rendering_plan,
+    normalize_stepik_html,
     require_render_ready,
 )
 
@@ -107,7 +108,36 @@ class VerifiedRenderingTests(unittest.TestCase):
                 self.assertIsNone(REPO_LINK_RE.search(step.text), f"{lesson_id} step {step.position}")
                 self.assertNotIn("../../../", step.text)
                 self.assertNotIn("../../stepik/", step.text)
+                self.assertNotRegex(step.text, r"(?i)<hr\s*/?>")
         self.assertEqual(total_steps, 148)
+
+    def test_m02_l01_stepik_render_strips_only_proven_horizontal_rules(self) -> None:
+        normalized = build_rendering_plan(
+            repo_root=self.repo_root,
+            lesson_id="M02-L01",
+            source_steps=self.compiled["M02-L01"],
+            asset_report=self.asset_report,
+        )
+        legacy = build_rendering_plan(
+            repo_root=self.repo_root,
+            lesson_id="M02-L01",
+            source_steps=self.compiled["M02-L01"],
+            asset_report=self.asset_report,
+            apply_stepik_html_normalization=False,
+        )
+        legacy_html = "\n".join(step.text for step in legacy.rendered_steps)
+        normalized_html = "\n".join(step.text for step in normalized.rendered_steps)
+        self.assertRegex(legacy_html, r"(?i)<hr\s*/?>")
+        self.assertNotRegex(normalized_html, r"(?i)<hr\s*/?>")
+        self.assertEqual(
+            [normalize_stepik_html(step.text).strip() for step in legacy.rendered_steps],
+            [step.text for step in normalized.rendered_steps],
+        )
+
+    def test_normalizer_does_not_broaden_beyond_plain_horizontal_rule(self) -> None:
+        raw = '<p>a</p><hr /><p>b</p><hr><hr/><hr class="keep"><p>c</p>'
+        normalized = normalize_stepik_html(raw)
+        self.assertEqual(normalized, '<p>a</p><p>b</p><hr class="keep"><p>c</p>')
 
     def test_m04_l01_requires_only_txt_before_materialization_and_keeps_author_key_hidden(self) -> None:
         plan = build_rendering_plan(

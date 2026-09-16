@@ -43,7 +43,7 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         live_block = self.hygiene[live_index:]
         self.assertLess(
             live_block.index("python scripts/stepik_uploader/live_guard.py"),
-            live_block.index("python scripts/stepik_uploader/learner_hygiene_entrypoint.py"),
+            live_block.index("python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py"),
         )
 
     def test_bulk_offline_tests_are_not_inside_live_mutex_job(self) -> None:
@@ -100,7 +100,7 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.assertIn('"$COURSE_ID" != "299189"', self.hygiene)
         self.assertIn('if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then', self.hygiene)
         self.assertIn(
-            'python scripts/stepik_uploader/learner_hygiene_entrypoint.py "${args[@]}" --confirm-write',
+            'python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py "${args[@]}" --confirm-write',
             self.hygiene,
         )
         self.assertIn(
@@ -108,7 +108,7 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
             self.hygiene,
         )
         self.assertNotIn(
-            'python scripts/stepik_uploader/learner_hygiene_entrypoint.py "${args[@]}"\n',
+            'python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py "${args[@]}"\n',
             self.hygiene,
         )
 
@@ -135,7 +135,7 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
     def test_hygiene_never_commits_history_when_runtime_or_state_race_fails(self) -> None:
         live_index = self.hygiene.index("  live:\n")
         live_block = self.hygiene[live_index:]
-        runtime_index = live_block.index("python scripts/stepik_uploader/learner_hygiene_entrypoint.py")
+        runtime_index = live_block.index("python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py")
         state_index = live_block.index("Race-check и обновить Issue 54")
         history_index = live_block.index("history_cli.py mark-state-committed")
         self.assertLess(runtime_index, state_index)

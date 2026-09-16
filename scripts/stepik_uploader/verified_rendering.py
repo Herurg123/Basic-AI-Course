@@ -15,6 +15,7 @@ REPO_RELATIVE_RE = re.compile(r"\]\((?!https?://|mailto:|#)([^)]+)\)")
 INTERNAL_TITLE_PREFIX_RE = re.compile(
     r"^M\d{2}-L\d{2}(?:-[AEC]\d{2}(?:-[A-Za-z0-9_-]+)?)?\s*(?:[—–:]\s*)?"
 )
+STEPIC_HORIZONTAL_RULE_RE = re.compile(r"<hr\s*/?>", re.IGNORECASE)
 
 
 class VerifiedRenderingError(RuntimeError):
@@ -47,6 +48,18 @@ class RenderingPlan:
     @property
     def render_ready(self) -> bool:
         return not self.materialization_requirements
+
+
+def normalize_stepik_html(html: str) -> str:
+    """Remove only markup proven to be discarded by Stepik on write/read-back.
+
+    Production evidence from issue #80 shows that Stepik removes plain horizontal-rule
+    tags (`<hr>`, `<hr/>`, `<hr />`) from text blocks. Keeping them in the outgoing
+    canonical payload makes an otherwise successful PUT permanently unverifiable.
+    This boundary intentionally does not perform broad HTML sanitization: every other
+    tag remains part of the read-back contract until separately proven otherwise.
+    """
+    return STEPIC_HORIZONTAL_RULE_RE.sub("", html or "")
 
 
 def _normalize_repo_path(value: str) -> str:
@@ -236,6 +249,7 @@ def build_rendering_plan(
     source_steps: Iterable[CompiledSourceStep],
     asset_report: dict[str, Any],
     bindings: Iterable[AssetBinding] | None = None,
+    apply_stepik_html_normalization: bool = True,
 ) -> RenderingPlan:
     repo_root = repo_root.resolve()
     resolution_index = _resolution_index(asset_report, lesson_id=lesson_id)
@@ -264,6 +278,8 @@ def build_rendering_plan(
                 f"{lesson_id}: после local dependency adaptation осталась repo-relative ссылка"
             )
         html = markdown_to_html(rewritten).strip()
+        if apply_stepik_html_normalization:
+            html = normalize_stepik_html(html).strip()
         if not html:
             raise VerifiedRenderingError(f"{lesson_id}: step {source_step.position} rendered в пустой HTML")
         source_paths = tuple(

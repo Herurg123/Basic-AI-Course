@@ -7,7 +7,7 @@ from typing import Any, Iterable
 from .api import StepikAPIError, StepikWriteAmbiguousError
 from .content import CompiledStep
 from .deployment_history import DeploymentHistoryError, DeploymentRecorder, summarize_event, utc_now
-from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
+from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint, live_lesson_payload
 from .sync_state import build_record
 from .writer import ContentWriteError, _assert_readback, _equivalent, _step_source
 
@@ -243,6 +243,34 @@ def _ensure_event_and_baseline_snapshot(
     return records
 
 
+def _record_readback_diagnostic(
+    recorder: DeploymentRecorder,
+    *,
+    operation_id: str | None,
+    expected_fingerprint: str,
+    actual_lesson: dict[str, Any] | None,
+    reason_code: str,
+) -> None:
+    """Persist minimal semantic live state before recording READBACK_FAILED.
+
+    Unknown history phases are intentionally allowed by the history validator. Keeping the
+    normalized learner-content payload here makes a future recovery diagnosable without
+    repeating a potentially successful write merely to discover what Stepik stored.
+    """
+    recorder._append(
+        "READBACK_DIAGNOSTIC",
+        {
+            "recorded_at": utc_now(),
+            "operation_id": operation_id,
+            "reason_code": reason_code,
+            "expected_fingerprint": expected_fingerprint,
+            "actual_fingerprint": None if actual_lesson is None else live_lesson_fingerprint(actual_lesson),
+            "actual_lesson_payload": None if actual_lesson is None else live_lesson_payload(actual_lesson),
+        },
+        operation_id=operation_id or "final-readback",
+    )
+
+
 def execute_tracked_learner_hygiene(
     client: Any,
     snapshot: dict[str, Any],
@@ -386,14 +414,15 @@ def execute_tracked_learner_hygiene(
             raise
         recorder.write_result(operation_id=operation.operation_id, status="COMPLETED")
 
+        actual_lesson: dict[str, Any] | None = None
         try:
             working_snapshot = client.inspect_course(int(snapshot["course"]["id"]))
-            working_lesson = _target_lesson(
+            actual_lesson = _target_lesson(
                 working_snapshot,
                 module_position=module_position,
                 lesson_position=lesson_position,
             )
-            actual_fp = live_lesson_fingerprint(working_lesson)
+            actual_fp = live_lesson_fingerprint(actual_lesson)
             if actual_fp != operation.fingerprint_after:
                 raise ContentWriteError(
                     f"Learner hygiene {operation.operation_id}: full lesson read-back не совпал с expected intermediate"
@@ -401,12 +430,20 @@ def execute_tracked_learner_hygiene(
             if operation.kind == "step" and operation.expected_step is not None and operation.step_id is not None:
                 _assert_readback(client.fetch_one("step-sources", int(operation.step_id)), operation.expected_step)
         except Exception:
+            _record_readback_diagnostic(
+                recorder,
+                operation_id=operation.operation_id,
+                expected_fingerprint=operation.fingerprint_after,
+                actual_lesson=actual_lesson,
+                reason_code="learner-hygiene-readback-unavailable-or-mismatch",
+            )
             recorder.readback_failed(operation_id=operation.operation_id, reason_code="learner-hygiene-readback-unavailable-or-mismatch")
             raise
         recorder.operation_readback(
             operation_id=operation.operation_id,
             expected_fingerprint_after=operation.fingerprint_after,
         )
+        working_lesson = actual_lesson
         result.operations.append(
             {
                 "action": "UPDATE_TITLE" if operation.kind == "title" else "UPDATE_STEP",
@@ -419,6 +456,13 @@ def execute_tracked_learner_hygiene(
     after_lesson = _target_lesson(after, module_position=module_position, lesson_position=lesson_position)
     final_fp = live_lesson_fingerprint(after_lesson)
     if final_fp != desired_fp:
+        _record_readback_diagnostic(
+            recorder,
+            operation_id=None,
+            expected_fingerprint=desired_fp,
+            actual_lesson=after_lesson,
+            reason_code="learner-hygiene-final-readback-mismatch",
+        )
         recorder.readback_failed(operation_id=None, reason_code="learner-hygiene-final-readback-mismatch")
         raise ContentWriteError("Learner hygiene final read-back не совпал с desired lesson")
 
