@@ -1,8 +1,20 @@
 # Stepik section position recovery — 2026-09-15
 
-Статус: **production blocker / guarded one-off recovery**.
+Статус: **RESOLVED / recovery evidence retained**.
 
-Связанный incident: GitHub issue #74. Целевой курс: Stepik `course_id=299189`.
+Связанный incident: GitHub issue #74 — закрыт после recovery + learner-hygiene + Human Visual Validation. Целевой курс: Stepik `course_id=299189`.
+
+## Resolution record — 16.09.2026
+
+Исторический blocker ниже был фактически закрыт:
+
+- read-only recovery preflight run `35014815467`: `READY`, `stepik_writes=0`, exact 7 operations M07→M01;
+- guarded recovery production run `35015060946`: `PASS`, ровно 7 writes только `section.position`, итоговые positions `1..9`, content invariant unchanged;
+- последующие learner-hygiene/recovery runs сохранили positions `1..9`;
+- owner Human Visual Validation после run `35079859897` подтвердила визуальный порядок sections, включая M07/M08;
+- issue #74 закрыт как resolved.
+
+Этот документ сохраняет описание incident и recovery contract как forensic/regression evidence. Инструкции исполнения ниже читаются как **историческая последовательность, уже выполненная**, а не как текущий owner action.
 
 ## Что произошло
 
@@ -79,29 +91,15 @@ Writes выполняются в порядке M07 → M01. После кажд
 
 Любой ambiguous write, 5xx/network outcome, missing read-back, неожиданный drift, изменённый unit ID или content fingerprint = STOP без blind retry.
 
-## Owner execution sequence после merge исправления
+## Историческая owner execution sequence — выполнена
 
-Сначала выполнить workflow **Stepik Section Position Recovery** из нового `main` с:
+Изначально требовалось сначала выполнить **Stepik Section Position Recovery** с `confirm_write=false`, затем после проверки artifact — отдельный owner dispatch с `confirm_write=true`.
 
-- `course_id = 299189`
-- `confirm_write = false`
+Эта последовательность выполнена:
 
-Ожидаемый результат: `verdict=READY`, `stepik_writes=0`, семь planned operations M07…M01 и семь raw-GET-derived section PUT contracts. Artifact должен показывать `contract_source=raw-get-full-object-read-modify-write`, `options_required=false` и полный `payload_fields` каждого section.
+- preflight `35014815467` доказал `verdict=READY`, `stepik_writes=0`, семь planned operations M07…M01 и raw-GET-derived PUT contracts;
+- write run `35015060946` доказал `verdict=PASS`, positions `1..9`, content invariant unchanged, 7 writes только `section.position`;
+- normal learner-hygiene после recovery был выполнен отдельно и не использовался как «самопочинка» structure;
+- Human Visual Validation впоследствии завершён PASS.
 
-Только после проверки этого artifact выполнить тот же workflow повторно с:
-
-- `course_id = 299189`
-- `confirm_write = true`
-
-Успех recovery означает:
-
-- `verdict=PASS`;
-- positions по section IDs точно `1..9`;
-- content invariant до/после совпадает;
-- writes были только `section.position`;
-- journal автоматически добавлен в issues #74 и #54;
-- `human_visual_validation=RETEST_REQUIRED`.
-
-После этого можно возвращаться к обычному `Stepik Learner Hygiene` для оставшегося M08 title cleanup и tracked M02/M04, а затем выполнить Human Visual Validation.
-
-До успешного recovery обычный learner hygiene нельзя использовать как способ «самопочинки»: его structural planner обязан оставаться fail-closed на повреждённых positions.
+Повторять recovery без нового доказанного structural incident нельзя. Для будущих Stepik writes exact positions `1..9` остаются regression guard, а любой structural drift снова должен fail-closed.
