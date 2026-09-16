@@ -125,7 +125,27 @@ jobs:
           python scripts/stepik_uploader/live_guard.py
           --output artifacts/stepik-staging-build/live-source-guard.json
 
+      - name: Проверить state/history commit gap без Stepik writes
+        id: recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='artifacts/stepik-staging-build'
+          python scripts/stepik_uploader/staging_commit_gap_recovery.py \
+            --repo-root . \
+            --report-dir "$base" \
+            --course-id "$COURSE_ID" \
+            --target-id "$TARGET_ID" \
+            --sync-state "$base/sync-state.previous.json"
+          python - <<'PY'
+          import json, os
+          data = json.load(open('artifacts/stepik-staging-build/commit-gap-recovery.json', encoding='utf-8'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write('applicable=' + ('true' if data.get('applicable') is True else 'false') + '\n')
+          PY
+
       - name: Выполнить read-only preflight или guarded write
+        if: steps.recovery.outputs.applicable != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -154,7 +174,7 @@ jobs:
           journal="$base/sync-journal.md"
           lesson_event="$base/lesson-deployment-event.json"
           if [[ ! -f "$state" || ! -f "$journal" || ! -f "$lesson_event" ]]; then
-            echo 'Successful mutating staging build обязан сформировать next state, journal и lesson event.' >&2
+            echo 'Successful mutating/recovery staging build обязан сформировать next state, journal и lesson event.' >&2
             exit 2
           fi
 
