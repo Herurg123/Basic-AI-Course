@@ -98,8 +98,19 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.assertIn("default: false", self.hygiene)
         self.assertIn("if: github.event_name == 'workflow_dispatch'", self.hygiene)
         self.assertIn('"$COURSE_ID" != "299189"', self.hygiene)
-        self.assertIn("learner_hygiene_entrypoint.py", self.hygiene)
-        self.assertIn("args+=(--confirm-write)", self.hygiene)
+        self.assertIn('if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then', self.hygiene)
+        self.assertIn(
+            'python scripts/stepik_uploader/learner_hygiene_entrypoint.py "${args[@]}" --confirm-write',
+            self.hygiene,
+        )
+        self.assertIn(
+            'python scripts/stepik_uploader/learner_hygiene_preflight.py "${args[@]}"',
+            self.hygiene,
+        )
+        self.assertNotIn(
+            'python scripts/stepik_uploader/learner_hygiene_entrypoint.py "${args[@]}"\n',
+            self.hygiene,
+        )
 
     def test_hygiene_pr_event_runs_tests_but_never_live_job(self) -> None:
         self.assertIn("pull_request:", self.hygiene)
