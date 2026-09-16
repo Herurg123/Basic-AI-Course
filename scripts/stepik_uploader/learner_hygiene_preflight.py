@@ -17,6 +17,7 @@ if __package__ in {None, ""}:
     from stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
     from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
     from stepik_uploader.history_runtime import find_incomplete_object_events
+    from stepik_uploader.learner_hygiene_recovery import build_normalization_recovery_plan
     from stepik_uploader.learner_hygiene_runtime import (
         ASSET_POLICY_PATH,
         COURSE_ID,
@@ -45,6 +46,7 @@ else:
     from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
     from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
     from .history_runtime import find_incomplete_object_events
+    from .learner_hygiene_recovery import build_normalization_recovery_plan
     from .learner_hygiene_runtime import (
         ASSET_POLICY_PATH,
         COURSE_ID,
@@ -164,6 +166,46 @@ def plan_tracked_lesson(
     }
 
 
+def _write_recovery_preflight(
+    *,
+    report_dir: Path,
+    report: dict[str, Any],
+    recovery_plan: Any,
+) -> None:
+    recovery = recovery_plan.as_dict()
+    write_json(report_dir / "normalization-recovery-plan.json", recovery)
+    plan = {
+        "mode": "learner-facing-hygiene-recovery-preflight",
+        "source_main_sha": recovery_plan.current_source_sha,
+        "course_id": COURSE_ID,
+        "recovery_first": True,
+        "normalization_recovery": recovery,
+        "confirmation_only_operations": [recovery["confirmation_only_operation"]],
+        "remaining_stepik_write_operations": recovery["remaining_operations"],
+        "stepik_writes_planned": recovery_plan.stepik_writes_planned,
+        "stepik_writes": 0,
+        "creates_planned": False,
+        "deletes_planned": False,
+        "structural_writes_planned": False,
+        "blind_retry_of_failed_readback_operation": False,
+    }
+    write_json(report_dir / "hygiene-plan.json", plan)
+    report.update(
+        {
+            "verdict": "READY",
+            "blockers": [],
+            "ready_for_bulk_write": False,
+            "ready_for_recovery": True,
+            "recovery_first": True,
+            "stepik_writes_planned": recovery_plan.stepik_writes_planned,
+            "normalization_recovery": recovery,
+            "human_visual_validation": "NOT_RUN",
+        }
+    )
+    write_json(report_dir / "run-report.json", report)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
 def main() -> int:
     args = parse_args()
     repo_root = args.repo_root.resolve()
@@ -205,6 +247,24 @@ def main() -> int:
         state_path = args.sync_state if args.sync_state.is_absolute() else repo_root / args.sync_state
         state = load_state(state_path, course_id=args.course_id)
         store = read_only_history_store(sha)
+
+        # Incident #80 recovery is deliberately a separate first-class stage. If the exact
+        # incomplete M02 event is recoverable, expose only that route in this preflight.
+        # This prevents unrelated M04/title writes from being mixed into the recovery boundary.
+        recovery_plan = build_normalization_recovery_plan(
+            client=client,
+            repo_root=repo_root,
+            state=state,
+            store=store,
+            current_source_sha=sha,
+        )
+        if recovery_plan is not None:
+            _write_recovery_preflight(
+                report_dir=report_dir,
+                report=report,
+                recovery_plan=recovery_plan,
+            )
+            return 0
 
         inventory = build_asset_inventory(repo_root, manifest)
         policy = load_asset_publication_policy(repo_root / ASSET_POLICY_PATH)
