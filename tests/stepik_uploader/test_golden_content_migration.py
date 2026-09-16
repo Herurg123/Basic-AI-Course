@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import copy
 import unittest
+from argparse import Namespace
+from pathlib import Path
+from unittest.mock import patch
 
+import scripts.stepik_uploader.golden_content_migration as migration
 from scripts.stepik_uploader.deployment_history import DeploymentHistoryError, DeploymentRecorder, MemoryHistoryStore, event_identity_from_environment
 from scripts.stepik_uploader.fingerprints import canonical_hash
 from scripts.stepik_uploader.golden_content_migration import (
@@ -165,6 +169,47 @@ class GoldenContentMigrationTests(unittest.TestCase):
         self.assertEqual(row["step_count"], 8)
         self.assertEqual(len(row["step_text_sha256"]), 8)
         self.assertEqual(proposed["observed_source_sha"], SHA)
+
+    def test_entrypoint_routes_accepted_8_step_fixture_to_noop_path(self) -> None:
+        args = Namespace(
+            course_id=299189,
+            repo_root=Path("."),
+            report_dir=Path("artifacts/test"),
+            sync_state=Path("state.json"),
+            api_host="https://stepik.org",
+            confirm_write=False,
+        )
+        accepted = profile()
+        accepted["golden_lessons"][TARGET_ID]["step_count"] = 8
+        with (
+            patch.object(migration.legacy, "parse_args", return_value=args),
+            patch.object(migration.legacy, "load_golden_profile", return_value=accepted),
+            patch.object(migration, "_current_fixture_noop", return_value=0) as noop,
+            patch.object(migration.legacy, "main", return_value=99) as old_route,
+        ):
+            self.assertEqual(migration.main(), 0)
+        noop.assert_called_once_with(args, accepted)
+        old_route.assert_not_called()
+
+    def test_entrypoint_keeps_7_step_fixture_on_proven_writer(self) -> None:
+        args = Namespace(
+            course_id=299189,
+            repo_root=Path("."),
+            report_dir=Path("artifacts/test"),
+            sync_state=Path("state.json"),
+            api_host="https://stepik.org",
+            confirm_write=False,
+        )
+        old = profile()
+        with (
+            patch.object(migration.legacy, "parse_args", return_value=args),
+            patch.object(migration.legacy, "load_golden_profile", return_value=old),
+            patch.object(migration.legacy, "main", return_value=0) as old_route,
+            patch.object(migration, "_current_fixture_noop", return_value=99) as noop,
+        ):
+            self.assertEqual(migration.main(), 0)
+        old_route.assert_called_once_with()
+        noop.assert_not_called()
 
 
 if __name__ == "__main__":
