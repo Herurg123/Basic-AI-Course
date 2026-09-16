@@ -1,0 +1,218 @@
+name: Stepik Staging Build
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/stepik_uploader/**'
+      - 'tests/stepik_uploader/**'
+      - '05_assets/**/*.svg'
+      - '.github/workflows/stepik-staging-build.yml'
+  workflow_dispatch:
+    inputs:
+      target_id:
+        description: 'Один canonical Lesson ID для guarded initial staging build, например M03-L02.'
+        required: true
+        type: string
+      course_id:
+        description: 'Только private production-staging course проекта.'
+        required: true
+        default: '299189'
+        type: string
+      confirm_write:
+        description: 'false = read-only preflight; true = разрешить guarded asset/lesson writes после повторного live guard.'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  STEPIK_SYNC_ISSUE: '54'
+
+jobs:
+  tests:
+    name: Offline staging-build tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Получить репозиторий
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: scripts/stepik_uploader/requirements.txt
+
+      - name: Установить зависимости
+        run: python -m pip install -r scripts/stepik_uploader/requirements.txt
+
+      - name: Запустить полный offline test suite
+        run: python -m unittest discover -s tests/stepik_uploader -v
+
+      - name: Проверить реальный канон без Stepik writes
+        run: >-
+          python scripts/stepik_uploader/stepik_uploader.py dry-run
+          --repo-root .
+          --report-dir artifacts/stepik-staging-build-ci
+
+  staging-build:
+    name: "Staging build ${{ inputs.target_id }}"
+    if: github.event_name == 'workflow_dispatch'
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: write
+    concurrency:
+      group: stepik-live-course-299189
+      cancel-in-progress: false
+    env:
+      STEPIC_CLIENT_ID: ${{ secrets.STEPIC_CLIENT_ID }}
+      STEPIC_CLIENT_SECRET: ${{ secrets.STEPIC_CLIENT_SECRET }}
+      GITHUB_TOKEN: ${{ github.token }}
+      COURSE_ID: ${{ inputs.course_id }}
+      TARGET_ID: ${{ inputs.target_id }}
+      CONFIRM_WRITE: ${{ inputs.confirm_write }}
+    steps:
+      - name: Получить репозиторий
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: scripts/stepik_uploader/requirements.txt
+
+      - name: Установить зависимости
+        run: python -m pip install -r scripts/stepik_uploader/requirements.txt
+
+      - name: Проверить входы
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$COURSE_ID" != "299189" ]]; then
+            echo 'Staging build жёстко разрешён только для course_id=299189.' >&2
+            exit 2
+          fi
+          if [[ ! "$TARGET_ID" =~ ^M[0-9]{2}-L[0-9]{2}$ ]]; then
+            echo 'target_id должен иметь вид M00-L00.' >&2
+            exit 2
+          fi
+
+      - name: Прочитать current machine state из Issue 54
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='artifacts/stepik-staging-build'
+          mkdir -p "$base"
+          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.previous.md"
+          python scripts/stepik_uploader/sync_issue_state.py extract \
+            --body-file "$base/sync-issue-body.previous.md" \
+            --output "$base/sync-state.previous.json" \
+            --course-id "$COURSE_ID"
+
+      - name: Проверить актуальный HEAD main перед live Stepik
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          python scripts/stepik_uploader/live_guard.py
+          --output artifacts/stepik-staging-build/live-source-guard.json
+
+      - name: Проверить state/history commit gap без Stepik writes
+        id: recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='artifacts/stepik-staging-build'
+          python scripts/stepik_uploader/staging_commit_gap_recovery.py \
+            --repo-root . \
+            --report-dir "$base" \
+            --course-id "$COURSE_ID" \
+            --target-id "$TARGET_ID" \
+            --sync-state "$base/sync-state.previous.json"
+          python - <<'PY'
+          import json, os
+          data = json.load(open('artifacts/stepik-staging-build/commit-gap-recovery.json', encoding='utf-8'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write('applicable=' + ('true' if data.get('applicable') is True else 'false') + '\n')
+          PY
+
+      - name: Выполнить read-only preflight или guarded write
+        if: steps.recovery.outputs.applicable != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(
+            --repo-root .
+            --report-dir artifacts/stepik-staging-build
+            --course-id "$COURSE_ID"
+            --target-id "$TARGET_ID"
+            --sync-state artifacts/stepik-staging-build/sync-state.previous.json
+          )
+          if [[ "$CONFIRM_WRITE" == "true" ]]; then
+            args+=(--confirm-write)
+          fi
+          python scripts/stepik_uploader/staging_build_runtime.py "${args[@]}"
+
+      - name: Зафиксировать confirmed state и durable history
+        if: inputs.confirm_write == true && success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='artifacts/stepik-staging-build'
+          state="$base/sync-state.next.json"
+          journal="$base/sync-journal.md"
+          lesson_event="$base/lesson-deployment-event.json"
+          if [[ ! -f "$state" || ! -f "$journal" || ! -f "$lesson_event" ]]; then
+            echo 'Successful mutating/recovery staging build обязан сформировать next state, journal и lesson event.' >&2
+            exit 2
+          fi
+
+          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.current.md"
+          python scripts/stepik_uploader/sync_issue_state.py extract \
+            --body-file "$base/sync-issue-body.current.md" \
+            --output "$base/sync-state.current.json" \
+            --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/sync_issue_state.py compare \
+            --expected-state "$base/sync-state.previous.json" \
+            --current-state "$base/sync-state.current.json" \
+            --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/sync_issue_state.py replace \
+            --body-file "$base/sync-issue-body.current.md" \
+            --state-file "$state" \
+            --output-body "$base/sync-issue-body.next.md" \
+            --output-patch "$base/sync-issue-patch.json" \
+            --course-id "$COURSE_ID"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$base/sync-issue-patch.json" >/dev/null
+
+          shopt -s nullglob
+          asset_events=("$base"/asset-deployment-event-*.json)
+          for event in "${asset_events[@]}"; do
+            python scripts/stepik_uploader/history_cli.py mark-state-committed \
+              --event-file "$event" \
+              --state-file "$state"
+          done
+          python scripts/stepik_uploader/history_cli.py mark-state-committed \
+            --event-file "$lesson_event" \
+            --state-file "$state"
+
+          gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$journal"
+
+      - name: Сохранить staging build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: stepik-staging-build-${{ inputs.target_id }}-${{ github.run_id }}
+          path: artifacts/stepik-staging-build/
+          if-no-files-found: warn
+          retention-days: 90
