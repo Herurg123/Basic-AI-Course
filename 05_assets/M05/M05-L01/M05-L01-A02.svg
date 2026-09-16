@@ -2,7 +2,7 @@
   <title id="title">Две авторские версии изображения для вечера настольных игр</title>
   <desc id="desc">Слева спокойная читаемая композиция с крупными игровыми элементами. Справа перегруженная композиция с множеством мелких элементов и мелким текстом.</desc>
   <rect width="1200" height="650" fill="#f2f3f5"/>
-  <text x="600" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#25282c">M05-L01-A02 · две подготовленные авторские версии</text>
+  <text x="600" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#25282c">Две подготовленные авторские версии</text>
 
   <rect x="70" y="90" width="480" height="480" rx="24" fill="#dce8f3" stroke="#9eabb8" stroke-width="3"/>
   <text x="310" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#263238">Версия A</text>
