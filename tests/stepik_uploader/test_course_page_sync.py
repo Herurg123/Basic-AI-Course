@@ -19,7 +19,7 @@ class CoursePageSyncTests(unittest.TestCase):
             payload["title"],
             "ИИ с нуля: не коллекция промптов, а инструмент для реальных дел",
         )
-        self.assertEqual(payload["workload"], "1–2 часа в неделю")
+        self.assertEqual(payload["workload"], "1–2 часа в неделю.")
         self.assertIn("Формулировать реальные задачи для ИИ своими словами", payload["acquired_skills"])
         self.assertIn("После курса", payload["description"])
         self.assertIn("Техническая подготовка не требуется", payload["target_audience"])
