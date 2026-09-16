@@ -81,7 +81,7 @@ jobs:
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-          cache: 'pip'
+          cache: pip
           cache-dependency-path: scripts/stepik_uploader/requirements.txt
 
       - name: Установить зависимости
@@ -122,11 +122,13 @@ jobs:
             --sync-state artifacts/stepik-learner-hygiene/sync-state.previous.json
           )
           if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then
-            args+=(--confirm-write)
+            python scripts/stepik_uploader/learner_hygiene_entrypoint.py "${args[@]}" --confirm-write
+          else
+            python scripts/stepik_uploader/learner_hygiene_preflight.py "${args[@]}"
           fi
-          python scripts/stepik_uploader/learner_hygiene_entrypoint.py "${args[@]}"
 
       - name: Race-check и обновить Issue 54 после подтверждённого read-back
+        if: ${{ success() && inputs.confirm_write == true }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -164,6 +166,7 @@ jobs:
           fi
 
       - name: Commit durable history только после machine-state boundary
+        if: ${{ success() && inputs.confirm_write == true }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
@@ -179,7 +182,7 @@ jobs:
           done
 
       - name: Добавить journal в Issue 54
-        if: success()
+        if: ${{ success() && inputs.confirm_write == true }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
