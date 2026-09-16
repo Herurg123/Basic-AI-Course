@@ -45,15 +45,17 @@ else:
 
 COURSE_ID = 299189
 SOURCE_PATH = Path("04_course/stepik/course-page.md")
-RICH_FIELDS = {"description", "target_audience", "requirements", "course_format"}
+RICH_FIELDS = {"description", "target_audience", "requirements", "learning_format"}
+LIST_FIELDS = {"acquired_skills", "acquired_assets"}
 REQUIRED_FIELDS = (
     "title",
     "summary",
     "acquired_skills",
+    "acquired_assets",
     "description",
     "target_audience",
     "requirements",
-    "course_format",
+    "learning_format",
     "workload",
     "difficulty",
 )
@@ -66,6 +68,7 @@ ESSENTIAL_PRESERVED_FIELDS = (
     "language",
     "is_public",
     "is_paid",
+    "course_format",
 )
 OPTIONAL_PRESERVED_FIELDS = (
     "cover",
@@ -107,6 +110,19 @@ def _plain_lines(block: str) -> list[str]:
     return result
 
 
+def _transfer_lines(block: str, *, label: str) -> list[str]:
+    values = [
+        re.sub(r"\s{2,}$", "", line.strip())
+        for line in block.splitlines()
+        if line.strip()
+        and not line.strip().startswith("Каждый пункт")
+        and not line.strip().startswith("#")
+    ]
+    if not values:
+        raise CoursePageSyncError(f"course-page.md: список «{label}» пуст")
+    return values
+
+
 def parse_course_page(path: Path) -> dict[str, Any]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -136,22 +152,14 @@ def parse_course_page(path: Path) -> dict[str, Any]:
         raise CoursePageSyncError("course-page.md: краткое описание пусто")
     summary = "\n".join(summary_lines).strip()
 
-    skills_block = _section(text, 5)
-    skills = [
-        re.sub(r"\s{2,}$", "", line.strip())
-        for line in skills_block.splitlines()
-        if line.strip()
-        and not line.strip().startswith("Каждый пункт")
-        and not line.strip().startswith("#")
-    ]
-    if not skills:
-        raise CoursePageSyncError("course-page.md: список «Чему вы научитесь» пуст")
+    skills = _transfer_lines(_section(text, 5), label="Чему вы научитесь")
+    acquired_assets = _transfer_lines(_section(text, 10), label="Что вы получаете")
 
     rich_sections = {
         "description": _section(text, 6),
         "target_audience": _section(text, 7),
         "requirements": _section(text, 8),
-        "course_format": _section(text, 9),
+        "learning_format": _section(text, 9),
     }
     rendered = {key: markdown_to_html(value).strip() for key, value in rich_sections.items()}
     if any(not value for value in rendered.values()):
@@ -161,6 +169,7 @@ def parse_course_page(path: Path) -> dict[str, Any]:
         "title": title,
         "summary": summary,
         "acquired_skills": skills,
+        "acquired_assets": acquired_assets,
         "workload": workload,
         "difficulty": "easy",
         **rendered,
@@ -173,7 +182,7 @@ def parse_course_page(path: Path) -> dict[str, Any]:
 def _normalized_value(field: str, value: Any) -> Any:
     if field in RICH_FIELDS:
         return html_fingerprint(str(value or ""))
-    if field == "acquired_skills":
+    if field in LIST_FIELDS:
         if isinstance(value, list):
             return tuple(str(item).strip() for item in value if str(item).strip())
         return tuple(line.strip() for line in str(value or "").splitlines() if line.strip())
@@ -192,9 +201,12 @@ def course_page_payload(course: dict[str, Any], *, fields: tuple[str, ...] = REQ
 def course_page_write_payload(desired: dict[str, Any]) -> dict[str, Any]:
     if set(desired) != set(REQUIRED_FIELDS):
         raise CoursePageSyncError("Course-page write payload не соответствует exact canonical field set")
-    skills = desired.get("acquired_skills")
-    if not isinstance(skills, list) or not skills or any(not isinstance(item, str) or not item.strip() for item in skills):
-        raise CoursePageSyncError("acquired_skills для Stepik write обязан быть непустым списком строк")
+    for field in sorted(LIST_FIELDS):
+        values = desired.get(field)
+        if not isinstance(values, list) or not values or any(
+            not isinstance(item, str) or not item.strip() for item in values
+        ):
+            raise CoursePageSyncError(f"{field} для Stepik write обязан быть непустым списком строк")
     return {field: deepcopy(desired[field]) for field in REQUIRED_FIELDS}
 
 
