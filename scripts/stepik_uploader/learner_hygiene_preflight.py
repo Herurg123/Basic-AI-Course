@@ -23,12 +23,12 @@ if __package__ in {None, ""}:
         GOLDEN_PROFILE_PATH,
         TRACKED_HYGIENE_LESSONS,
         _credentials,
-        _history_store,
         _live_lesson,
         _manifest_index,
         _render_lesson,
     )
     from stepik_uploader.learner_hygiene_writer import _planned_operations
+    from stepik_uploader.read_only_history import read_only_history_store
     from stepik_uploader.reporting import write_json
     from stepik_uploader.stepik_uploader import source_sha
     from stepik_uploader.sync_state import SyncStateError, baseline_for, load_state
@@ -51,12 +51,12 @@ else:
         GOLDEN_PROFILE_PATH,
         TRACKED_HYGIENE_LESSONS,
         _credentials,
-        _history_store,
         _live_lesson,
         _manifest_index,
         _render_lesson,
     )
     from .learner_hygiene_writer import _planned_operations
+    from .read_only_history import read_only_history_store
     from .reporting import write_json
     from .stepik_uploader import source_sha
     from .sync_state import SyncStateError, baseline_for, load_state
@@ -204,7 +204,7 @@ def main() -> int:
 
         state_path = args.sync_state if args.sync_state.is_absolute() else repo_root / args.sync_state
         state = load_state(state_path, course_id=args.course_id)
-        store = _history_store(sha)
+        store = read_only_history_store(sha)
 
         inventory = build_asset_inventory(repo_root, manifest)
         policy = load_asset_publication_policy(repo_root / ASSET_POLICY_PATH)
