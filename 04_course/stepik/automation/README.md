@@ -1,7 +1,7 @@
 # Автоматизация переноса и эксплуатационной синхронизации курса в Stepik
 
 **Статус:** production automation contract / implementation handoff  
-**Дата:** 15 сентября 2026 года  
+**Дата актуализации статуса:** 16 сентября 2026 года  
 **Курс Stepik:** `299189`  
 **Источник learner-facing содержания:** только актуальный `main`
 
@@ -28,15 +28,30 @@
 - вести confirmed baseline и machine-readable PENDING в Issue `#54`;
 - выполнять guarded exploitation sync для tracked `M02-L01` с human-facing canonical title;
 - выполнять отдельный owner-only learner-hygiene route для exact legacy title cleanup и tracked title/content migration;
+- выполнять отдельный owner-approved golden-title route только для двух exact title migrations M00-L01/M00-L02;
+- восстанавливать section positions отдельным guarded route без изменения lesson/unit/step content;
 - durable-журналировать deployment/recovery operations;
 - восстанавливаться после доказуемого partial/state/history-commit gap без повторного Stepik write;
 - выполнять read-only baseline reconcile classification.
 
-**Live machine acceptance `M04-L01` выполнен успешно.** Owner-dispatched run `34969028781` на `main@de98e60b845b51eda4c551cdc55c0c7139c35a55` подтвердил attachment materialization, 6-step verified rendering, per-operation/final read-back, Issue schema v3 и immutable `MACHINE_STATE_COMMITTED` для asset/lesson events.
+### Актуальный доказанный production state
 
-**Human Visual Validation после этого machine PASS дала `FAIL / RETEST REQUIRED`.** Функциональные элементы работали, но в sidebar, title и learner body были видны внутренние ID. Ремедиация описана в [`LEARNER-HYGIENE.md`](LEARNER-HYGIENE.md). Фактологический record machine acceptance и human failure: [`M04-L01-LIVE-ACCEPTANCE-2026-09-15.md`](M04-L01-LIVE-ACCEPTANCE-2026-09-15.md).
+**M04-L01 initial upload machine acceptance:** run `34969028781` на `main@de98e60b845b51eda4c551cdc55c0c7139c35a55` подтвердил attachment materialization, 6-step rendering, read-back, Issue schema v3 и `MACHINE_STATE_COMMITTED`. Исторический Human Visual Validation после этого первого upload дал `FAIL / RETEST REQUIRED` из-за learner-facing ID.
 
-Общий bulk write остаётся закрытым до оставшихся gates и повторной Human Validation.
+**Learner-hygiene remediation после инцидента:**
+
+- section-position recovery run `35015060946` восстановил позиции sections `1..9` и подтвердил неизменность content invariant;
+- partial-write M02 был восстановлен без blind retry run `35078545526`;
+- M04 learner-hygiene run `35079859897` завершён `PASS`, final fingerprint `sha256:56aca7da0220b8dfba35f299a80f7324bca885f8ac70636e8f987167dde915c4`, machine state/history committed;
+- owner Human Visual Validation после remediation подтвердила правильный order, human-facing M04/M07/M08 surfaces, working attachment/links/free-answer и отсутствие проверенных internal IDs.
+
+**Golden title migration:** run `35086056899` выполнил ровно два owner-approved title PUT для `M00-L01/M00-L02`, не изменив structure/content. Post-write observation fixture принят отдельным PR #83 (`main@f16a20100e1933548d84c3706423764bb1e3d416`). Финальный owner HVA подтвердил human-facing titles без `M00-L01/M00-L02` prefixes.
+
+Эти machine/HVA PASS относятся к конкретным проверенным surfaces и **не доказывают all-course equivalence текущему `main`**.
+
+Current Issue #54 содержит confirmed tracked baselines `M02-L01` и `M04-L01`, но одновременно 18 `PENDING` lessons и отдельный pending course-page. Поэтому current private Stepik нельзя объявлять актуальным all-course staging только по успешности перечисленных workflows.
+
+Общий bulk write остаётся закрытым: `ready_for_bulk_write=false`.
 
 ## 2. Канонические источники и derived state
 
@@ -47,13 +62,14 @@ Learner-facing content берётся только из `main`, прежде в�
 - learner-facing assets;
 - утверждённых production документов Stepik.
 
-Operational state разделён на три слоя:
+Operational state разделён на слои:
 
 1. current machine state в Issue `#54`;
 2. immutable deployment/recovery history в branch `stepik-deployment-history-v1`;
-3. human-readable comments Issue `#54`.
+3. strict observation fixture `golden-profile.v1.json` для read-only golden;
+4. human-readable comments Issues и Human Visual Validation evidence.
 
-Ни Issue, ни history branch не являются content source.
+Ни Issue, ни history branch, ни golden fixture не являются content source.
 
 Подробности:
 
@@ -63,18 +79,20 @@ Operational state разделён на три слоя:
 - [`RECOVERY-RECONCILE.md`](RECOVERY-RECONCILE.md);
 - [`BULK-STATUS.md`](BULK-STATUS.md);
 - [`LEARNER-HYGIENE.md`](LEARNER-HYGIENE.md);
+- [`GOLDEN-TITLE-MIGRATION.md`](GOLDEN-TITLE-MIGRATION.md);
+- [`SECTION-POSITION-RECOVERY-2026-09-15.md`](SECTION-POSITION-RECOVERY-2026-09-15.md);
 - [`asset-publication.v1.json`](asset-publication.v1.json);
 - [`ownership-matrix.v1.json`](ownership-matrix.v1.json).
 
 ## 3. Golden sample
 
-`M00-L01` и `M00-L02` остаются платформенным read-only эталоном. Обычный uploader/recovery и learner-hygiene writer не изменяют и не удаляют их.
+`M00-L01` и `M00-L02` остаются платформенным `READ_ONLY_GOLDEN`. Обычный uploader/recovery и learner-hygiene writer не изменяют и не удаляют их.
 
-Canonical `main` может развиваться после создания golden sample. Расхождение current canonical и подтверждённого live golden фиксируется как target-scoped `GOLDEN_OWNER_REQUIRED`, но не блокирует независимый non-golden guarded route при подтверждённой live golden integrity.
+Canonical `main` может развиваться после создания golden sample. Расхождение current canonical и подтверждённого live golden фиксируется target-scoped и не даёт права автоматического adoption/rebaseline.
 
-Текущий известный notice: canonical `M00-L02` содержит 8 steps, confirmed live golden — 7. Это не разрешает adoption, rebaseline или запись в golden.
+Текущий известный content notice сохраняется: canonical `M00-L02` содержит 8 steps, confirmed live golden — 7. Успешная title migration этого расхождения не устраняет.
 
-Legacy ID-prefix в title `M00-L01/M00-L02` классифицируется отдельно как `GOLDEN_TITLE_OWNER_REQUIRED`. Автоматическое удаление этого prefix запрещено до отдельного owner-approved решения.
+Legacy title prefixes `M00-L01/M00-L02` **больше не являются текущим blocker**: owner-approved migration run `35086056899` завершена, fixture обновлён PR #83, финальный HVA PASS. Это не ослабляет общий `READ_ONLY_GOLDEN` policy и не разрешает другие golden writes.
 
 ## 4. Безопасные режимы
 
@@ -121,7 +139,8 @@ Route не поддерживает DELETE, golden, произвольный les
 Он:
 
 - принимает только fixed `course_id=299189`;
-- требует `confirm_write=true`;
+- mutating mode требует `confirm_write=true`;
+- read-only preflight при `confirm_write=false` строит inspectable plan без Stepik writes и без mutating Issue/history side effects;
 - использует тот же live mutex и current-main guard;
 - меняет section/non-tracked lesson title только при точном legacy match;
 - arbitrary/manual title drift блокирует;
@@ -130,11 +149,21 @@ Route не поддерживает DELETE, golden, произвольный les
 - проверяет существующий M04 attachment baseline по metadata и downloaded bytes;
 - обновляет Issue `#54` только после final read-back и race check;
 - коммитит tracked history только после machine-state boundary;
-- восстанавливает доказанный history-commit gap без повторного Stepik write;
+- восстанавливает доказанный partial/history-commit gap без blind retry;
 - не меняет golden lesson titles автоматически;
-- после успешного live run всё равно требует Human Visual Validation.
+- после успешного live run требует Human Visual Validation.
+
+Текущая production hygiene/recovery цепочка для известных M02/M04/title incidents завершена и прошла HVA; route остаётся guard для будущих изменений, а не доказательством current all-course sync.
 
 Полный contract: [`LEARNER-HYGIENE.md`](LEARNER-HYGIENE.md).
+
+### Golden Title Migration
+
+`.github/workflows/stepik-golden-title-migration.yml` — отдельный owner-approved route только для exact M00-L01/M00-L02 legacy→human title transition. Production migration уже выполнена run `35086056899`; automatic fixture rebaseline по-прежнему запрещён, обычный golden validator не ослаблен.
+
+### Section Position Recovery
+
+Исторический incident #74 восстановлен run `35015060946`; Human Visual Validation завершён PASS. Recovery workflow не является обычным structural writer и не разрешает произвольный reorder.
 
 ### `sync-status`
 
@@ -165,7 +194,9 @@ All-course offline contract доказан для 21 lessons / 148 learner-facin
 - author-only материал не попадает в learner rendering;
 - `free-answer` source берётся только из confirmed golden profile.
 
-`M04-L01` machine read-back первого upload подтвердил learner block shape `text,text,text,text,free-answer,text` и fingerprint `sha256:e1633c610ca4e2b03d3b797b93baf2dc97d3e47c43f9fd4f34d809864697e538`. Этот старый fingerprint относится к состоянию до learner-hygiene remediation и не является целевым fingerprint после неё.
+Offline/source regression — это `SOURCE/MACHINE PASS`, а не доказательство того, что весь текущий live Stepik уже обновлён. Human Pilot readiness требует final learner-facing UI check после актуальной staging-сборки.
+
+`M04-L01` initial fingerprint `sha256:e1633c610ca4e2b03d3b797b93baf2dc97d3e47c43f9fd4f34d809864697e538` является историческим состоянием до learner-hygiene remediation. Текущий confirmed tracked fingerprint после run `35079859897`: `sha256:56aca7da0220b8dfba35f299a80f7324bca885f8ac70636e8f987167dde915c4`.
 
 ## 6. Attachment materialization
 
@@ -181,6 +212,8 @@ All-course offline contract доказан для 21 lessons / 148 learner-facin
 
 Learner-hygiene route не создаёт новый attachment: он повторно проверяет существующий binding и bytes. Автоматический POST retry по-прежнему отсутствует. Timeout/network/5xx после dispatch = ambiguous STOP.
 
+Для all-course staging остаются отдельные physical materialization gates, включая два M03 PNG и два SVG-derived visual assets, перечисленные в [`BULK-STATUS.md`](BULK-STATUS.md). Наличие source файла не считается publication PASS.
+
 ## 7. Machine state schema
 
 Issue `#54` фактически использует schema v3. Старые schema v1/v2 при чтении безопасно нормализуются с пустым `assets` без потери lesson baseline.
@@ -191,9 +224,11 @@ State хранит отдельно:
 - `assets` — verified physical asset bindings;
 - `pending` — learner-facing изменения после baseline.
 
-После run `34969028781` state содержит baseline `M04-L01` и verified binding `M04-L01-A01.txt`. При reuse automation повторно сверяет live attachment metadata и downloaded bytes с canonical SHA-256.
+На baseline 16.09.2026 confirmed tracked lesson baselines существуют для `M02-L01` и `M04-L01`, а verified asset binding — для `M04-L01-A01.txt`.
 
-Learner-hygiene tracked migration формирует новый lesson baseline только после подтверждённого final read-back. Pending target закрывается только через `APPLIED`/`NOOP_CONFIRMED` и race-checked Issue update.
+Одновременно Issue #54 содержит 18 PENDING lessons: `M00-L02`, `M00-L03`, `M01-L01`, `M01-L02`, `M02-L02`, `M03-L01`, `M03-L02`, `M04-L02`, `M04-L03`, `M05-L01`, `M05-L02`, `M06-L01`, `M06-L02`, `M06-L03`, `M06-L04`, `M07-L01`, `M07-L02`, `M08-L01`; отдельно pending для `04_course/stepik/course-page.md`.
+
+Это означает: current machine state **не подтверждает canonical GitHub ↔ live Stepik equivalence всего курса**. PENDING нельзя автоматически считать принятым baseline.
 
 ## 8. Durable deployment history и recovery
 
@@ -210,8 +245,11 @@ Recovery rules сохраняются:
 - Issue PATCH состоялся, но tracked history commit не успел: следующий run завершает только доказанную history часть;
 - title-only metadata с доказанным final read-back, но без `MACHINE_STATE_COMMITTED`, закрывает только history commit без повторного Stepik write, в том числе после продвижения `main`;
 - partial prefix продолжается только если каждый ранее dispatch-нутый write имеет `WRITE_COMPLETED + OP_READBACK_CONFIRMED`, а fresh live совпадает с last confirmed intermediate fingerprint;
+- safe platform normalization учитывается только через явно принятую normalization contract, а не ad hoc adoption;
 - ambiguous dispatch, known failed dispatch или failed read-back не разрешают blind continuation;
 - manual/unproven live state = STOP.
+
+Production partial-write incident #80 восстановлен по этим принципам; его закрытие не ослабляет fail-closed policy.
 
 ## 9. Race guarantees
 
@@ -238,23 +276,28 @@ Write result классифицируется так:
 
 `DELETE` не реализуется и не разрешается recovery route.
 
-## 11. Что ещё закрывает bulk write
+## 11. Что ещё закрывает bulk write / Human Pilot staging
 
-Machine acceptance первого `M04-L01` больше не является блокером, но его Human Visual Validation сейчас имеет `FAIL / RETEST REQUIRED`. До `upload-remaining` остаются:
+Уже закрыты как отдельные production incidents/gates:
 
-1. merge и owner-dispatched live применение learner-hygiene remediation;
-2. повторная Human Visual Validation `M04-L01` после remediation;
-3. confirmed transactional materialization/read-back для PNG routes;
-4. deterministic SVG→PNG route и visual/read-back verification;
-5. общий initial-upload orchestration для remaining lessons вместо hard-coded pilot;
-6. общий post-baseline drift guard для всех загруженных lessons;
-7. integrity pass для independence/F1-sensitive lessons;
-8. финальный all-course private staging verification;
-9. Human Validation/Human Pilot по утверждённому production процессу.
+- initial machine acceptance `M04-L01`;
+- section-position recovery #74 и последующий HVA;
+- partial-write recovery #80 для M02;
+- M04 learner-hygiene production write + HVA;
+- golden title cleanup M00-L01/M00-L02 + post-write fixture + HVA.
 
-Golden title cleanup `M00-L01/M00-L02` остаётся отдельным owner-required решением и не превращается в обычный bulk writer permission.
+Но `ready_for_bulk_write=false`, потому что до сборки актуального all-course private staging остаются:
 
-`ready_for_bulk_write=false`.
+1. confirmed transactional materialization/read-back для remaining PNG routes;
+2. deterministic SVG→PNG route и visual/read-back verification;
+3. общий initial-upload orchestration для remaining lessons вместо hard-coded pilot;
+4. общий post-baseline drift guard для всех загруженных lessons;
+5. reconciliation 18 lesson PENDING + course-page относительно выбранного current `main` staging SHA;
+6. integrity pass для independence/F1-sensitive lessons, включая Astra PED regressions;
+7. финальный all-course private staging verification и Human Visual checks;
+8. Human Pilot readiness по `06_testing/human-pilot/`, включая real device/service/moderator/consent/participant gates.
+
+Успешный ограниченный workflow не закрывает эти пункты автоматически.
 
 ## 12. Что требуется от владельца
 
@@ -266,7 +309,7 @@ Golden title cleanup `M00-L01/M00-L02` остаётся отдельным owner
 - изменение/отмена D-2026-09-15-STEPIK-ATTACHMENTS;
 - human visual/learner validation.
 
-Для `M04-L01` machine acceptance первого upload пройден, но Human Visual Validation зафиксировала learner-ID regression. После learner-hygiene live migration требуется повторный человеческий visual check; API read-back его не заменяет.
+Для текущего Step 1 Human Pilot readiness reconciliation новые live Stepik действия не выполняются. Следующий production handoff должен отдельно собрать и доказать актуальный private staging; его write-dispatches, если потребуются, остаются owner-gated по существующим contracts.
 
 ## 13. Что этот контур не разрешает
 
@@ -278,4 +321,5 @@ Golden title cleanup `M00-L01/M00-L02` остаётся отдельным owner
 - считать API read-back Human Validation;
 - считать successful upload доказательством PHONE/COMPUTER readiness;
 - считать resolved asset route фактической materialization без verified binding;
+- считать SOURCE PASS доказательством publication/service/human PASS;
 - разблокировать общий bulk write одним успешным pilot result.
