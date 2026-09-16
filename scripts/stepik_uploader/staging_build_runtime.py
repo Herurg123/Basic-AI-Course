@@ -13,6 +13,7 @@ if __package__ in {None, ""}:
     from stepik_uploader.api import StepikAPIError, StepikClient
     from stepik_uploader.asset_inventory import build_asset_inventory
     from stepik_uploader.asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
+    from stepik_uploader.attachment_materialization import verify_attachment_capability
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
     from stepik_uploader.content import ContentCompileError
     from stepik_uploader.deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, event_identity_from_environment
@@ -32,6 +33,7 @@ else:
     from .api import StepikAPIError, StepikClient
     from .asset_inventory import build_asset_inventory
     from .asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
+    from .attachment_materialization import verify_attachment_capability
     from .canonical import CanonicalBuildError, build_structural_manifest
     from .content import ContentCompileError
     from .deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, event_identity_from_environment
@@ -200,6 +202,16 @@ def _asset_materialization_plan(
     return plan
 
 
+def _synthetic_preflight_binding(item: dict[str, Any]) -> AssetBinding:
+    return AssetBinding(
+        source_path=str(item["source_path"]),
+        source_sha256=str(item["source_sha256"]),
+        url=f"https://preflight.invalid/{item['materialized_filename']}",
+        storage="preflight-synthetic-only",
+        verified=True,
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Guarded one-lesson private Stepik staging builder")
     parser.add_argument("--course-id", type=int, required=True)
@@ -298,34 +310,88 @@ def main() -> int:
             report_dir=report_dir,
             rows=material_rows,
         )
+        material_by_source = {item["source_path"]: item for item in material_plan}
         write_json(report_dir / "visual-materialization-plan.json", {"target": target_id, "items": material_plan})
 
         if not args.confirm_write:
-            existing_asset_checks: list[dict[str, Any]] = []
+            preflight_bindings: list[AssetBinding] = []
+            asset_checks: list[dict[str, Any]] = []
             for row in material_rows:
                 source_path = str(row["source_path"])
+                expected_source_sha = str(row["source_sha256"])
+                mode = str(row["mode"])
+                prepared = material_by_source[source_path]
                 record = asset_binding_for(state, source_path)
+                incomplete_assets = find_incomplete_object_events(store, object_id=f"asset:{source_path}")
+                if len(incomplete_assets) > 1:
+                    raise DeploymentHistoryError(f"{source_path}: найдено несколько incomplete asset events")
+
                 if record is not None:
-                    verify_visual_binding(
+                    binding = verify_visual_binding(
                         client,
                         record,
                         source_path=source_path,
-                        expected_source_sha256=str(row["source_sha256"]),
-                        expected_mode=str(row["mode"]),
+                        expected_source_sha256=expected_source_sha,
+                        expected_mode=mode,
                         stepik_lesson_id=int(live_lesson["id"]),
                     )
-                    existing_asset_checks.append({"source_path": source_path, "status": "VERIFIED_BASELINE_REUSE"})
-                else:
-                    prepared = next(item for item in material_plan if item["source_path"] == source_path)
-                    same_name = [
-                        item for item in client.list_attachments(lesson_id=int(live_lesson["id"]))
-                        if item.get("name") == prepared["materialized_filename"]
-                    ]
-                    if same_name:
-                        raise VisualMaterializationError(
-                            f"{target_id}: {prepared['materialized_filename']} уже существует без machine asset baseline; automatic adoption запрещён"
+                    if incomplete_assets:
+                        identity, records, summary = incomplete_assets[0]
+                        if identity.source_sha != sha or identity.desired_fingerprint != prepared["materialization_fingerprint"]:
+                            raise DeploymentHistoryError(f"{source_path}: incomplete asset event относится к другому source/materialization")
+                        if not summary.get("final_readback_confirmed"):
+                            raise DeploymentHistoryError(f"{source_path}: machine baseline существует без final history read-back")
+                        recovered, _ = _recover_final_state(records, label=source_path)
+                        if recovered != record:
+                            raise DeploymentHistoryError(f"{source_path}: machine baseline расходится с final immutable history")
+                    asset_checks.append({"source_path": source_path, "status": "VERIFIED_BASELINE_REUSE"})
+                    preflight_bindings.append(binding)
+                    continue
+
+                if incomplete_assets:
+                    identity, records, summary = incomplete_assets[0]
+                    if identity.source_sha != sha or identity.desired_fingerprint != prepared["materialization_fingerprint"]:
+                        raise DeploymentHistoryError(f"{source_path}: incomplete asset event относится к другому source/materialization")
+                    if not summary.get("final_readback_confirmed"):
+                        raise DeploymentHistoryError(
+                            f"{source_path}: incomplete asset event без final read-back; blind retry запрещён"
                         )
-                    existing_asset_checks.append({"source_path": source_path, "status": "READY_TO_MATERIALIZE"})
+                    recovered, _ = _recover_final_state(records, label=source_path)
+                    binding = verify_visual_binding(
+                        client,
+                        recovered,
+                        source_path=source_path,
+                        expected_source_sha256=expected_source_sha,
+                        expected_mode=mode,
+                        stepik_lesson_id=int(live_lesson["id"]),
+                    )
+                    asset_checks.append({"source_path": source_path, "status": "RECOVERABLE_FINAL_HISTORY"})
+                    preflight_bindings.append(binding)
+                    continue
+
+                verify_attachment_capability(client)
+                same_name = [
+                    item for item in client.list_attachments(lesson_id=int(live_lesson["id"]))
+                    if item.get("name") == prepared["materialized_filename"]
+                ]
+                if same_name:
+                    raise VisualMaterializationError(
+                        f"{target_id}: {prepared['materialized_filename']} уже существует без machine asset baseline/history; automatic adoption запрещён"
+                    )
+                asset_checks.append({"source_path": source_path, "status": "READY_TO_MATERIALIZE"})
+                preflight_bindings.append(_synthetic_preflight_binding(prepared))
+
+            preflight_rendering = build_rendering_plan(
+                repo_root=repo_root,
+                lesson_id=target_id,
+                source_steps=source_steps,
+                asset_report=asset_report,
+                bindings=preflight_bindings,
+            )
+            preflight_steps = list(require_render_ready(preflight_rendering))
+            if len(preflight_steps) != len(lesson_manifest.get("steps", [])):
+                raise VerifiedRenderingError(f"{target_id}: preflight rendered step count не совпадает с canonical plan")
+
             report.update(
                 {
                     "verdict": "READY",
@@ -335,8 +401,9 @@ def main() -> int:
                     "target_state": "PRISTINE_SKELETON" if not incomplete_lessons else "RECOVERY_HISTORY_PRESENT",
                     "independence_sensitive": bool(lesson_manifest.get("independence_sensitive")),
                     "f1_sensitive": bool(lesson_manifest.get("f1_sensitive")),
-                    "materialization": existing_asset_checks,
-                    "render_after_materialization": bool(material_rows),
+                    "materialization": asset_checks,
+                    "preflight_rendered_steps": len(preflight_steps),
+                    "preflight_render_uses_synthetic_urls": any(item["status"] == "READY_TO_MATERIALIZE" for item in asset_checks),
                     "blockers": [],
                     "next_action": "owner dispatch same target with confirm_write=true after artifact review",
                     "stepik_writes": 0,
@@ -349,7 +416,6 @@ def main() -> int:
         bindings: list[AssetBinding] = []
         next_state = state
         asset_event_artifacts: list[dict[str, Any]] = []
-        material_by_source = {item["source_path"]: item for item in material_plan}
         for row in material_rows:
             source_path = str(row["source_path"])
             expected_source_sha = str(row["source_sha256"])
