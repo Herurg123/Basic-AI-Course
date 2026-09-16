@@ -8,27 +8,29 @@ Batch-route **не заменяет** проверенный `staging_build_runt
 
 ## Scope
 
-Workflow автоматически строит scope из current machine state Issue #54 и canonical manifest текущего `main`.
+Workflow автоматически строит scope из current machine state Issue #54, durable deployment history и canonical manifest текущего `main`.
 
-В batch допускаются только lessons, которые одновременно:
+В initial batch допускаются только lessons, которые одновременно:
 
 - присутствуют в canonical manifest;
 - имеют `status=PENDING` в Issue #54;
 - не являются `READ_ONLY_GOLDEN`;
 - не имеют существующего deployment baseline, то есть подходят для initial staging route.
 
+Кроме них planner включает **recovery targets**: ordinary lessons текущего `source_main_sha`, для которых durable history содержит незавершённый deployment event. Это нужно, чтобы повторный batch автоматически завершал доказуемый state/history commit gap даже тогда, когда Issue #54 уже успел получить baseline и убрать lesson из PENDING.
+
 `M00-L01` и `M00-L02` никогда не входят в ordinary batch. Pending `course_page` также не входит: для него нужен отдельный route.
 
-Если PENDING lesson отсутствует в manifest или уже имеет baseline, planner возвращает blocker и batch не начинает write.
+Если PENDING lesson отсутствует в manifest, initial PENDING конфликтует с существующим baseline, найдено несколько incomplete events, incomplete history относится к другому source SHA или её scope нельзя доказать по machine state, planner возвращает blocker и batch не начинает write.
 
 ## Один owner dispatch, два автоматических этапа
 
 При `confirm_write=true` один ручной dispatch включает:
 
-1. **All-target preflight.** Каждый target проходит текущий live guard, commit-gap recovery check и `staging_build_runtime.py` без write. До завершения preflight всех targets Stepik content не изменяется.
-2. **Sequential write.** Только если весь preflight завершился успешно и batch scope не изменился, те же targets записываются по одному в canonical order.
+1. **All-target preflight.** Каждый initial/recovery target проходит текущий live guard и commit-gap recovery check; initial targets дополнительно проходят `staging_build_runtime.py` без write. До завершения preflight всех targets Stepik content не изменяется.
+2. **Sequential write/recovery.** Только если весь preflight завершился успешно и batch scope не изменился, те же targets обрабатываются по одному в canonical order. Для recovery target с доказанным final read-back новый Stepik write не выполняется.
 
-Перед write scope Issue #54 перечитывается. `source_main_sha` и точный ordered target list обязаны совпасть с initial scope.
+Перед write scope Issue #54 и durable history перечитываются. `source_main_sha` и точный ordered target list обязаны совпасть с initial scope.
 
 ## Commit после каждого lesson
 
@@ -40,7 +42,7 @@ Workflow автоматически строит scope из current machine stat
 - фиксирует asset events и lesson event как `MACHINE_STATE_COMMITTED` в durable deployment history;
 - добавляет append-only journal comment в Issue #54.
 
-Поэтому уже подтверждённый lesson не зависит от успешности всех последующих targets. При падении batch повторный запуск строит scope заново и продолжает только с оставшихся ordinary PENDING lessons.
+Поэтому уже подтверждённый lesson не зависит от успешности всех последующих targets. При падении batch повторный запуск строит scope заново: committed targets пропускаются, а доказуемые current-source commit gaps включаются в recovery scope. Неоднозначная или stale history останавливает batch, а не маскируется.
 
 ## Fail-closed правила
 
@@ -59,9 +61,9 @@ Batch сохраняет production invariants one-lesson route:
 
 ## Финальный machine gate
 
-После успешной записи workflow заново читает Issue #54 и требует, чтобы ordinary batch planner вернул `target_count=0`.
+После успешной записи workflow заново читает Issue #54 и durable history и требует, чтобы ordinary batch planner вернул `target_count=0`.
 
-Это означает только отсутствие remaining ordinary initial-staging PENDING lessons. Это **не** закрывает автоматически:
+Это означает отсутствие remaining ordinary initial-staging PENDING lessons и current-source incomplete ordinary deployment events. Это **не** закрывает автоматически:
 
 - `M00-L02` golden canonical/live divergence;
 - `course_page`;
@@ -79,4 +81,4 @@ Batch сохраняет production invariants one-lesson route:
 - `course_id`: `299189`
 - `confirm_write`: `true`
 
-Отдельный batch preflight с `confirm_write=false` остаётся доступен для диагностики, но для production write не обязателен: `confirm_write=true` всегда сначала выполняет полный all-target read-only preflight и только затем открывает последовательную запись.
+Отдельный batch preflight с `confirm_write=false` остаётся доступен для диагностики, но для production write не обязателен: `confirm_write=true` всегда сначала выполняет полный all-target read-only preflight и только затем открывает последовательную запись/recovery.
