@@ -18,7 +18,7 @@ else:
     from .canonical import build_structural_manifest
     from .deployment_history import DeploymentHistoryError, GitHubHistoryStore
     from .history_runtime import find_incomplete_object_events
-    from .stepik_uploader import source_sha
+    from .stepik_uploader.stepik_uploader import source_sha
     from .sync_state import load_state
 
 
@@ -114,32 +114,48 @@ def add_history_recovery_targets(
     for canonical_id in canonical_order:
         if canonical_id in golden_ids:
             continue
+
         incomplete = find_incomplete_object_events(store, object_id=canonical_id)
-        if len(incomplete) > 1:
-            blockers.append(f"{canonical_id}: найдено несколько incomplete lesson history events")
-            continue
-        if not incomplete:
+
+        # Initial targets are always re-checked by staging_build_runtime itself. It owns
+        # the strict rules for old/partial/incomplete history because that history may
+        # describe writes into the exact live lesson we are about to touch.
+        if canonical_id in initial_targets:
             continue
 
-        identity, _records, _summary = incomplete[0]
-        if identity.course_id != course_id or identity.kind != "lesson":
-            blockers.append(f"{canonical_id}: incomplete history имеет неожиданный course/kind")
-            continue
-        if identity.source_sha != source_main_sha:
+        # For already-closed, non-target lessons only a commit gap for *this exact
+        # source_main_sha* can belong to the current batch/retry. Historical incomplete
+        # events from older source SHAs are not silently adopted and do not expand the
+        # new write scope; later all-course verification remains responsible for drift.
+        current_incomplete = [
+            item
+            for item in incomplete
+            if item[0].source_sha == source_main_sha
+        ]
+        if len(current_incomplete) > 1:
             blockers.append(
-                f"{canonical_id}: incomplete history относится к source_sha={identity.source_sha}, "
-                f"а batch закреплён на {source_main_sha}"
+                f"{canonical_id}: найдено несколько current-source incomplete lesson history events"
             )
             continue
-        if canonical_id in initial_targets:
+        if not current_incomplete:
+            continue
+
+        identity, _records, _summary = current_incomplete[0]
+        if identity.course_id != course_id or identity.kind != "lesson":
+            blockers.append(f"{canonical_id}: incomplete history имеет неожиданный course/kind")
             continue
 
         pending_record = pending_lessons.get(canonical_id)
         has_pending = isinstance(pending_record, dict) and pending_record.get("status") == "PENDING"
         has_baseline = canonical_id in baselines
-        if not has_pending and not has_baseline:
+        if has_pending:
             blockers.append(
-                f"{canonical_id}: incomplete history существует без PENDING и без machine baseline; automatic recovery scope недоказуем"
+                f"{canonical_id}: current-source recovery event существует одновременно с PENDING outside initial scope"
+            )
+            continue
+        if not has_baseline:
+            blockers.append(
+                f"{canonical_id}: current-source incomplete history существует без machine baseline; automatic recovery scope недоказуем"
             )
             continue
         recovery_targets.append(canonical_id)
