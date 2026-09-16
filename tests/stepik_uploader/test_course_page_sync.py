@@ -7,8 +7,11 @@ from pathlib import Path
 from scripts.stepik_uploader.course_page_sync import (
     CoursePageSyncError,
     _same_page,
+    assert_preserved_course_state,
+    course_page_write_payload,
     desired_fingerprint,
     parse_course_page,
+    preserved_course_state,
 )
 
 
@@ -20,12 +23,21 @@ class CoursePageSyncTests(unittest.TestCase):
             "ИИ с нуля: не коллекция промптов, а инструмент для реальных дел",
         )
         self.assertEqual(payload["workload"], "1–2 часа в неделю.")
+        self.assertEqual(payload["difficulty"], "easy")
+        self.assertIsInstance(payload["acquired_skills"], list)
         self.assertIn("Формулировать реальные задачи для ИИ своими словами", payload["acquired_skills"])
         self.assertIn("После курса", payload["description"])
         self.assertIn("Техническая подготовка не требуется", payload["target_audience"])
         self.assertIn("Специальные знания не нужны", payload["requirements"])
         self.assertIn("практических действий", payload["course_format"])
         self.assertTrue(desired_fingerprint(payload).startswith("sha256:"))
+
+    def test_write_payload_preserves_stepik_acquired_skills_list_type(self) -> None:
+        desired = parse_course_page(Path("04_course/stepik/course-page.md"))
+        payload = course_page_write_payload(desired)
+        self.assertIsInstance(payload["acquired_skills"], list)
+        self.assertEqual(payload["difficulty"], "easy")
+        self.assertEqual(set(payload), set(desired))
 
     def test_missing_required_section_blocks(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -38,16 +50,40 @@ class CoursePageSyncTests(unittest.TestCase):
         desired = {
             "title": "Тест",
             "summary": "Коротко",
-            "acquired_skills": "Навык 1\nНавык 2",
+            "acquired_skills": ["Навык 1", "Навык 2"],
             "description": '<p><a href="https://example.com">Описание</a></p>',
             "target_audience": "<p>Для всех</p>",
             "requirements": "<p>Нет</p>",
             "course_format": "<p>Практика</p>",
             "workload": "1–2 часа в неделю",
+            "difficulty": "easy",
         }
         live = dict(desired)
         live["description"] = '<p><a target="_blank" rel="noopener" href="https://example.com">Описание</a></p>'
         self.assertTrue(_same_page(live, desired))
+
+    def test_preserved_metadata_detects_scope_escape(self) -> None:
+        before = {
+            "sections": [1, 2],
+            "owner": 7,
+            "authors": [7],
+            "instructors": [7],
+            "tags": [10, 11],
+            "language": "ru",
+            "is_public": False,
+            "is_paid": False,
+            "cover": "https://example.test/cover.png",
+        }
+        after = dict(before)
+        self.assertEqual(preserved_course_state(before), preserved_course_state(after))
+        assert_preserved_course_state(before, after)
+        after["sections"] = [1]
+        with self.assertRaises(CoursePageSyncError):
+            assert_preserved_course_state(before, after)
+
+    def test_required_preserved_metadata_must_be_exposed(self) -> None:
+        with self.assertRaises(CoursePageSyncError):
+            preserved_course_state({"language": "ru", "is_public": False, "is_paid": False})
 
 
 if __name__ == "__main__":
