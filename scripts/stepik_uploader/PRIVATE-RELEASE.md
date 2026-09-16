@@ -35,8 +35,11 @@ Course-page route:
 
 - разрешён только для private Russian course `299189`;
 - требует `is_paid=false`;
-- переносит только canonical content fields: title, summary, acquired skills, about/target/requirements/course format, workload и beginner difficulty;
-- `acquired_skills` передаётся Stepik как список строк;
+- переносит только owner-approved current promo fields: title, summary, `acquired_skills`, `acquired_assets`, about/target/requirements, `learning_format`, workload и beginner difficulty;
+- раздел `## 9. Как проходит обучение` маппится в актуальное поле Stepik `learning_format`;
+- раздел `## 10. Что вы получаете` маппится в `acquired_assets`;
+- `acquired_skills` и `acquired_assets` передаются Stepik как списки строк;
+- legacy-поле `course_format` не перезаписывается и входит в preserved metadata;
 - не меняет sections, owner, authors, instructors, tags/categories, language, publication state или paid state;
 - после PUT перечитывает course object и требует exact canonical read-back плюс неизменность preserved metadata;
 - Issue #54 закрывает `pending.course_page` только после final read-back;
