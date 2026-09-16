@@ -25,17 +25,23 @@ class CoursePageSyncTests(unittest.TestCase):
         self.assertEqual(payload["workload"], "1–2 часа в неделю.")
         self.assertEqual(payload["difficulty"], "easy")
         self.assertIsInstance(payload["acquired_skills"], list)
+        self.assertIsInstance(payload["acquired_assets"], list)
         self.assertIn("Формулировать реальные задачи для ИИ своими словами", payload["acquired_skills"])
+        self.assertIn("Практический навык работы с современным ИИ с нулевого уровня", payload["acquired_assets"])
         self.assertIn("После курса", payload["description"])
         self.assertIn("Техническая подготовка не требуется", payload["target_audience"])
         self.assertIn("Специальные знания не нужны", payload["requirements"])
-        self.assertIn("практических действий", payload["course_format"])
+        self.assertIn("практических действий", payload["learning_format"])
+        self.assertNotIn("course_format", payload)
         self.assertTrue(desired_fingerprint(payload).startswith("sha256:"))
 
-    def test_write_payload_preserves_stepik_acquired_skills_list_type(self) -> None:
+    def test_write_payload_preserves_stepik_list_types_and_current_promo_fields(self) -> None:
         desired = parse_course_page(Path("04_course/stepik/course-page.md"))
         payload = course_page_write_payload(desired)
         self.assertIsInstance(payload["acquired_skills"], list)
+        self.assertIsInstance(payload["acquired_assets"], list)
+        self.assertIn("learning_format", payload)
+        self.assertNotIn("course_format", payload)
         self.assertEqual(payload["difficulty"], "easy")
         self.assertEqual(set(payload), set(desired))
 
@@ -51,10 +57,11 @@ class CoursePageSyncTests(unittest.TestCase):
             "title": "Тест",
             "summary": "Коротко",
             "acquired_skills": ["Навык 1", "Навык 2"],
+            "acquired_assets": ["Результат 1", "Результат 2"],
             "description": '<p><a href="https://example.com">Описание</a></p>',
             "target_audience": "<p>Для всех</p>",
             "requirements": "<p>Нет</p>",
-            "course_format": "<p>Практика</p>",
+            "learning_format": "<p>Практика</p>",
             "workload": "1–2 часа в неделю",
             "difficulty": "easy",
         }
@@ -62,7 +69,7 @@ class CoursePageSyncTests(unittest.TestCase):
         live["description"] = '<p><a target="_blank" rel="noopener" href="https://example.com">Описание</a></p>'
         self.assertTrue(_same_page(live, desired))
 
-    def test_preserved_metadata_detects_scope_escape(self) -> None:
+    def test_preserved_metadata_detects_scope_escape_and_protects_legacy_course_format(self) -> None:
         before = {
             "sections": [1, 2],
             "owner": 7,
@@ -72,11 +79,29 @@ class CoursePageSyncTests(unittest.TestCase):
             "language": "ru",
             "is_public": False,
             "is_paid": False,
+            "course_format": "legacy Stepik field",
             "cover": "https://example.test/cover.png",
         }
         after = dict(before)
         self.assertEqual(preserved_course_state(before), preserved_course_state(after))
         assert_preserved_course_state(before, after)
+        after["course_format"] = "changed unexpectedly"
+        with self.assertRaises(CoursePageSyncError):
+            assert_preserved_course_state(before, after)
+
+    def test_preserved_metadata_detects_structure_escape(self) -> None:
+        before = {
+            "sections": [1, 2],
+            "owner": 7,
+            "authors": [7],
+            "instructors": [7],
+            "tags": [10, 11],
+            "language": "ru",
+            "is_public": False,
+            "is_paid": False,
+            "course_format": "legacy",
+        }
+        after = dict(before)
         after["sections"] = [1]
         with self.assertRaises(CoursePageSyncError):
             assert_preserved_course_state(before, after)
