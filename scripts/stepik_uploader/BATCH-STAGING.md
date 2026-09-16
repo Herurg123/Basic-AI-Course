@@ -21,7 +21,9 @@ Workflow автоматически строит scope из current machine stat
 
 `M00-L01` и `M00-L02` никогда не входят в ordinary batch. Pending `course_page` также не входит: для него нужен отдельный route.
 
-Если PENDING lesson отсутствует в manifest, initial PENDING конфликтует с существующим baseline, найдено несколько incomplete events, incomplete history относится к другому source SHA или её scope нельзя доказать по machine state, planner возвращает blocker и batch не начинает write.
+Для уже закрытого lesson исторический incomplete event от старого source SHA не расширяет новый batch scope. Если такой lesson снова становится actual PENDING target, строгий one-lesson preflight сам проверяет всю его incomplete history и останавливает write при stale/ambiguous event. Для нетаргетного lesson batch-recovery рассматривает только incomplete events **текущего** `source_main_sha`.
+
+Если PENDING lesson отсутствует в manifest, initial PENDING конфликтует с существующим baseline, current-source recovery history неоднозначна или её scope нельзя доказать по machine state, planner возвращает blocker и batch не начинает write.
 
 ## Один owner dispatch, два автоматических этапа
 
@@ -42,7 +44,7 @@ Workflow автоматически строит scope из current machine stat
 - фиксирует asset events и lesson event как `MACHINE_STATE_COMMITTED` в durable deployment history;
 - добавляет append-only journal comment в Issue #54.
 
-Поэтому уже подтверждённый lesson не зависит от успешности всех последующих targets. При падении batch повторный запуск строит scope заново: committed targets пропускаются, а доказуемые current-source commit gaps включаются в recovery scope. Неоднозначная или stale history останавливает batch, а не маскируется.
+Поэтому уже подтверждённый lesson не зависит от успешности всех последующих targets. При падении batch повторный запуск строит scope заново: committed targets пропускаются, а доказуемые current-source commit gaps включаются в recovery scope. Неоднозначное состояние actual target останавливает batch, а не маскируется.
 
 ## Fail-closed правила
 
