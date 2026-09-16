@@ -64,7 +64,7 @@ Golden profile подтверждает post-migration title state M00-L01/M00-L
 | 14 | Consent/data-minimization operational setup | **DOCUMENTED / NOT OPERATIONALLY INSTANTIATED** | approved participant info/consent, data-handling, privacy/safety-stop documents | **да** | До первой сессии подготовить session aliases/storage, разделение identity↔session evidence, consent-before-collection и deletion/retention operation. |
 | 15 | Moderator rehearsal | **NOT PERFORMED** | runbook/moderator guide существуют; фактического rehearsal evidence нет | **да** | Провести rehearsal без участника: тайминг, допустимые/запрещённые вмешательства, contamination logging, stop protocol, recovery transitions. |
 | 16 | Current service preflight | **BLOCKED / STALE FOR PILOT** | Service Acceptance 11.09.2026 — историческое evidence; PED-03 требует актуального live-account acceptance; сервисный слой динамический | **да** | Непосредственно перед Wave 0 перепроверить access/registration/free limits/files/search/image generation/edit для PRIMARY/BACKUP и зафиксировать SERVICE PASS/FAIL. |
-| 17 | Two eligible Wave 0 participants | **NOT AVAILABLE / NOT RECRUITED IN THIS STEP** | recruitment screener существует; рекрутинг на ШАГЕ 1 запрещён | **да** | После закрытия технических/операционных gates отобрать двух eligible novice participants по screener без запуска сессий раньше readiness PASS. |
+| 17 | Two eligible Wave 0 participants | **NOT VERIFIED / NOT RECRUITED IN THIS STEP** | recruitment screener существует; рекрутинг на ШАГЕ 1 запрещён | **да** | После закрытия технических/операционных gates отобрать двух eligible novice participants по screener без запуска сессий раньше readiness PASS. |
 
 ## 4. PED regression matrix для readiness
 
