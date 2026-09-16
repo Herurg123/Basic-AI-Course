@@ -152,7 +152,7 @@ class StagingBatchPlanTests(unittest.TestCase):
         self.assertEqual(plan["recovery_target_ids"], ["M01-L01"])
         self.assertTrue(plan["write_allowed"])
 
-    def test_stale_source_incomplete_history_blocks_batch(self):
+    def test_stale_history_for_closed_lesson_does_not_expand_new_batch_scope(self):
         store = MemoryHistoryStore()
         self.add_uncommitted_final_history(store, "M01-L01", source_sha="c" * 40)
         state = {
@@ -168,8 +168,28 @@ class StagingBatchPlanTests(unittest.TestCase):
             store=store,
             course_id=299189,
         )
-        self.assertFalse(plan["write_allowed"])
-        self.assertTrue(any("source_sha=" in blocker for blocker in plan["blockers"]))
+        self.assertEqual(plan["target_ids"], ["M01-L02"])
+        self.assertEqual(plan["recovery_target_ids"], [])
+        self.assertTrue(plan["write_allowed"])
+
+    def test_stale_history_for_initial_target_is_left_to_strict_one_lesson_preflight(self):
+        store = MemoryHistoryStore()
+        self.add_uncommitted_final_history(store, "M01-L02", source_sha="c" * 40)
+        state = {
+            "lessons": {},
+            "pending": self.pending("M01-L02"),
+        }
+        selected = select_targets(self.manifest(), state)
+        plan = add_history_recovery_targets(
+            selection=selected,
+            manifest=self.manifest(),
+            state=state,
+            source_main_sha=self.SOURCE_SHA,
+            store=store,
+            course_id=299189,
+        )
+        self.assertEqual(plan["target_ids"], ["M01-L02"])
+        self.assertTrue(plan["write_allowed"])
 
 
 if __name__ == "__main__":
