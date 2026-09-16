@@ -11,6 +11,7 @@ from scripts.stepik_uploader.deployment_history import DeploymentHistoryError, D
 from scripts.stepik_uploader.fingerprints import canonical_hash
 from scripts.stepik_uploader.golden_content_migration import (
     TARGET_ID,
+    _event_started_first,
     _fixture_fingerprint,
     _history_state,
     _next_profile,
@@ -119,6 +120,16 @@ class GoldenContentMigrationTests(unittest.TestCase):
         state, baseline = _history_state([], "sha256:" + "1" * 64, DESIRED)
         self.assertEqual(state, "NEW")
         self.assertIsNone(baseline)
+
+    def test_event_started_is_first_without_reordering_other_records(self) -> None:
+        records = [
+            {"phase": "WRITE_INTENT", "record_id": "a"},
+            {"phase": "EVENT_STARTED", "record_id": "z", "fingerprint_before": "old"},
+            {"phase": "OP_READBACK_CONFIRMED", "record_id": "b"},
+        ]
+        ordered = _event_started_first(records)
+        self.assertEqual(ordered[0]["phase"], "EVENT_STARTED")
+        self.assertEqual([record["record_id"] for record in ordered[1:]], ["a", "b"])
 
     def test_partial_history_requires_exact_last_confirmed_fingerprint(self) -> None:
         store = MemoryHistoryStore()
