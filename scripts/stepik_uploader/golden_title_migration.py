@@ -169,7 +169,12 @@ def _event_identity(operation: TitleOperation, *, sha: str):
     )
 
 
-def _history_summary(store: Any, operation: TitleOperation, *, sha: str) -> tuple[Any, list[dict[str, Any]], dict[str, Any] | None]:
+def _history_summary(
+    store: Any,
+    operation: TitleOperation,
+    *,
+    sha: str,
+) -> tuple[Any, list[dict[str, Any]], dict[str, Any] | None]:
     identity = _event_identity(operation, sha=sha)
     incomplete = find_incomplete_object_events(store, object_id=operation.object_id)
     foreign = [item[0].event_id for item in incomplete if item[0].event_id != identity.event_id]
@@ -292,12 +297,41 @@ def _next_profile(
 ) -> dict[str, Any]:
     proposed = deepcopy(profile)
     by_id = {operation.canonical_id: operation for operation in operations}
+    run_id_raw = os.getenv("GITHUB_RUN_ID")
+    run_id: int | str | None = (
+        int(run_id_raw) if isinstance(run_id_raw, str) and run_id_raw.isdigit() else run_id_raw
+    )
     for canonical_id in TARGET_IDS:
         proposed["golden_lessons"][canonical_id]["lesson_title"] = by_id[canonical_id].expected_title
-    run_id = os.getenv("GITHUB_RUN_ID")
-    proposed["observed_run_id"] = int(run_id) if isinstance(run_id, str) and run_id.isdigit() else run_id
+        proposed["golden_lessons"][canonical_id]["lesson_title_observed_run_id"] = run_id
+    proposed["observed_run_id"] = run_id
     proposed["observed_source_sha"] = sha
     return proposed
+
+
+def _history_counters(
+    store: Any | None,
+    operations: list[TitleOperation],
+    *,
+    sha: str | None,
+) -> dict[str, int]:
+    counters = {"write_dispatches_started": 0, "write_readbacks_confirmed": 0}
+    if store is None or not isinstance(sha, str):
+        return counters
+    for operation in operations:
+        try:
+            identity = _event_identity(operation, sha=sha)
+            records = store.load(identity.event_id)
+            if not records:
+                continue
+            identity_from_records(records, expected_event_id=identity.event_id)
+            summary = summarize_event(records)
+            counters["write_dispatches_started"] += int(summary.get("writes_started") or 0)
+            counters["write_readbacks_confirmed"] += int(summary.get("confirmed_operation_count") or 0)
+        except DeploymentHistoryError:
+            # Failure reporting must never disguise the original failure with a second exception.
+            continue
+    return counters
 
 
 def main() -> int:
@@ -313,7 +347,12 @@ def main() -> int:
         "creates_allowed": False,
         "deletes_allowed": False,
         "structural_writes_allowed": False,
+        "stepik_writes": 0,
     }
+    sha: str | None = None
+    store: Any | None = None
+    operations: list[TitleOperation] = []
+    results: list[dict[str, Any]] = []
     try:
         if args.course_id != COURSE_ID:
             raise GoldenTitleMigrationError(f"Golden title migration разрешён только для course_id={COURSE_ID}")
@@ -332,50 +371,61 @@ def main() -> int:
 
         store = _history_store(sha)
         before = _assess_snapshot(profile, snapshot, store, operations, sha=sha)
-        write_json(report_dir / "golden-title-plan.json", {
-            "targets": before,
-            "operations": [operation.as_dict() for operation in operations],
-            "stepik_writes_planned": sum(1 for item in before if item["stepik_write_required"]),
-            "create_allowed": False,
-            "delete_allowed": False,
-            "structural_writes_allowed": False,
-        })
+        planned_writes = sum(1 for item in before if item["stepik_write_required"])
+        write_json(
+            report_dir / "golden-title-plan.json",
+            {
+                "targets": before,
+                "operations": [operation.as_dict() for operation in operations],
+                "stepik_writes_planned": planned_writes,
+                "create_allowed": False,
+                "delete_allowed": False,
+                "structural_writes_allowed": False,
+            },
+        )
 
         if not args.confirm_write:
-            report.update({
-                "verdict": "READY",
-                "blockers": [],
-                "stepik_writes": 0,
-                "stepik_writes_planned": sum(1 for item in before if item["stepik_write_required"]),
-                "ready_for_write": True,
-                "golden_profile_update_required_after_write": True,
-                "targets": before,
-            })
+            report.update(
+                {
+                    "verdict": "READY",
+                    "blockers": [],
+                    "stepik_writes": 0,
+                    "stepik_writes_planned": planned_writes,
+                    "ready_for_write": True,
+                    "golden_profile_update_required_after_write": True,
+                    "targets": before,
+                }
+            )
             write_json(report_dir / "run-report.json", report)
             print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0
 
-        results: list[dict[str, Any]] = []
-        actual_writes = 0
         current_snapshot = snapshot
         for operation in operations:
             current_assessments = _assess_snapshot(profile, current_snapshot, store, operations, sha=sha)
             row = next(item for item in current_assessments if item["canonical_id"] == operation.canonical_id)
             identity = _event_identity(operation, sha=sha)
-            recorder = DeploymentRecorder(store, identity)
-            result = execute_title_only_operation(client, operation, recorder)
+            result = execute_title_only_operation(client, operation, DeploymentRecorder(store, identity))
             if result.get("action") == "UPDATE_TITLE":
-                actual_writes += 1
+                report["stepik_writes"] = int(report["stepik_writes"]) + 1
             results.append({"event_id": identity.event_id, **result})
+            write_json(report_dir / "migration-results.json", {"results": results})
 
             # Lesson PUT is treated as potentially replacement-like until a full course read-back proves otherwise.
             current_snapshot = client.inspect_course(args.course_id)
+            write_json(report_dir / "course-snapshot.progress.json", current_snapshot)
             after_one = _assess_snapshot(profile, current_snapshot, store, operations, sha=sha)
             after_row = next(item for item in after_one if item["canonical_id"] == operation.canonical_id)
             if after_row["current_title"] != operation.expected_title:
                 raise GoldenTitleMigrationError(f"{operation.canonical_id}: post-write full snapshot не подтвердил target title")
-            if row["state"] == "LEGACY_READY" and result.get("action") not in {"UPDATE_TITLE", "RECOVER_FINAL", "RECOVER_COMMIT"}:
-                raise GoldenTitleMigrationError(f"{operation.canonical_id}: неожиданный action для legacy migration: {result.get('action')}")
+            if row["state"] == "LEGACY_READY" and result.get("action") not in {
+                "UPDATE_TITLE",
+                "RECOVER_FINAL",
+                "RECOVER_COMMIT",
+            }:
+                raise GoldenTitleMigrationError(
+                    f"{operation.canonical_id}: неожиданный action для legacy migration: {result.get('action')}"
+                )
 
         final_snapshot = client.inspect_course(args.course_id)
         final_assessments = _assess_snapshot(profile, final_snapshot, store, operations, sha=sha)
@@ -385,23 +435,24 @@ def main() -> int:
         write_json(report_dir / "golden-profile.next.json", _next_profile(profile, operations, sha=sha))
         write_json(report_dir / "migration-results.json", {"results": results})
 
-        report.update({
-            "verdict": "PASS",
-            "blockers": [],
-            "stepik_writes": actual_writes,
-            "stepik_writes_planned": sum(1 for item in before if item["stepik_write_required"]),
-            "targets": final_assessments,
-            "results": results,
-            "golden_profile_update_required_after_write": True,
-            "ordinary_live_routes_expected_to_fail_closed_until_profile_update": True,
-            "human_visual_validation": "RETEST_REQUIRED",
-        })
+        report.update(
+            {
+                "verdict": "PASS",
+                "blockers": [],
+                "stepik_writes_planned": planned_writes,
+                "targets": final_assessments,
+                "results": results,
+                **_history_counters(store, operations, sha=sha),
+                "golden_profile_update_required_after_write": True,
+                "ordinary_live_routes_expected_to_fail_closed_until_profile_update": True,
+                "human_visual_validation": "RETEST_REQUIRED",
+            }
+        )
         write_json(report_dir / "run-report.json", report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     except (
         GoldenTitleMigrationError,
-        GoldenProfileError,
         GoldenProfileError,
         CanonicalBuildError,
         TitleHygieneError,
@@ -409,12 +460,16 @@ def main() -> int:
         StepikAPIError,
         RuntimeError,
     ) as exc:
-        report.update({
-            "verdict": "BLOCKED",
-            "blockers": [str(exc)],
-            "stepik_writes": report.get("stepik_writes", 0),
-            "ready_for_write": False,
-        })
+        report.update(
+            {
+                "verdict": "BLOCKED",
+                "blockers": [str(exc)],
+                "ready_for_write": False,
+                "results": results,
+                **_history_counters(store, operations, sha=sha),
+            }
+        )
+        write_json(report_dir / "migration-results.json", {"results": results})
         write_json(report_dir / "run-report.json", report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 2
