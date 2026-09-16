@@ -24,6 +24,34 @@ _history_state = legacy._history_state
 _next_profile = legacy._next_profile
 
 
+# The one-time writer predates a later recovery hardening and reads records[0]
+# when reopening a partial event. GitHub history directory order is stable but
+# is not a semantic phase order. Preserve the proven writer byte-for-byte and
+# harden only its store adapter: EVENT_STARTED is placed first while every other
+# record keeps the store's original relative order.
+_ORIGINAL_LEGACY_HISTORY_STORE = legacy._history_store
+
+
+def _event_started_first(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    started = [record for record in records if record.get("phase") == "EVENT_STARTED"]
+    rest = [record for record in records if record.get("phase") != "EVENT_STARTED"]
+    return [*started, *rest]
+
+
+def _legacy_history_store_started_first(sha: str) -> Any:
+    store = _ORIGINAL_LEGACY_HISTORY_STORE(sha)
+    raw_load = store.load
+
+    def load(event_id: str) -> list[dict[str, Any]]:
+        return _event_started_first(raw_load(event_id))
+
+    store.load = load
+    return store
+
+
+legacy._history_store = _legacy_history_store_started_first
+
+
 def _current_fixture_noop(args: Any, profile: dict[str, Any]) -> int:
     """Confirm an already accepted 8-step golden fixture without Stepik writes.
 
