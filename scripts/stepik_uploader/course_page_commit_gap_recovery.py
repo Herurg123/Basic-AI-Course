@@ -19,7 +19,7 @@ if __package__ in {None, ""}:
         _same_page,
         parse_course_page,
     )
-    from stepik_uploader.deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, summarize_event
+    from stepik_uploader.deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore
     from stepik_uploader.history_runtime import find_incomplete_object_events, identity_from_records
     from stepik_uploader.reporting import write_json
     from stepik_uploader.stepik_uploader import source_sha
@@ -27,10 +27,10 @@ if __package__ in {None, ""}:
 else:
     from .api import StepikAPIError, StepikClient
     from .course_page_sync import COURSE_ID, SOURCE_PATH, _baseline, _close_pending, _event_artifact, _same_page, parse_course_page
-    from .deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, summarize_event
+    from .deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore
     from .history_runtime import find_incomplete_object_events, identity_from_records
     from .reporting import write_json
-    from .stepik_uploader import source_sha
+    from .stepik_uploader.stepik_uploader import source_sha
     from .sync_state import SyncStateError, load_state
 
 
@@ -55,12 +55,17 @@ def _store(sha: str) -> GitHubHistoryStore:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Write-free recovery for Stepik course-page state/history commit gap")
+    parser = argparse.ArgumentParser(description="Write-free probe / confirmed finalization for Stepik course-page commit gap")
     parser.add_argument("--course-id", type=int, required=True)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--report-dir", type=Path, required=True)
     parser.add_argument("--sync-state", type=Path, required=True)
     parser.add_argument("--api-host", default="https://stepik.org")
+    parser.add_argument(
+        "--confirm-recovery",
+        action="store_true",
+        help="Разрешить только durable FINAL_READBACK_CONFIRMED recovery; Stepik writes всё равно запрещены.",
+    )
     return parser.parse_args()
 
 
@@ -74,8 +79,10 @@ def main() -> int:
         "mode": "course-page-commit-gap-recovery",
         "course_id": args.course_id,
         "source_main_sha": sha,
+        "confirm_recovery": bool(args.confirm_recovery),
         "applicable": False,
         "stepik_writes": 0,
+        "history_writes": 0,
     }
     try:
         if args.course_id != COURSE_ID:
@@ -124,7 +131,6 @@ def main() -> int:
                 return 0
             raise DeploymentHistoryError("course-page: write начинался, но live не равен exact canonical desired")
 
-        recorder = DeploymentRecorder(store, identity)
         final = next((record for record in records if record.get("phase") == "FINAL_READBACK_CONFIRMED"), None)
         if final is not None:
             baseline = final.get("actual_confirmed_state")
@@ -138,12 +144,29 @@ def main() -> int:
                 )
             baseline = _baseline(course, desired, sha=sha, status="APPLIED")
             status = "APPLIED"
-            recorder.final_readback(
-                fingerprint_after=identity.desired_fingerprint,
-                stepik_object_ids={"course_id": COURSE_ID},
-                status=status,
-                baseline_after=baseline,
-            )
+            if args.confirm_recovery:
+                recorder = DeploymentRecorder(store, identity)
+                recorder.final_readback(
+                    fingerprint_after=identity.desired_fingerprint,
+                    stepik_object_ids={"course_id": COURSE_ID},
+                    status=status,
+                    baseline_after=baseline,
+                )
+                report["history_writes"] = 1
+            else:
+                report.update(
+                    {
+                        "verdict": "READY",
+                        "applicable": True,
+                        "status": "RECOVERABLE_FINAL",
+                        "event_id": identity.event_id,
+                        "readback_verified": True,
+                        "requires_confirm_recovery": True,
+                    }
+                )
+                write_json(report_dir / "course-page-commit-gap-recovery.json", report)
+                print(json.dumps(report, ensure_ascii=False, indent=2))
+                return 0
 
         next_state = _close_pending(state, confirmed_at=str(baseline.get("applied_at")))
         write_json(report_dir / "sync-state.next.json", next_state)
@@ -156,6 +179,7 @@ def main() -> int:
                 f"- event: `{identity.event_id}`",
                 f"- status: `{status}`",
                 "- Stepik writes during recovery: `0`",
+                f"- durable history writes during this invocation: `{report['history_writes']}`",
                 "- live course page re-read: exact canonical desired",
                 "",
                 "Recovery только закрывает доказанный Issue/history commit gap; повторный course PUT не выполняется.",
