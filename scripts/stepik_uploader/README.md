@@ -10,20 +10,42 @@
 
 - `inspect` — READ-ONLY снимок реального курса и проверка двух golden lessons;
 - `dry-run` — offline structural manifest и план без Stepik writes;
-- `content-test-one` — ограниченный first-write route только для `M02-L01`; реальный write, read-back, визуальная проверка и повторный no-op уже успешно выполнены;
+- `content-test-one` — исторический ограниченный first-write route для `M02-L01`; реальный write, read-back, визуальная проверка и повторный no-op успешно выполнены;
+- `staging-build-one` — guarded initial-staging route для одного ordinary PENDING lesson: current-main/private/golden/PENDING guards, WAL/read-back, durable history, machine-state commit и visual materialization; production-путь доказан на нескольких ordinary lessons;
+- `staging-batch` — guarded one-dispatch orchestration поверх `staging-build-one`: сначала read-only preflight всего ordinary PENDING scope, затем при едином явном `confirm_write=true` последовательная запись и отдельный state/history commit каждого lesson; повторный запуск подхватывает доказуемые current-source commit gaps;
 - `sync-status` — drift-guarded read-only сравнение `desired ↔ live ↔ baseline`;
 - `sync-changed` — drift-guarded exploitation update при неизменной структуре, но текущая реализация **жёстко ограничена `M02-L01`**;
 - отдельный workflow `Stepik Bulk Status` — READ-ONLY full-course preflight всех 21 уроков и asset inventory.
 
-Не считать существующий `sync-changed` общим bulk-sync.
+Не считать существующий `sync-changed` общим bulk-sync. Не считать старые режимы `skeleton`, `assets-test`, `upload-remaining` и `verify` подтверждёнными production write routes: массовый initial staging разрешается только через guarded `Stepik Staging Batch Build`, который переиспользует проверенный one-lesson runtime и останавливается fail-closed при первом blocker/drift/ambiguity.
 
-Массовый first upload остальных skeleton lessons пока заблокирован. Режимы `skeleton`, `assets-test`, `upload-remaining` и `verify` не являются подтверждённым production write route. M00-L01/M00-L02 остаются `READ_ONLY_GOLDEN`.
+`M00-L01` и `M00-L02` остаются `READ_ONLY_GOLDEN` для ordinary staging. Текущая canonical-vs-live divergence `M00-L02` и pending `course_page` не входят в batch и требуют отдельных проверяемых reconciliation routes.
 
-После педагогического PR #59 текущий `main` изменился. Issue #54 содержит `PENDING` для затронутых уроков и course page, поэтому предыдущий live full-course status не является достаточным preflight для нового канона.
+После педагогического PR #59 Issue #54 хранит machine backlog относительно текущего канона. Успешный batch должен закрыть ordinary initial-staging PENDING scope, но сам по себе не является all-course human/readiness verdict.
+
+## Guarded ordinary staging
+
+`staging-build-one` является базовым production-контрактом ordinary initial staging. Для конкретного lesson он требует:
+
+- current `main` SHA;
+- private course и private target lesson;
+- exact canonical title/language/position;
+- confirmed golden profile без structural blockers;
+- текущий `PENDING` и отсутствие initial deployment baseline, либо доказуемый commit-gap recovery;
+- exact pristine skeleton для нового upload без recovery history;
+- verified materialization/binding физических learner-facing visual assets, если они нужны;
+- последовательные PUT/POST без blind write retry;
+- GET read-back каждой операции и финальный read-back;
+- PATCH machine state только после подтверждённого live state;
+- durable `MACHINE_STATE_COMMITTED` после machine-state commit.
+
+`Stepik Staging Batch Build` не создаёт второй writer. Он строит ordered scope из canonical manifest + Issue #54, исключает golden/course-page, прогоняет **все** targets в read-only режиме и только после успешного all-target preflight открывает последовательные one-lesson writes. Перед write повторно проверяются current `main` и exact batch scope. После каждого lesson state/history фиксируются независимо, поэтому уже подтверждённый lesson не зависит от судьбы следующего.
+
+Если batch падает, повторный запуск заново читает Issue #54 и durable history: committed targets не повторяются, доказуемые current-source commit gaps входят в recovery scope, а stale/ambiguous history блокирует дальнейшие writes. Детальный контракт: [`BATCH-STAGING.md`](BATCH-STAGING.md).
 
 ## Подтверждённый pilot M02-L01
 
-`M02-L01` выбран как обычный не-golden lesson, не отмеченный independence/F1-sensitive.
+`M02-L01` был выбран как обычный не-golden lesson, не отмеченный independence/F1-sensitive.
 
 Первый live write:
 
@@ -38,7 +60,7 @@
 
 После этого deployment baseline M02-L01 был bootstrap-записан в Issue #54. Отдельный `sync-status` подтвердил, что на той версии канона `desired == live == baseline`.
 
-Этот checkpoint доказывает технический контракт pilot route, но не разрешает автоматически распространять его на остальные уроки.
+Этот checkpoint доказал технический контракт pilot route; последующий guarded staging расширил его через отдельные fail-closed production guards, а batch только оркестрирует уже проверенный one-lesson runtime.
 
 ## Exploitation sync contract
 
@@ -116,7 +138,7 @@ STEPIC_CLIENT_SECRET
 
 Не передавать `client_secret`, access token, пароль, cookies или OAuth tokens через чат, issue, PR, workflow input или лог.
 
-Для read-only режимов `confirm_write` остаётся выключенным. Любой разрешённый write-route обязан требовать отдельное явное подтверждение.
+Для read-only режимов `confirm_write` остаётся выключенным. Любой разрешённый write-route обязан требовать отдельное явное подтверждение. В batch одно `confirm_write=true` подтверждает exact ordinary scope одного запуска; оно не распространяется на golden/course-page и не отключает all-target preflight или per-lesson guards.
 
 ## Идемпотентность и сетевые ошибки
 
@@ -125,22 +147,24 @@ STEPIC_CLIENT_SECRET
 - GET может повторяться только для временных `429/5xx`.
 - POST/PUT автоматически не повторяются.
 - Каждая запись получает отдельный read-back до следующей операции.
-- Повтор уже совпадающего состояния должен быть no-op.
+- Повтор уже совпадающего состояния должен быть no-op/recovery без нового blind write.
 - После неопределённого write response сначала читается live state; повторный write вслепую запрещён.
+- Batch прекращает переход к следующему target при первом недоказуемом состоянии.
 
 ## Stepik Files и assets
 
-По официальной справке Stepik файлы курса/урока управляются через настройки и learner получает файл по ссылке, вставленной в шаг. Подтверждённого стабильного production upload/list API для lesson/course files в текущем контуре нет.
+Physical assets публикуются только через явно утверждённые и проверяемые routes. Для learner-facing visual assets ordinary staging поддерживает transactional Stepik attachment materialization с отдельными source/materialized hashes, byte/read-back и machine provenance. Это не является разрешением на произвольный generic file upload для любых типов файлов.
 
-Поэтому для physical assets действует fail-closed подход:
+Для physical assets действует fail-closed подход:
 
 1. inventory фиксирует Asset ID, source Git path и SHA-256;
-2. automation определяет, должен asset быть встроен, показан отдельно или опубликован как файл;
-3. если нужен внешний/Stepik file URL, content write блокируется до фактически подтверждённого URL/version;
+2. automation определяет, должен asset быть встроен, показан отдельно или опубликован как файл/attachment;
+3. если нужен внешний/Stepik URL, content write блокируется до фактически подтверждённого URL/version;
 4. URL никогда не конструируется по догадке;
-5. изменение Git hash physical asset считается новым deployment requirement даже при прежней строке URL.
+5. изменение Git hash physical asset считается новым deployment requirement даже при прежней строке URL;
+6. untracked same-name attachment автоматически не усыновляется.
 
-Если API route не подтверждён, используется точный owner handoff для ручного UI-действия, после чего automation проверяет результат.
+Если требуемый route не подтверждён для конкретного asset type, automation останавливается fail-closed и выдаёт точный handoff вместо догадки.
 
 ## Особые педагогические блокировки
 
@@ -157,6 +181,6 @@ Compiler обязан сохранять `author_only`, `independence_sensitive`
 
 Автоматическое склеивание temporal boundaries недопустимо. M07-L02 требует отдельного F1 integrity pass.
 
-После PR #59 structural dry-run текущего `main` показывает 9 modules / 21 lessons / 150 logical steps и `unresolved_assets=[]`, но это только offline source check. Перед новым Stepik write нужен свежий live inspect/full-course bulk-status.
+Structural dry-run текущего канона показывает 9 modules / 21 lessons / 150 logical steps и `unresolved_assets=[]`, но это только offline source check. Guarded batch перед write выполняет свежий live preflight каждого target и current-main/golden guards.
 
-API success и точный read-back подтверждают техническую запись. Они не заменяют PHONE/COMPUTER staging check, live-service acceptance или Human Pilot и не делают `WAVE 0 READY`.
+API success и точный read-back подтверждают техническую запись. Они не заменяют PHONE/COMPUTER staging check, live-service acceptance, HUMAN VISUAL или Human Pilot и не делают `WAVE 0 READY`.
