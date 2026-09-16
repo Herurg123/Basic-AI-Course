@@ -6,15 +6,15 @@
     "language": "ru",
     "is_public": false
   },
-  "observed_run_id": 34806351525,
-  "observed_source_sha": "5e399454ec918c4e52a8a502b8e668051463b1e1",
+  "observed_run_id": 35086056899,
+  "observed_source_sha": "e31cef0c934a2a9223675c612acc279e9fb9e6b4",
   "golden_lessons": {
     "M00-L01": {
       "stepik_section_id": 755023,
       "stepik_unit_id": 2631074,
       "stepik_lesson_id": 2591708,
-      "lesson_title": "M00-L01 — Начните безопасный рабочий диалог",
-      "lesson_title_observed_run_id": 34927791555,
+      "lesson_title": "Начните безопасный рабочий диалог",
+      "lesson_title_observed_run_id": 35086056899,
       "section_position": 1,
       "unit_position": 1,
       "language": "ru",
@@ -37,16 +37,20 @@
         "563e9ccb8a52a7a4fd763d3e11947278a9a32779548ce6993fffae6807f58825",
         "3530ae6e9ba83768e7d9fcaa85b7a42d0f4ad8b7c5840d0c6cc5156434293b78"
       ],
-      "free_answer_positions": [5],
-      "inline_markdown_asset_ids": ["M00-L01-A01"],
+      "free_answer_positions": [
+        5
+      ],
+      "inline_markdown_asset_ids": [
+        "M00-L01-A01"
+      ],
       "stepik_file_assets": []
     },
     "M00-L02": {
       "stepik_section_id": 755023,
       "stepik_unit_id": 2631076,
       "stepik_lesson_id": 2591710,
-      "lesson_title": "M00-L02 — Подготовьте и передайте безопасный учебный материал",
-      "lesson_title_observed_run_id": 34927791555,
+      "lesson_title": "Подготовьте и передайте безопасный учебный материал",
+      "lesson_title_observed_run_id": 35086056899,
       "section_position": 1,
       "unit_position": 2,
       "language": "ru",
@@ -71,8 +75,12 @@
         "5a8dacee5c840118ad61a3f13528b5635e4047de4bbd61155f87a3746f4cb51e",
         "c55d1e4ff24ba004223df5900d70575a4822b633b6651776ae93996c52e5af95"
       ],
-      "free_answer_positions": [6],
-      "inline_markdown_asset_ids": ["M00-L02-A03"],
+      "free_answer_positions": [
+        6
+      ],
+      "inline_markdown_asset_ids": [
+        "M00-L02-A03"
+      ],
       "stepik_file_assets": [
         {
           "asset_id": "M00-L02-A01",
