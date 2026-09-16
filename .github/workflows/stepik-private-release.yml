@@ -122,22 +122,48 @@ jobs:
           import json
           state = json.load(open('artifacts/stepik-private-release/sync-state.initial.json', encoding='utf-8'))
           pending = state.get('pending', {})
-          golden = pending.get('lessons', {}).get('M00-L02')
-          if not isinstance(golden, dict) or golden.get('status') != 'PENDING':
-              raise SystemExit('Owner-approved release ожидает M00-L02=PENDING на initial run')
-          if pending.get('course_page') is None:
-              raise SystemExit('Owner-approved release ожидает course_page=PENDING на initial run')
+          golden_pending = pending.get('lessons', {}).get('M00-L02')
+          golden_baseline = state.get('lessons', {}).get('M00-L02')
+          if golden_pending is None and not isinstance(golden_baseline, dict):
+              raise SystemExit('M00-L02 должен быть либо PENDING, либо иметь confirmed machine baseline для recovery-safe rerun')
+          if golden_pending is not None and golden_pending.get('status') != 'PENDING':
+              raise SystemExit('M00-L02 pending state повреждён')
+          course_page = pending.get('course_page')
+          if course_page is not None and course_page.get('status') != 'PENDING':
+              raise SystemExit('course_page pending state повреждён')
           PY
 
       - name: Preflight course page без записи
         shell: bash
         run: |
           set -euo pipefail
-          python scripts/stepik_uploader/course_page_sync.py \
-            --repo-root . \
-            --report-dir artifacts/stepik-private-release/preflight/course-page \
-            --course-id "$COURSE_ID" \
-            --sync-state artifacts/stepik-private-release/sync-state.initial.json
+          base='artifacts/stepik-private-release'
+          dir="$base/preflight/course-page"
+          mkdir -p "$dir"
+          pending="$(python - <<'PY'
+          import json
+          state = json.load(open('artifacts/stepik-private-release/sync-state.initial.json', encoding='utf-8'))
+          print('true' if state.get('pending', {}).get('course_page') is not None else 'false')
+          PY
+          )"
+          if [[ "$pending" != "true" ]]; then
+            echo 'course_page already closed; preflight skip' > "$dir/already-closed.txt"
+            exit 0
+          fi
+          python scripts/stepik_uploader/course_page_commit_gap_recovery.py \
+            --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
+            --sync-state "$base/sync-state.initial.json"
+          applicable="$(python - "$dir/course-page-commit-gap-recovery.json" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding='utf-8'))
+          print('true' if data.get('applicable') is True else 'false')
+          PY
+          )"
+          if [[ "$applicable" != "true" ]]; then
+            python scripts/stepik_uploader/course_page_sync.py \
+              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
+              --sync-state "$base/sync-state.initial.json"
+          fi
 
       - name: Preflight owner-approved M00-L02 7→8 без записи
         shell: bash
@@ -278,7 +304,7 @@ jobs:
             echo "$target" >> "$base/write-committed.txt"
           done
 
-      - name: Синхронизировать course page
+      - name: Синхронизировать course page или закрыть доказанный commit-gap
         if: inputs.confirm_write == true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -292,9 +318,33 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.previous.md"
           python scripts/stepik_uploader/sync_issue_state.py extract \
             --body-file "$dir/sync-issue-body.previous.md" --output "$dir/sync-state.previous.json" --course-id "$COURSE_ID"
-          python scripts/stepik_uploader/course_page_sync.py \
+          pending="$(python - "$dir/sync-state.previous.json" <<'PY'
+          import json, sys
+          state = json.load(open(sys.argv[1], encoding='utf-8'))
+          print('true' if state.get('pending', {}).get('course_page') is not None else 'false')
+          PY
+          )"
+          if [[ "$pending" != "true" ]]; then
+            echo 'course_page already closed; write skip' > "$dir/already-closed.txt"
+            exit 0
+          fi
+          python scripts/stepik_uploader/course_page_commit_gap_recovery.py \
             --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-            --sync-state "$dir/sync-state.previous.json" --confirm-write
+            --sync-state "$dir/sync-state.previous.json" --confirm-recovery
+          applicable="$(python - "$dir/course-page-commit-gap-recovery.json" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding='utf-8'))
+          print('true' if data.get('applicable') is True else 'false')
+          PY
+          )"
+          if [[ "$applicable" != "true" ]]; then
+            python scripts/stepik_uploader/course_page_sync.py \
+              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
+              --sync-state "$dir/sync-state.previous.json" --confirm-write
+          fi
+          for required in sync-state.next.json course-page-deployment-event.json sync-journal.md; do
+            test -f "$dir/$required" || { echo "course_page missing $required" >&2; exit 2; }
+          done
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.current.md"
           python scripts/stepik_uploader/sync_issue_state.py extract \
             --body-file "$dir/sync-issue-body.current.md" --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
@@ -324,6 +374,9 @@ jobs:
           python scripts/stepik_uploader/golden_content_migration.py \
             --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
             --sync-state "$dir/sync-state.previous.json" --confirm-write
+          for required in sync-state.next.json golden-deployment-event.json sync-journal.md golden-profile.next.json; do
+            test -f "$dir/$required" || { echo "M00-L02 missing $required" >&2; exit 2; }
+          done
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.current.md"
           python scripts/stepik_uploader/sync_issue_state.py extract \
             --body-file "$dir/sync-issue-body.current.md" --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
@@ -386,8 +439,10 @@ jobs:
             if [[ -f "$base/write-committed.txt" ]]; then
               echo "- ordinary committed: $(paste -sd ', ' "$base/write-committed.txt")"
             fi
-            if [[ -f "$base/write/course-page/run-report.json" ]]; then
-              echo '- course page: processed with verified read-back'
+            if [[ -f "$base/write/course-page/already-closed.txt" ]]; then
+              echo '- course page: already closed before this run'
+            elif [[ -f "$base/write/course-page/course-page-deployment-event.json" ]]; then
+              echo '- course page: verified and machine state committed'
             fi
             if [[ -f "$base/write/M00-L02/golden-profile.next.json" ]]; then
               echo '- M00-L02: 8-step migration evidence produced; follow-up fixture PR required before ordinary golden validation resumes'
