@@ -10,21 +10,25 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.uploader = (self.repo_root / ".github/workflows/stepik-uploader.yml").read_text(encoding="utf-8")
         self.bulk = (self.repo_root / ".github/workflows/stepik-bulk-status.yml").read_text(encoding="utf-8")
         self.hygiene = (self.repo_root / ".github/workflows/stepik-learner-hygiene.yml").read_text(encoding="utf-8")
+        self.staging = (self.repo_root / ".github/workflows/stepik-staging-build.yml").read_text(encoding="utf-8")
 
     def test_all_live_workflows_use_same_course_mutex(self) -> None:
         shared = "group: stepik-live-course-299189"
         self.assertEqual(self.uploader.count(shared), 1)
         self.assertEqual(self.bulk.count(shared), 1)
         self.assertEqual(self.hygiene.count(shared), 1)
+        self.assertEqual(self.staging.count(shared), 1)
         self.assertIn("cancel-in-progress: false", self.uploader)
         self.assertIn("cancel-in-progress: false", self.bulk)
         self.assertIn("cancel-in-progress: false", self.hygiene)
+        self.assertIn("cancel-in-progress: false", self.staging)
 
     def test_mutex_is_not_derived_from_user_supplied_course_id(self) -> None:
         unsafe = "group: stepik-live-course-${{ inputs.course_id }}"
         self.assertNotIn(unsafe, self.uploader)
         self.assertNotIn(unsafe, self.bulk)
         self.assertNotIn(unsafe, self.hygiene)
+        self.assertNotIn(unsafe, self.staging)
 
     def test_old_independent_live_concurrency_groups_are_removed(self) -> None:
         self.assertNotIn("stepik-uploader-${{ github.event_name }}-${{ github.ref }}", self.uploader)
@@ -36,14 +40,20 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.assertEqual(self.uploader.count(command), 1)
         self.assertEqual(self.bulk.count(command), 1)
         self.assertEqual(self.hygiene.count(command), 1)
+        self.assertEqual(self.staging.count(command), 1)
         self.assertIn("GITHUB_TOKEN: ${{ github.token }}", self.uploader)
         self.assertIn("GITHUB_TOKEN: ${{ github.token }}", self.bulk)
         self.assertIn("GITHUB_TOKEN: ${{ github.token }}", self.hygiene)
+        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", self.staging)
         live_index = self.hygiene.index("  live:\n")
         live_block = self.hygiene[live_index:]
         self.assertLess(
             live_block.index("python scripts/stepik_uploader/live_guard.py"),
             live_block.index("python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py"),
+        )
+        self.assertLess(
+            self.staging.index("python scripts/stepik_uploader/live_guard.py"),
+            self.staging.index("python scripts/stepik_uploader/staging_build_runtime.py"),
         )
 
     def test_bulk_offline_tests_are_not_inside_live_mutex_job(self) -> None:
@@ -141,6 +151,26 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.assertLess(runtime_index, state_index)
         self.assertLess(state_index, history_index)
         self.assertNotIn("continue-on-error: true", live_block)
+
+    def test_staging_build_is_manual_private_course_only_and_confirmed(self) -> None:
+        self.assertIn("workflow_dispatch:", self.staging)
+        self.assertIn("target_id:", self.staging)
+        self.assertIn("confirm_write:", self.staging)
+        self.assertIn("default: false", self.staging)
+        self.assertIn('"$COURSE_ID" != "299189"', self.staging)
+        self.assertIn('if [[ "$CONFIRM_WRITE" == "true" ]]; then', self.staging)
+        self.assertIn("args+=(--confirm-write)", self.staging)
+        self.assertIn("python scripts/stepik_uploader/staging_build_runtime.py", self.staging)
+
+    def test_staging_build_machine_state_patch_precedes_history_commit(self) -> None:
+        runtime_index = self.staging.index("python scripts/stepik_uploader/staging_build_runtime.py")
+        patch_index = self.staging.index("sync_issue_state.py compare")
+        history_index = self.staging.index("history_cli.py mark-state-committed")
+        self.assertLess(runtime_index, patch_index)
+        self.assertLess(patch_index, history_index)
+        self.assertIn("sync-state.previous.json", self.staging)
+        self.assertIn("sync-state.next.json", self.staging)
+        self.assertNotIn("continue-on-error: true", self.staging)
 
 
 if __name__ == "__main__":
