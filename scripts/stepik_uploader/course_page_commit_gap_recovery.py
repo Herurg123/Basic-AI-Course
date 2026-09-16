@@ -13,21 +13,35 @@ if __package__ in {None, ""}:
     from stepik_uploader.course_page_sync import (
         COURSE_ID,
         SOURCE_PATH,
+        _assert_course_safety,
         _baseline,
         _close_pending,
         _event_artifact,
         _same_page,
         parse_course_page,
+        preserved_course_state,
     )
     from stepik_uploader.deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore
+    from stepik_uploader.fingerprints import canonical_hash
     from stepik_uploader.history_runtime import find_incomplete_object_events, identity_from_records
     from stepik_uploader.reporting import write_json
     from stepik_uploader.stepik_uploader import source_sha
     from stepik_uploader.sync_state import SyncStateError, load_state
 else:
     from .api import StepikAPIError, StepikClient
-    from .course_page_sync import COURSE_ID, SOURCE_PATH, _baseline, _close_pending, _event_artifact, _same_page, parse_course_page
+    from .course_page_sync import (
+        COURSE_ID,
+        SOURCE_PATH,
+        _assert_course_safety,
+        _baseline,
+        _close_pending,
+        _event_artifact,
+        _same_page,
+        parse_course_page,
+        preserved_course_state,
+    )
     from .deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore
+    from .fingerprints import canonical_hash
     from .history_runtime import find_incomplete_object_events, identity_from_records
     from .reporting import write_json
     from .stepik_uploader import source_sha
@@ -122,8 +136,16 @@ def main() -> int:
         client_id, client_secret = _credentials()
         client = StepikClient(client_id, client_secret, api_host=args.api_host)
         course = client.fetch_one("courses", COURSE_ID)
-        if course.get("is_public") is not False or course.get("language") != "ru":
-            raise CoursePageRecoveryError("course-page recovery требует private ru course")
+        _assert_course_safety(course)
+        current_preserved_fp = canonical_hash(preserved_course_state(course))
+        started = records[0] if records else {}
+        state_before = started.get("state_before") if isinstance(started, dict) else None
+        expected_preserved_fp = state_before.get("preserved_fingerprint") if isinstance(state_before, dict) else None
+        if not isinstance(expected_preserved_fp, str):
+            raise DeploymentHistoryError("course-page: EVENT_STARTED не содержит preserved_fingerprint")
+        if current_preserved_fp != expected_preserved_fp:
+            raise DeploymentHistoryError("course-page: preserved metadata drifted относительно pre-write state")
+
         if not _same_page(course, desired):
             if not summary.get("writes_started"):
                 report.update({"verdict": "NOOP", "reason": "prewrite-event-live-still-old"})
@@ -137,6 +159,8 @@ def main() -> int:
             status = str(final.get("status"))
             if not isinstance(baseline, dict) or status not in {"APPLIED", "NOOP_CONFIRMED"}:
                 raise DeploymentHistoryError("course-page: final history повреждён")
+            if baseline.get("preserved_fingerprint") != current_preserved_fp:
+                raise DeploymentHistoryError("course-page: final baseline preserved fingerprint не совпадает с live")
         else:
             if int(summary.get("writes_started") or 0) != 1 or int(summary.get("confirmed_operation_count") or 0) != 1:
                 raise DeploymentHistoryError(
@@ -181,6 +205,7 @@ def main() -> int:
                 "- Stepik writes during recovery: `0`",
                 f"- durable history writes during this invocation: `{report['history_writes']}`",
                 "- live course page re-read: exact canonical desired",
+                "- preserved metadata fingerprint: exact pre-write match",
                 "",
                 "Recovery только закрывает доказанный Issue/history commit gap; повторный course PUT не выполняется.",
             ]) + "\n",
