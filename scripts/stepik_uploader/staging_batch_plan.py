@@ -101,7 +101,7 @@ def add_history_recovery_targets(
     manifest: dict[str, Any],
     state: dict[str, Any],
     source_main_sha: str,
-    store: GitHubHistoryStore,
+    store: Any,
     course_id: int,
 ) -> dict[str, Any]:
     canonical_order, golden_ids = _manifest_index(manifest)
@@ -144,10 +144,11 @@ def add_history_recovery_targets(
             continue
         recovery_targets.append(canonical_id)
 
+    recovery_set = set(recovery_targets)
     total_targets = [
         canonical_id
         for canonical_id in canonical_order
-        if canonical_id in initial_targets or canonical_id in set(recovery_targets)
+        if canonical_id in initial_targets or canonical_id in recovery_set
     ]
     result = dict(selection)
     result["recovery_target_ids"] = recovery_targets
