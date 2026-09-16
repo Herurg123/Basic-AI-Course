@@ -132,17 +132,20 @@ def main() -> int:
         if summary.get("ambiguous") or summary.get("readback_failed") or summary.get("known_failed_writes"):
             raise DeploymentHistoryError("course-page: unsafe prior write history запрещает automatic recovery")
 
+        started = next((record for record in records if record.get("phase") == "EVENT_STARTED"), None)
+        if not isinstance(started, dict):
+            raise DeploymentHistoryError("course-page: incomplete history не содержит EVENT_STARTED")
+        state_before = started.get("state_before")
+        expected_preserved_fp = state_before.get("preserved_fingerprint") if isinstance(state_before, dict) else None
+        if not isinstance(expected_preserved_fp, str):
+            raise DeploymentHistoryError("course-page: EVENT_STARTED не содержит preserved_fingerprint")
+
         desired = parse_course_page(repo_root / SOURCE_PATH)
         client_id, client_secret = _credentials()
         client = StepikClient(client_id, client_secret, api_host=args.api_host)
         course = client.fetch_one("courses", COURSE_ID)
         _assert_course_safety(course)
         current_preserved_fp = canonical_hash(preserved_course_state(course))
-        started = records[0] if records else {}
-        state_before = started.get("state_before") if isinstance(started, dict) else None
-        expected_preserved_fp = state_before.get("preserved_fingerprint") if isinstance(state_before, dict) else None
-        if not isinstance(expected_preserved_fp, str):
-            raise DeploymentHistoryError("course-page: EVENT_STARTED не содержит preserved_fingerprint")
         if current_preserved_fp != expected_preserved_fp:
             raise DeploymentHistoryError("course-page: preserved metadata drifted относительно pre-write state")
 
