@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from scripts.stepik_uploader.deployment_history import DeploymentRecorder, MemoryHistoryStore, event_identity_from_environment
+from scripts.stepik_uploader.fingerprints import canonical_hash
 from scripts.stepik_uploader.visual_materialization import (
     materialize_visual,
     prepare_visual_file,
@@ -144,6 +145,54 @@ class VisualMaterializationTests(unittest.TestCase):
             )
             self.assertEqual(binding.source_sha256, source_sha)
             self.assertTrue(binding.url.startswith("https://stepik.org/"))
+
+    def test_prewrite_started_event_can_resume_without_duplicate_event_start(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "asset.png"
+            source.write_bytes(PNG_1X1)
+            from scripts.stepik_uploader.attachment_materialization import file_sha256
+
+            source_sha = file_sha256(source)
+            material_file, materialized_sha, materialization_fp = prepare_visual_file(
+                source_file=source,
+                source_path="05_assets/X/asset.png",
+                expected_source_sha256=source_sha,
+                mode="stepik-image-upload",
+                work_dir=root / "prepared",
+            )
+            recorder = recorder_for(desired_fingerprint=materialization_fp, object_id="asset:prewrite")
+            recorder.ensure_started(
+                operation_type="visual-materialization",
+                state_before={"attachment_ids": []},
+                expected_state={
+                    "source_path": "05_assets/X/asset.png",
+                    "source_sha256": source_sha,
+                    "materialization_mode": "stepik-image-upload",
+                    "materialized_sha256": materialized_sha,
+                    "stepik_lesson_id": 789,
+                    "filename": material_file.name,
+                },
+                stepik_object_ids={"lesson_id": 789},
+                fingerprint_before=canonical_hash([]),
+            )
+            client = FakeVisualClient()
+            record, status = materialize_visual(
+                client,
+                recorder=recorder,
+                source_file=source,
+                source_path="05_assets/X/asset.png",
+                expected_source_sha256=source_sha,
+                mode="stepik-image-upload",
+                stepik_lesson_id=789,
+                work_dir=root / "materialized",
+            )
+            self.assertEqual(status, "APPLIED")
+            self.assertEqual(record["stepik_lesson_id"], 789)
+            phases = [item.get("phase") for item in recorder.records(refresh=True)]
+            self.assertEqual(phases.count("EVENT_STARTED"), 1)
+            self.assertIn("WRITE_DISPATCH_STARTED", phases)
+            self.assertIn("FINAL_READBACK_CONFIRMED", phases)
 
     def test_svg_record_keeps_source_and_materialized_hashes_separate(self):
         with tempfile.TemporaryDirectory() as tmp:
