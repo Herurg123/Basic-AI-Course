@@ -115,13 +115,14 @@ class LearnerHygienePreflightTests(unittest.TestCase):
         source = Path("scripts/stepik_uploader/learner_hygiene_preflight.py").read_text(encoding="utf-8")
         self.assertNotIn("execute_title_only_operation(", source)
         self.assertNotIn("execute_tracked_learner_hygiene(", source)
+        self.assertNotIn("execute_normalization_recovery(", source)
         self.assertNotIn("update_step_source(", source)
         self.assertNotIn("_request_write(", source)
 
     def test_workflow_separates_preflight_from_mutating_followup_steps(self) -> None:
         workflow = Path(".github/workflows/stepik-learner-hygiene.yml").read_text(encoding="utf-8")
         self.assertIn("learner_hygiene_preflight.py", workflow)
-        self.assertIn("learner_hygiene_entrypoint.py", workflow)
+        self.assertIn("learner_hygiene_recovery_entrypoint.py", workflow)
         self.assertIn('if [[ "${CONFIRM_WRITE:-false}" == "true" ]]', workflow)
         self.assertGreaterEqual(workflow.count("success() && inputs.confirm_write == true"), 3)
 
