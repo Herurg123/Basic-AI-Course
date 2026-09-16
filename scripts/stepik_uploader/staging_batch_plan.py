@@ -216,7 +216,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--include-history-recovery",
         action="store_true",
-        help="Include current-source lessons with incomplete durable history so batch reruns heal commit gaps.",
+        default=os.getenv("GITHUB_ACTIONS", "").lower() == "true",
+        help="Include current-source lessons with incomplete durable history so batch reruns heal commit gaps. Enabled by default in GitHub Actions.",
     )
     return parser.parse_args()
 
