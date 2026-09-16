@@ -40,6 +40,8 @@ Course-page route:
 - раздел `## 10. Что вы получаете` маппится в `acquired_assets`;
 - `acquired_skills` и `acquired_assets` передаются Stepik как списки строк;
 - legacy-поле `course_format` не перезаписывается и входит в preserved metadata;
+- PUT считается full-object replacement: payload строится как exact raw GET copy и меняет только owner-approved current promo fields;
+- все прочие поля raw GET сохраняются в отправляемом payload, а критические structure/ownership/publication поля дополнительно проверяются после read-back;
 - не меняет sections, owner, authors, instructors, tags/categories, language, publication state или paid state;
 - после PUT перечитывает course object и требует exact canonical read-back плюс неизменность preserved metadata;
 - Issue #54 закрывает `pending.course_page` только после final read-back;
