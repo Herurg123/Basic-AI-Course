@@ -70,6 +70,8 @@ DELETE, произвольный reorder, запись другого golden les
 
 После успешного owner run `golden-profile.next.json` должен быть принят отдельным обычным PR через branch → CI → critic → merge. Для этого дополнительный Stepik write или owner dispatch не нужен.
 
+После принятия 8-step fixture этот же entrypoint остаётся штатным: он больше не пытается повторять 7→8 migration, а требует exact совпадение canonical = accepted fixture = live = machine baseline. При `confirm_write=true` такой повтор фиксируется как `NOOP_CONFIRMED` с нулём Stepik writes; при read-only preflight история не меняется.
+
 ## Recovery semantics
 
 Повтор того же workflow после частичного сбоя является штатным recovery route:
@@ -78,7 +80,8 @@ DELETE, произвольный reorder, запись другого golden les
 - ordinary commit-gap восстанавливается существующим `staging_commit_gap_recovery.py`;
 - уже закрытый course page пропускается;
 - доказанный course-page commit-gap закрывается без повторного PUT;
-- M00-L02 продолжает только из durable confirmed intermediate state или final history;
+- пока в `main` остаётся старый 7-step fixture, M00-L02 продолжает только из durable confirmed intermediate state или final history;
+- после принятия 8-step fixture M00-L02 работает только как доказанный current-fixture no-op и не выполняет Stepik mutation;
 - ambiguous / unknown dispatch state всегда останавливает workflow и требует отдельного разбора.
 
 ## Что этот workflow НЕ доказывает
