@@ -1,14 +1,16 @@
 # Operational Human Pilot Package
 
-**Статус:** `APPROVED / MERGED` через PR #35. Пакет является каноническим operational-слоем утверждённой Human Pilot Architecture v1.0.
+**Статус:** `APPROVED / MERGED` через PR #35. Пакет является каноническим operational-слоем Human Pilot Architecture v1.1, которая наследует неизменённые правила полного базового текста v1.0.
 
-**Wave 0 readiness:** `NOT READY / NOT YET VERIFIED` до фактического закрытия staging, moderator rehearsal, consent/data setup, recovery readiness и service preflight.
+**Wave 0 readiness:** `NOT READY / BLOCKED FOR FIRST HUMAN SESSION` по current baseline [`../readiness/wave0-readiness-2026-09-16.md`](../readiness/wave0-readiness-2026-09-16.md).
 
 **Human validation:** `NOT PERFORMED`.
 
 ## Назначение
 
 Пакет превращает архитектуру human pilot в воспроизводимые формы и инструкции для Wave 0, Wave 1, fixes/retest и Wave 2. Он не меняет PASS/FAIL, independence, contamination, F1 или evidence contracts архитектуры.
+
+Point update Architecture v1.1 дополнительно требует сохранять PED-01…PED-07 как regression/readiness gates и различать `SOURCE PASS`, `MACHINE PASS`, `HUMAN VISUAL PASS`, `SERVICE PASS` и `HUMAN VALIDATION PASS`. Эти статусы не подменяют друг друга.
 
 ## Состав
 
@@ -18,8 +20,8 @@
 - [`data-handling.md`](data-handling.md) — минимизация, редактирование и хранение данных.
 
 ### Подготовка среды
-- [`stepik-staging-checklist.md`](stepik-staging-checklist.md) — проверка private Stepik staging.
-- [`service-preflight-checklist.md`](service-preflight-checklist.md) — краткий preflight PRIMARY/BACKUP и обязательных функций.
+- [`stepik-staging-checklist.md`](stepik-staging-checklist.md) — проверка private Stepik staging, current-main equivalence и publication regression gates.
+- [`service-preflight-checklist.md`](service-preflight-checklist.md) — краткий preflight PRIMARY/BACKUP и обязательных функций, включая PED-03 live generation + real edit.
 - [`recovery-readiness.md`](recovery-readiness.md) — author-only реестр готовых recovery и правило запрета импровизированного зачётного re-check.
 
 ### Проведение
@@ -50,21 +52,27 @@
 5. B3 — действие до transfer; B8 — реальный edit; B10 — реально открытое основание; B12/F1 — фактическое применение.
 6. F1 не собирается модератором. Content hint во время F1 требует другой новой реальной задачи.
 7. Human evidence хранится минимально и псевдонимно; чувствительный контент не коммитится в GitHub.
-8. Content-only pilot без Stepik staging не может получить полный Human Pilot PASS.
+8. Content-only pilot без доказанного актуального private Stepik staging не может получить полный Human Pilot PASS.
 9. Dropout/stop не удаляется из данных и не переклассифицируется как «не участвовал» после старта.
 10. Компенсация/благодарность участнику, если она используется, не зависит от completion или PASS.
 11. Составные B10 и C2 не получают PASS по одной поздней строке: требуется весь набор evidence из Coverage Matrix.
+12. Source/tooling/read-back одной поверхности не закрывает real-world, publication, service или human gate другой поверхности.
 
 ## Перед Wave 0
 
-PR #35 прошёл отдельный adversarial critic после исправления двух найденных operational gaps и смёржен в `main`. Следовательно, package production завершён.
+PR #35 доказал готовность самого operational package, но не фактической среды Wave 0.
 
 До первого human session всё равно должны быть **фактически** готовы и проверены:
 
-- private Stepik staging;
+- private Stepik staging, доказанно соответствующий выбранному актуальному `main` SHA;
+- physical assets/materialization и publication checks;
+- PED-01 desktop + phone route;
+- PED-03 live generation + real edit на актуальных бесплатных PRIMARY/BACKUP;
+- PED-06/PED-07 фактические publication/UI checks;
+- author-only/recovery visibility и independence regression;
 - consent/data-minimization в реальной организационной среде;
 - moderator rehearsal;
-- recovery readiness;
-- актуальный service preflight.
+- актуальный service preflight;
+- два eligible Wave 0 participants после закрытия технических/операционных gates.
 
 Пока эти пункты не закрыты evidence, Wave 0 не получает `READY`, а human validation остаётся `NOT PERFORMED`.

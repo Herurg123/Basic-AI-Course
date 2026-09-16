@@ -31,6 +31,8 @@ If participants stopped, show started/completed/not-reached counts. Do not erase
 
 ## 3. Architecture §17.2 gate checklist
 
+Нумерация условий наследуется из полного текста Human Pilot Architecture v1.0; текущая нормативная точка входа — v1.1 + наследуемый v1.0.
+
 ### Condition 1 — Wave 1
 - 6 fresh screened novices completed planned full-course evidence: `YES / NO`
 - Evidence:
@@ -180,7 +182,7 @@ List every open issue ID. If any CRITICAL/BLOCKING is open, final verdict cannot
 
 Use wording:
 
-> Human Pilot на реальных screened novice users завершён по Human Pilot Architecture v1.0. На принятой версии обязательный minimum evidence закрыт, нерешённых CRITICAL/BLOCKING findings нет, минимум три fresh participant дали clean F1 PASS с фактическим применением. Статус: `PASS / HUMAN PILOT VALIDATED`.
+> Human Pilot на реальных screened novice users завершён по Human Pilot Architecture v1.1 с наследуемым полным контрактом v1.0. На принятой версии обязательный minimum evidence закрыт, PED-01…PED-07 regression gates соблюдены, нерешённых CRITICAL/BLOCKING findings нет, минимум три fresh participant дали clean F1 PASS с фактическим применением. Статус: `PASS / HUMAN PILOT VALIDATED`.
 
 Then state explicitly:
 

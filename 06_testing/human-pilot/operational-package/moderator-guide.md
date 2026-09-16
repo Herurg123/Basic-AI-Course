@@ -12,14 +12,14 @@
 
 Модератор обязан:
 
-- прочитать Human Pilot Architecture v1.0;
+- прочитать текущую Human Pilot Architecture v1.1 **вместе с наследуемым полным текстом v1.0** и PED-01…PED-07 regression contract;
 - знать distinction `N / P / T / C / S`;
 - пройти rehearsal на примерах ниже;
 - знать, какие материалы learner-facing, а какие author-only;
 - проверить, что author-only rubric/recovery не видны участнику раньше времени;
 - иметь пустые observer/intervention/timing/evidence forms;
 - убедиться, что consent оформлен;
-- убедиться, что service preflight и Stepik staging readiness закрыты.
+- убедиться, что service preflight и Stepik staging readiness закрыты фактическим evidence.
 
 ## 3. Taxonomy вмешательств
 
@@ -119,7 +119,8 @@ Safety выше чистоты эксперимента. После stop фик�
 - начать timing;
 - зафиксировать все P/T/C/S вмешательства;
 - не раскрывать rubric до того момента, который разрешён production sequence;
-- если content contamination произошла, сразу пометить attempt и не «дотягивать» её до PASS.
+- если content contamination произошла, сразу пометить attempt и не «дотягивать» её до PASS;
+- отдельно для M06-L04 не повторять перед E01 точные категории PED-04; возврат CRIT-C-01 считается regression и блокирует чистую independent attempt.
 
 Recovery используется только там и так, как предусмотрено production/архитектурой: содержательно другая эквивалентная ситуация, не косметическая замена.
 
