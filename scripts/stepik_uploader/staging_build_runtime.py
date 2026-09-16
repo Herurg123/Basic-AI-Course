@@ -16,7 +16,12 @@ if __package__ in {None, ""}:
     from stepik_uploader.attachment_materialization import verify_attachment_capability
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
     from stepik_uploader.content import ContentCompileError
-    from stepik_uploader.deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, event_identity_from_environment
+    from stepik_uploader.deployment_history import (
+        DeploymentHistoryError,
+        DeploymentRecorder,
+        GitHubHistoryStore,
+        event_identity_from_environment,
+    )
     from stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
     from stepik_uploader.general_content import compile_lesson_source
     from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
@@ -25,9 +30,27 @@ if __package__ in {None, ""}:
     from stepik_uploader.planner import plan_dry_run
     from stepik_uploader.reporting import build_report, write_json
     from stepik_uploader.stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
-    from stepik_uploader.sync_state import SyncStateError, asset_binding_for, baseline_for, close_lesson_pending, load_state, with_asset_record, with_record
-    from stepik_uploader.verified_rendering import AssetBinding, VerifiedRenderingError, build_rendering_plan, require_render_ready
-    from stepik_uploader.visual_materialization import VisualMaterializationError, materialize_visual, prepare_visual_file, verify_visual_binding
+    from stepik_uploader.sync_state import (
+        SyncStateError,
+        asset_binding_for,
+        baseline_for,
+        close_lesson_pending,
+        load_state,
+        with_asset_record,
+        with_record,
+    )
+    from stepik_uploader.verified_rendering import (
+        AssetBinding,
+        VerifiedRenderingError,
+        build_rendering_plan,
+        require_render_ready,
+    )
+    from stepik_uploader.visual_materialization import (
+        VisualMaterializationError,
+        materialize_visual,
+        prepare_visual_file,
+        verify_visual_binding,
+    )
     from stepik_uploader.writer import ContentWriteError, PLACEHOLDER_TEXT, _placeholder
 else:
     from .api import StepikAPIError, StepikClient
@@ -36,7 +59,12 @@ else:
     from .attachment_materialization import verify_attachment_capability
     from .canonical import CanonicalBuildError, build_structural_manifest
     from .content import ContentCompileError
-    from .deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore, event_identity_from_environment
+    from .deployment_history import (
+        DeploymentHistoryError,
+        DeploymentRecorder,
+        GitHubHistoryStore,
+        event_identity_from_environment,
+    )
     from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
     from .general_content import compile_lesson_source
     from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
@@ -45,9 +73,22 @@ else:
     from .planner import plan_dry_run
     from .reporting import build_report, write_json
     from .stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
-    from .sync_state import SyncStateError, asset_binding_for, baseline_for, close_lesson_pending, load_state, with_asset_record, with_record
+    from .sync_state import (
+        SyncStateError,
+        asset_binding_for,
+        baseline_for,
+        close_lesson_pending,
+        load_state,
+        with_asset_record,
+        with_record,
+    )
     from .verified_rendering import AssetBinding, VerifiedRenderingError, build_rendering_plan, require_render_ready
-    from .visual_materialization import VisualMaterializationError, materialize_visual, prepare_visual_file, verify_visual_binding
+    from .visual_materialization import (
+        VisualMaterializationError,
+        materialize_visual,
+        prepare_visual_file,
+        verify_visual_binding,
+    )
     from .writer import ContentWriteError, PLACEHOLDER_TEXT, _placeholder
 
 
@@ -159,7 +200,34 @@ def _recover_final_state(records: list[dict[str, Any]], *, label: str) -> tuple[
     return recovered, _final_status(records)
 
 
-def _event_artifact(identity: Any, *, status: str, kind: str, target_id: str, source_path: str | None = None) -> dict[str, Any]:
+def _assert_same_event_scope(
+    *,
+    identity: Any,
+    expected_sha: str,
+    expected_desired: str,
+    label: str,
+) -> None:
+    if identity.source_sha != expected_sha or identity.desired_fingerprint != expected_desired:
+        raise DeploymentHistoryError(f"{label}: incomplete event относится к другому source/materialization")
+
+
+def _safe_prewrite_retry(summary: dict[str, Any]) -> bool:
+    return (
+        not summary.get("writes_started")
+        and not summary.get("ambiguous")
+        and not summary.get("readback_failed")
+        and not summary.get("final_readback_confirmed")
+    )
+
+
+def _event_artifact(
+    identity: Any,
+    *,
+    status: str,
+    kind: str,
+    target_id: str,
+    source_path: str | None = None,
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "event_id": identity.event_id,
         "source_sha": identity.source_sha,
@@ -212,6 +280,259 @@ def _synthetic_preflight_binding(item: dict[str, Any]) -> AssetBinding:
     )
 
 
+def _assert_no_unknown_same_name(
+    client: StepikClient,
+    *,
+    lesson_id: int,
+    materialized_filename: str,
+    target_id: str,
+) -> None:
+    same_name = [
+        item
+        for item in client.list_attachments(lesson_id=lesson_id)
+        if item.get("name") == materialized_filename
+    ]
+    if same_name:
+        raise VisualMaterializationError(
+            f"{target_id}: {materialized_filename} уже существует без accepted machine provenance; automatic adoption запрещён"
+        )
+
+
+def _preflight_assets(
+    *,
+    client: StepikClient,
+    state: dict[str, Any],
+    store: GitHubHistoryStore,
+    material_rows: list[dict[str, Any]],
+    material_plan: list[dict[str, Any]],
+    live_lesson_id: int,
+    target_id: str,
+    sha: str,
+) -> tuple[list[AssetBinding], list[dict[str, Any]]]:
+    material_by_source = {item["source_path"]: item for item in material_plan}
+    bindings: list[AssetBinding] = []
+    checks: list[dict[str, Any]] = []
+
+    for row in material_rows:
+        source_path = str(row["source_path"])
+        expected_source_sha = str(row["source_sha256"])
+        mode = str(row["mode"])
+        prepared = material_by_source[source_path]
+        desired = str(prepared["materialization_fingerprint"])
+        record = asset_binding_for(state, source_path)
+        incomplete = find_incomplete_object_events(store, object_id=f"asset:{source_path}")
+        if len(incomplete) > 1:
+            raise DeploymentHistoryError(f"{source_path}: найдено несколько incomplete asset events")
+
+        if record is not None:
+            binding = verify_visual_binding(
+                client,
+                record,
+                source_path=source_path,
+                expected_source_sha256=expected_source_sha,
+                expected_mode=mode,
+                stepik_lesson_id=live_lesson_id,
+            )
+            if incomplete:
+                identity, records, summary = incomplete[0]
+                _assert_same_event_scope(identity=identity, expected_sha=sha, expected_desired=desired, label=source_path)
+                if not summary.get("final_readback_confirmed"):
+                    raise DeploymentHistoryError(
+                        f"{source_path}: machine asset baseline существует без immutable final asset read-back"
+                    )
+                recovered, _ = _recover_final_state(records, label=source_path)
+                if recovered != record:
+                    raise DeploymentHistoryError(
+                        f"{source_path}: machine asset baseline не совпадает с immutable final history"
+                    )
+            checks.append({"source_path": source_path, "status": "VERIFIED_BASELINE_REUSE"})
+            bindings.append(binding)
+            continue
+
+        if incomplete:
+            identity, records, summary = incomplete[0]
+            _assert_same_event_scope(identity=identity, expected_sha=sha, expected_desired=desired, label=source_path)
+            if summary.get("final_readback_confirmed"):
+                recovered, _ = _recover_final_state(records, label=source_path)
+                binding = verify_visual_binding(
+                    client,
+                    recovered,
+                    source_path=source_path,
+                    expected_source_sha256=expected_source_sha,
+                    expected_mode=mode,
+                    stepik_lesson_id=live_lesson_id,
+                )
+                checks.append({"source_path": source_path, "status": "RECOVERABLE_FINAL_HISTORY"})
+                bindings.append(binding)
+                continue
+            if not _safe_prewrite_retry(summary):
+                raise DeploymentHistoryError(
+                    f"{source_path}: write/history уже начат или недоказуем; новый POST без reconcile запрещён"
+                )
+            verify_attachment_capability(client)
+            _assert_no_unknown_same_name(
+                client,
+                lesson_id=live_lesson_id,
+                materialized_filename=str(prepared["materialized_filename"]),
+                target_id=target_id,
+            )
+            checks.append({"source_path": source_path, "status": "SAFE_RETRY_BEFORE_WRITE"})
+            bindings.append(_synthetic_preflight_binding(prepared))
+            continue
+
+        verify_attachment_capability(client)
+        _assert_no_unknown_same_name(
+            client,
+            lesson_id=live_lesson_id,
+            materialized_filename=str(prepared["materialized_filename"]),
+            target_id=target_id,
+        )
+        checks.append({"source_path": source_path, "status": "READY_TO_MATERIALIZE"})
+        bindings.append(_synthetic_preflight_binding(prepared))
+
+    return bindings, checks
+
+
+def _materialize_assets(
+    *,
+    client: StepikClient,
+    state: dict[str, Any],
+    store: GitHubHistoryStore,
+    material_rows: list[dict[str, Any]],
+    material_plan: list[dict[str, Any]],
+    live_lesson_id: int,
+    target_id: str,
+    sha: str,
+    pending_first_sha: str | None,
+    repo_root: Path,
+    report_dir: Path,
+) -> tuple[list[AssetBinding], dict[str, Any], list[dict[str, Any]]]:
+    material_by_source = {item["source_path"]: item for item in material_plan}
+    bindings: list[AssetBinding] = []
+    next_state = state
+    artifacts: list[dict[str, Any]] = []
+
+    for row in material_rows:
+        source_path = str(row["source_path"])
+        expected_source_sha = str(row["source_sha256"])
+        mode = str(row["mode"])
+        prepared = material_by_source[source_path]
+        desired = str(prepared["materialization_fingerprint"])
+        record = asset_binding_for(state, source_path)
+        incomplete = find_incomplete_object_events(store, object_id=f"asset:{source_path}")
+        if len(incomplete) > 1:
+            raise DeploymentHistoryError(f"{source_path}: найдено несколько incomplete asset events")
+
+        identity = None
+        status = "BASELINE_REUSED"
+
+        if record is not None:
+            binding = verify_visual_binding(
+                client,
+                record,
+                source_path=source_path,
+                expected_source_sha256=expected_source_sha,
+                expected_mode=mode,
+                stepik_lesson_id=live_lesson_id,
+            )
+            if incomplete:
+                identity, records, summary = incomplete[0]
+                _assert_same_event_scope(identity=identity, expected_sha=sha, expected_desired=desired, label=source_path)
+                if not summary.get("final_readback_confirmed"):
+                    raise DeploymentHistoryError(
+                        f"{source_path}: machine asset baseline существует без immutable final asset read-back"
+                    )
+                recovered, status = _recover_final_state(records, label=source_path)
+                if recovered != record:
+                    raise DeploymentHistoryError(
+                        f"{source_path}: machine asset baseline не совпадает с immutable final history"
+                    )
+        elif incomplete:
+            identity, records, summary = incomplete[0]
+            _assert_same_event_scope(identity=identity, expected_sha=sha, expected_desired=desired, label=source_path)
+            if summary.get("final_readback_confirmed"):
+                record, status = _recover_final_state(records, label=source_path)
+                binding = verify_visual_binding(
+                    client,
+                    record,
+                    source_path=source_path,
+                    expected_source_sha256=expected_source_sha,
+                    expected_mode=mode,
+                    stepik_lesson_id=live_lesson_id,
+                )
+                next_state = with_asset_record(next_state, source_path=source_path, record=record)
+            elif _safe_prewrite_retry(summary):
+                recorder = DeploymentRecorder(store, identity)
+                record, status = materialize_visual(
+                    client,
+                    recorder=recorder,
+                    source_file=repo_root / source_path,
+                    source_path=source_path,
+                    expected_source_sha256=expected_source_sha,
+                    mode=mode,
+                    stepik_lesson_id=live_lesson_id,
+                    work_dir=report_dir / "materialized-visuals" / Path(source_path).stem,
+                )
+                binding = verify_visual_binding(
+                    client,
+                    record,
+                    source_path=source_path,
+                    expected_source_sha256=expected_source_sha,
+                    expected_mode=mode,
+                    stepik_lesson_id=live_lesson_id,
+                )
+                next_state = with_asset_record(next_state, source_path=source_path, record=record)
+            else:
+                raise DeploymentHistoryError(
+                    f"{source_path}: write/history уже начат или недоказуем; новый POST без reconcile запрещён"
+                )
+        else:
+            identity = event_identity_from_environment(
+                course_id=299189,
+                object_id=f"asset:{source_path}",
+                kind="asset",
+                source_sha=sha,
+                desired_fingerprint=desired,
+                baseline_fingerprint=None,
+                pending_first_sha=pending_first_sha,
+            )
+            recorder = DeploymentRecorder(store, identity)
+            record, status = materialize_visual(
+                client,
+                recorder=recorder,
+                source_file=repo_root / source_path,
+                source_path=source_path,
+                expected_source_sha256=expected_source_sha,
+                mode=mode,
+                stepik_lesson_id=live_lesson_id,
+                work_dir=report_dir / "materialized-visuals" / Path(source_path).stem,
+            )
+            binding = verify_visual_binding(
+                client,
+                record,
+                source_path=source_path,
+                expected_source_sha256=expected_source_sha,
+                expected_mode=mode,
+                stepik_lesson_id=live_lesson_id,
+            )
+            next_state = with_asset_record(next_state, source_path=source_path, record=record)
+
+        bindings.append(binding)
+        if identity is not None:
+            artifact = _event_artifact(
+                identity,
+                status=status,
+                kind="asset",
+                target_id=target_id,
+                source_path=source_path,
+            )
+            artifacts.append(artifact)
+            safe_name = Path(source_path).name.replace(".", "-")
+            write_json(report_dir / f"asset-deployment-event-{safe_name}.json", artifact)
+
+    return bindings, next_state, artifacts
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Guarded one-lesson private Stepik staging builder")
     parser.add_argument("--course-id", type=int, required=True)
@@ -241,10 +562,13 @@ def main() -> int:
     }
 
     try:
+        if args.course_id != 299189:
+            raise ContentWriteError("staging-build-one разрешён только для course_id=299189")
         if target_id in GOLDEN_IDS:
             raise ContentWriteError(
                 f"{target_id} является READ_ONLY_GOLDEN; staging-build-one не имеет права менять golden content"
             )
+
         manifest = build_structural_manifest(repo_root, source_sha=sha)
         write_json(report_dir / "build-manifest.structural.json", manifest)
         module, lesson_manifest = _manifest_lesson(manifest, target_id)
@@ -255,7 +579,7 @@ def main() -> int:
         state = load_state(state_path, course_id=args.course_id)
         if baseline_for(state, target_id) is not None:
             raise ContentWriteError(
-                f"{target_id} уже имеет deployment baseline; initial staging route запрещён, использовать baseline-aware sync"
+                f"{target_id} уже имеет deployment baseline; initial staging route запрещён, commit-gap recovery должен перехватить этот case"
             )
         pending = state.get("pending", {}).get("lessons", {}).get(target_id)
         if not isinstance(pending, dict) or pending.get("status") != "PENDING":
@@ -272,7 +596,8 @@ def main() -> int:
         golden_status = mark_golden_profile_result(plan, profile_blockers)
         if golden_status != "confirmed" or plan.blockers:
             raise ContentWriteError(
-                "prewrite live structural/golden guards не пройдены: " + "; ".join(sorted(set(profile_blockers + plan.blockers)))
+                "prewrite live structural/golden guards не пройдены: "
+                + "; ".join(sorted(set(profile_blockers + plan.blockers)))
             )
 
         expected_title = str(lesson_manifest["title"])
@@ -294,6 +619,7 @@ def main() -> int:
         if not isinstance(free_answer_source, dict):
             raise ContentCompileError("Golden profile не содержит free_answer_source")
         source_steps = compile_lesson_source(repo_root, free_answer_source=free_answer_source, lesson_id=target_id)
+
         inventory = build_asset_inventory(repo_root, manifest)
         policy = load_asset_publication_policy(repo_root / ASSET_POLICY_PATH)
         asset_report = assess_asset_publication(
@@ -310,77 +636,22 @@ def main() -> int:
             report_dir=report_dir,
             rows=material_rows,
         )
-        material_by_source = {item["source_path"]: item for item in material_plan}
-        write_json(report_dir / "visual-materialization-plan.json", {"target": target_id, "items": material_plan})
+        write_json(
+            report_dir / "visual-materialization-plan.json",
+            {"target": target_id, "items": material_plan},
+        )
 
         if not args.confirm_write:
-            preflight_bindings: list[AssetBinding] = []
-            asset_checks: list[dict[str, Any]] = []
-            for row in material_rows:
-                source_path = str(row["source_path"])
-                expected_source_sha = str(row["source_sha256"])
-                mode = str(row["mode"])
-                prepared = material_by_source[source_path]
-                record = asset_binding_for(state, source_path)
-                incomplete_assets = find_incomplete_object_events(store, object_id=f"asset:{source_path}")
-                if len(incomplete_assets) > 1:
-                    raise DeploymentHistoryError(f"{source_path}: найдено несколько incomplete asset events")
-
-                if record is not None:
-                    binding = verify_visual_binding(
-                        client,
-                        record,
-                        source_path=source_path,
-                        expected_source_sha256=expected_source_sha,
-                        expected_mode=mode,
-                        stepik_lesson_id=int(live_lesson["id"]),
-                    )
-                    if incomplete_assets:
-                        identity, records, summary = incomplete_assets[0]
-                        if identity.source_sha != sha or identity.desired_fingerprint != prepared["materialization_fingerprint"]:
-                            raise DeploymentHistoryError(f"{source_path}: incomplete asset event относится к другому source/materialization")
-                        if not summary.get("final_readback_confirmed"):
-                            raise DeploymentHistoryError(f"{source_path}: machine baseline существует без final history read-back")
-                        recovered, _ = _recover_final_state(records, label=source_path)
-                        if recovered != record:
-                            raise DeploymentHistoryError(f"{source_path}: machine baseline расходится с final immutable history")
-                    asset_checks.append({"source_path": source_path, "status": "VERIFIED_BASELINE_REUSE"})
-                    preflight_bindings.append(binding)
-                    continue
-
-                if incomplete_assets:
-                    identity, records, summary = incomplete_assets[0]
-                    if identity.source_sha != sha or identity.desired_fingerprint != prepared["materialization_fingerprint"]:
-                        raise DeploymentHistoryError(f"{source_path}: incomplete asset event относится к другому source/materialization")
-                    if not summary.get("final_readback_confirmed"):
-                        raise DeploymentHistoryError(
-                            f"{source_path}: incomplete asset event без final read-back; blind retry запрещён"
-                        )
-                    recovered, _ = _recover_final_state(records, label=source_path)
-                    binding = verify_visual_binding(
-                        client,
-                        recovered,
-                        source_path=source_path,
-                        expected_source_sha256=expected_source_sha,
-                        expected_mode=mode,
-                        stepik_lesson_id=int(live_lesson["id"]),
-                    )
-                    asset_checks.append({"source_path": source_path, "status": "RECOVERABLE_FINAL_HISTORY"})
-                    preflight_bindings.append(binding)
-                    continue
-
-                verify_attachment_capability(client)
-                same_name = [
-                    item for item in client.list_attachments(lesson_id=int(live_lesson["id"]))
-                    if item.get("name") == prepared["materialized_filename"]
-                ]
-                if same_name:
-                    raise VisualMaterializationError(
-                        f"{target_id}: {prepared['materialized_filename']} уже существует без machine asset baseline/history; automatic adoption запрещён"
-                    )
-                asset_checks.append({"source_path": source_path, "status": "READY_TO_MATERIALIZE"})
-                preflight_bindings.append(_synthetic_preflight_binding(prepared))
-
+            preflight_bindings, asset_checks = _preflight_assets(
+                client=client,
+                state=state,
+                store=store,
+                material_rows=material_rows,
+                material_plan=material_plan,
+                live_lesson_id=int(live_lesson["id"]),
+                target_id=target_id,
+                sha=sha,
+            )
             preflight_rendering = build_rendering_plan(
                 repo_root=repo_root,
                 lesson_id=target_id,
@@ -390,7 +661,9 @@ def main() -> int:
             )
             preflight_steps = list(require_render_ready(preflight_rendering))
             if len(preflight_steps) != len(lesson_manifest.get("steps", [])):
-                raise VerifiedRenderingError(f"{target_id}: preflight rendered step count не совпадает с canonical plan")
+                raise VerifiedRenderingError(
+                    f"{target_id}: preflight rendered step count не совпадает с canonical plan"
+                )
 
             report.update(
                 {
@@ -403,7 +676,10 @@ def main() -> int:
                     "f1_sensitive": bool(lesson_manifest.get("f1_sensitive")),
                     "materialization": asset_checks,
                     "preflight_rendered_steps": len(preflight_steps),
-                    "preflight_render_uses_synthetic_urls": any(item["status"] == "READY_TO_MATERIALIZE" for item in asset_checks),
+                    "preflight_render_uses_synthetic_urls": any(
+                        item["status"] in {"READY_TO_MATERIALIZE", "SAFE_RETRY_BEFORE_WRITE"}
+                        for item in asset_checks
+                    ),
                     "blockers": [],
                     "next_action": "owner dispatch same target with confirm_write=true after artifact review",
                     "stepik_writes": 0,
@@ -413,93 +689,19 @@ def main() -> int:
             print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0
 
-        bindings: list[AssetBinding] = []
-        next_state = state
-        asset_event_artifacts: list[dict[str, Any]] = []
-        for row in material_rows:
-            source_path = str(row["source_path"])
-            expected_source_sha = str(row["source_sha256"])
-            mode = str(row["mode"])
-            prepared = material_by_source[source_path]
-            incomplete_assets = find_incomplete_object_events(store, object_id=f"asset:{source_path}")
-            if len(incomplete_assets) > 1:
-                raise DeploymentHistoryError(f"{source_path}: найдено несколько incomplete asset events")
-            record = asset_binding_for(state, source_path)
-            identity = None
-            status = "BASELINE_REUSED"
-            if record is not None:
-                binding = verify_visual_binding(
-                    client,
-                    record,
-                    source_path=source_path,
-                    expected_source_sha256=expected_source_sha,
-                    expected_mode=mode,
-                    stepik_lesson_id=int(live_lesson["id"]),
-                )
-                if incomplete_assets:
-                    identity, records, summary = incomplete_assets[0]
-                    if identity.source_sha != sha or identity.desired_fingerprint != prepared["materialization_fingerprint"]:
-                        raise DeploymentHistoryError(f"{source_path}: incomplete asset event относится к другому source/materialization")
-                    if not summary.get("final_readback_confirmed"):
-                        raise DeploymentHistoryError(f"{source_path}: machine asset baseline существует без final history read-back")
-                    recovered, status = _recover_final_state(records, label=source_path)
-                    if recovered != record:
-                        raise DeploymentHistoryError(f"{source_path}: machine asset baseline не совпадает с immutable final history")
-            elif incomplete_assets:
-                identity, records, summary = incomplete_assets[0]
-                if identity.source_sha != sha or identity.desired_fingerprint != prepared["materialization_fingerprint"]:
-                    raise DeploymentHistoryError(f"{source_path}: incomplete asset event относится к другому source/materialization")
-                if not summary.get("final_readback_confirmed"):
-                    raise DeploymentHistoryError(
-                        f"{source_path}: incomplete asset event не имеет final read-back; blind retry запрещён"
-                    )
-                record, status = _recover_final_state(records, label=source_path)
-                binding = verify_visual_binding(
-                    client,
-                    record,
-                    source_path=source_path,
-                    expected_source_sha256=expected_source_sha,
-                    expected_mode=mode,
-                    stepik_lesson_id=int(live_lesson["id"]),
-                )
-                next_state = with_asset_record(next_state, source_path=source_path, record=record)
-            else:
-                identity = event_identity_from_environment(
-                    course_id=args.course_id,
-                    object_id=f"asset:{source_path}",
-                    kind="asset",
-                    source_sha=sha,
-                    desired_fingerprint=str(prepared["materialization_fingerprint"]),
-                    baseline_fingerprint=None,
-                    pending_first_sha=pending_first_sha,
-                )
-                recorder = DeploymentRecorder(store, identity)
-                record, status = materialize_visual(
-                    client,
-                    recorder=recorder,
-                    source_file=repo_root / source_path,
-                    source_path=source_path,
-                    expected_source_sha256=expected_source_sha,
-                    mode=mode,
-                    stepik_lesson_id=int(live_lesson["id"]),
-                    work_dir=report_dir / "materialized-visuals" / Path(source_path).stem,
-                )
-                binding = verify_visual_binding(
-                    client,
-                    record,
-                    source_path=source_path,
-                    expected_source_sha256=expected_source_sha,
-                    expected_mode=mode,
-                    stepik_lesson_id=int(live_lesson["id"]),
-                )
-                next_state = with_asset_record(next_state, source_path=source_path, record=record)
-
-            bindings.append(binding)
-            if identity is not None:
-                artifact = _event_artifact(identity, status=status, kind="asset", target_id=target_id, source_path=source_path)
-                asset_event_artifacts.append(artifact)
-                safe_name = Path(source_path).name.replace(".", "-")
-                write_json(report_dir / f"asset-deployment-event-{safe_name}.json", artifact)
+        bindings, next_state, asset_event_artifacts = _materialize_assets(
+            client=client,
+            state=state,
+            store=store,
+            material_rows=material_rows,
+            material_plan=material_plan,
+            live_lesson_id=int(live_lesson["id"]),
+            target_id=target_id,
+            sha=sha,
+            pending_first_sha=pending_first_sha,
+            repo_root=repo_root,
+            report_dir=report_dir,
+        )
 
         rendering = build_rendering_plan(
             repo_root=repo_root,
@@ -529,18 +731,24 @@ def main() -> int:
         if incomplete_lessons:
             lesson_identity, lesson_records, summary = incomplete_lessons[0]
             if lesson_identity.source_sha != sha or lesson_identity.desired_fingerprint != desired_fp:
-                raise DeploymentHistoryError(f"{target_id}: incomplete lesson event относится к другому current main/rendered desired")
+                raise DeploymentHistoryError(
+                    f"{target_id}: incomplete lesson event относится к другому current main/rendered desired"
+                )
             if summary.get("final_readback_confirmed"):
                 lesson_record, lesson_status = _recover_final_state(lesson_records, label=target_id)
                 if current_live_fp != desired_fp:
                     raise DeploymentHistoryError(f"{target_id}: live lesson больше не совпадает с final immutable history")
             else:
                 if summary.get("ambiguous") or summary.get("readback_failed"):
-                    raise DeploymentHistoryError(f"{target_id}: ambiguous/read-back failure запрещает automatic continuation")
+                    raise DeploymentHistoryError(
+                        f"{target_id}: ambiguous/read-back failure запрещает automatic continuation"
+                    )
                 last_confirmed = summary.get("last_confirmed_operation_fingerprint")
                 allow_partial = bool(last_confirmed and last_confirmed == current_live_fp)
                 if summary.get("writes_started") and not allow_partial:
-                    raise DeploymentHistoryError(f"{target_id}: live state не совпадает с last confirmed intermediate fingerprint")
+                    raise DeploymentHistoryError(
+                        f"{target_id}: live state не совпадает с last confirmed intermediate fingerprint"
+                    )
                 lesson_recorder = DeploymentRecorder(store, lesson_identity)
                 result = execute_initial_upload_one(
                     client,
@@ -647,7 +855,8 @@ def main() -> int:
                 "readback_verified": True,
                 "blockers": [],
                 "verdict": "PASS",
-                "stepik_writes": len(operations) + len([item for item in asset_event_artifacts if item.get("status") == "APPLIED"]),
+                "stepik_writes": len(operations)
+                + len([item for item in asset_event_artifacts if item.get("status") == "APPLIED"]),
             }
         )
         write_json(report_dir / "run-report.json", report)
