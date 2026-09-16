@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 from scripts.stepik_uploader.course_page_sync import (
     CoursePageSyncError,
+    REQUIRED_FIELDS,
     _same_page,
     assert_preserved_course_state,
     course_page_write_payload,
@@ -35,15 +37,36 @@ class CoursePageSyncTests(unittest.TestCase):
         self.assertNotIn("course_format", payload)
         self.assertTrue(desired_fingerprint(payload).startswith("sha256:"))
 
-    def test_write_payload_preserves_stepik_list_types_and_current_promo_fields(self) -> None:
+    def test_write_payload_is_full_raw_get_read_modify_write(self) -> None:
         desired = parse_course_page(Path("04_course/stepik/course-page.md"))
-        payload = course_page_write_payload(desired)
+        live = deepcopy(desired)
+        live.update(
+            {
+                "id": 299189,
+                "title": "Старое название",
+                "sections": [101, 102],
+                "owner": 7,
+                "authors": [7],
+                "instructors": [7],
+                "tags": [10, 11],
+                "language": "ru",
+                "is_public": False,
+                "is_paid": False,
+                "course_format": "legacy Stepik field",
+                "update_date": "server-managed-value",
+                "custom_returned_field": {"must": "survive"},
+            }
+        )
+        payload = course_page_write_payload(live, desired)
+        self.assertEqual(set(payload), set(live))
+        for field in REQUIRED_FIELDS:
+            self.assertEqual(payload[field], desired[field])
         self.assertIsInstance(payload["acquired_skills"], list)
         self.assertIsInstance(payload["acquired_assets"], list)
         self.assertIn("learning_format", payload)
-        self.assertNotIn("course_format", payload)
-        self.assertEqual(payload["difficulty"], "easy")
-        self.assertEqual(set(payload), set(desired))
+        self.assertEqual(payload["course_format"], "legacy Stepik field")
+        self.assertEqual(payload["sections"], [101, 102])
+        self.assertEqual(payload["custom_returned_field"], {"must": "survive"})
 
     def test_missing_required_section_blocks(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
