@@ -30,7 +30,7 @@ else:
     from .deployment_history import DeploymentHistoryError, DeploymentRecorder, GitHubHistoryStore
     from .history_runtime import find_incomplete_object_events, identity_from_records
     from .reporting import write_json
-    from .stepik_uploader.stepik_uploader import source_sha
+    from .stepik_uploader import source_sha
     from .sync_state import SyncStateError, load_state
 
 
