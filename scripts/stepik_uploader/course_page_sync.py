@@ -198,16 +198,39 @@ def course_page_payload(course: dict[str, Any], *, fields: tuple[str, ...] = REQ
     return {field: _normalized_value(field, course.get(field)) for field in fields}
 
 
-def course_page_write_payload(desired: dict[str, Any]) -> dict[str, Any]:
+def _validate_desired(desired: dict[str, Any]) -> None:
     if set(desired) != set(REQUIRED_FIELDS):
-        raise CoursePageSyncError("Course-page write payload не соответствует exact canonical field set")
+        raise CoursePageSyncError("Course-page desired payload не соответствует exact canonical field set")
     for field in sorted(LIST_FIELDS):
         values = desired.get(field)
         if not isinstance(values, list) or not values or any(
             not isinstance(item, str) or not item.strip() for item in values
         ):
             raise CoursePageSyncError(f"{field} для Stepik write обязан быть непустым списком строк")
-    return {field: deepcopy(desired[field]) for field in REQUIRED_FIELDS}
+
+
+def course_page_write_payload(live_course: dict[str, Any], desired: dict[str, Any]) -> dict[str, Any]:
+    """Prepare a full-object read-modify-write payload for Stepik course PUT.
+
+    Stepik PUT is treated as replacement semantics. The safe contract is the
+    same one already used for section writes in this repository: start from the
+    exact raw GET object, preserve every returned field, and override only the
+    explicitly owner-approved course-page fields.
+    """
+    if not isinstance(live_course, dict):
+        raise CoursePageSyncError("Course-page PUT требует raw GET course object")
+    if live_course.get("id") != COURSE_ID:
+        raise CoursePageSyncError("Course-page PUT raw GET относится не к course 299189")
+    _validate_desired(desired)
+    course_page_payload(live_course)
+    preserved_course_state(live_course)
+
+    payload = deepcopy(live_course)
+    for field in REQUIRED_FIELDS:
+        payload[field] = deepcopy(desired[field])
+    if set(payload) != set(live_course):
+        raise CoursePageSyncError("Course-page PUT обязан сохранять exact raw GET field set")
+    return payload
 
 
 def preserved_course_state(course: dict[str, Any]) -> dict[str, Any]:
@@ -240,11 +263,13 @@ def course_page_fingerprint(course: dict[str, Any]) -> str:
 
 
 def desired_fingerprint(desired: dict[str, Any]) -> str:
+    _validate_desired(desired)
     return canonical_hash({field: _normalized_value(field, desired[field]) for field in REQUIRED_FIELDS})
 
 
 def _same_page(course: dict[str, Any], desired: dict[str, Any]) -> bool:
     live = course_page_payload(course)
+    _validate_desired(desired)
     expected = {field: _normalized_value(field, desired[field]) for field in REQUIRED_FIELDS}
     return live == expected
 
@@ -355,6 +380,7 @@ def main() -> int:
         _assert_course_safety(course_before)
         preserved_before = preserved_course_state(course_before)
         before_fp = course_page_fingerprint(course_before)
+        write_payload = course_page_write_payload(course_before, desired)
         store = _history_store(sha)
         incomplete = find_incomplete_object_events(store, object_id="course-page")
         if len(incomplete) > 1:
@@ -403,7 +429,8 @@ def main() -> int:
             "live_fingerprint": before_fp,
             "changed_fields": diff_fields,
             "desired": desired,
-            "write_payload": course_page_write_payload(desired),
+            "write_payload_fields": sorted(write_payload),
+            "write_payload_preserves_full_raw_get": set(write_payload) == set(course_before),
             "preserved_before": preserved_before,
         })
 
@@ -413,6 +440,7 @@ def main() -> int:
                 "changed_fields": diff_fields,
                 "stepik_writes_planned": 0 if not diff_fields else 1,
                 "readback_required": True,
+                "put_contract": "raw-get-full-object-read-modify-write",
                 "preserved_fields": sorted(preserved_before),
                 "blockers": [],
             })
@@ -442,7 +470,7 @@ def main() -> int:
                 client._request_write(
                     "PUT",
                     f"/api/courses/{COURSE_ID}",
-                    {"course": course_page_write_payload(desired)},
+                    {"course": write_payload},
                 )
             except StepikWriteAmbiguousError:
                 recorder.write_result(operation_id=operation_id, status="AMBIGUOUS", reason_code="course-page-write-ambiguous")
@@ -488,6 +516,7 @@ def main() -> int:
                 f"- event: `{identity.event_id}`",
                 f"- fingerprint: `{after_fp}`",
                 f"- changed fields: `{diff_fields}`",
+                "- PUT contract: `raw-get-full-object-read-modify-write`",
                 f"- preserved fields: `{sorted(preserved_before)}`",
                 "",
                 "Machine state должен быть patched только после final read-back; durable history затем получает MACHINE_STATE_COMMITTED.",
@@ -499,6 +528,7 @@ def main() -> int:
             "status": status,
             "event_id": identity.event_id,
             "changed_fields": diff_fields,
+            "put_contract": "raw-get-full-object-read-modify-write",
             "preserved_fields": sorted(preserved_before),
             "readback_verified": True,
             "blockers": [],
