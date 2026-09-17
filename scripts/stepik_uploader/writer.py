@@ -7,8 +7,9 @@ from typing import Any
 
 from .api import StepikAPIError, StepikWriteAmbiguousError
 from .content import CompiledStep
-from .fingerprints import compiled_lesson_fingerprint, html_fingerprint, live_lesson_fingerprint
+from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
 from .sync_state import SyncAssessment, assess_sync, build_record
+from .transport_equivalence import lesson_transport_equivalent, step_transport_equivalent
 
 PLACEHOLDER_TEXT = "Урок сгенерирован роботом ;)"
 
@@ -25,14 +26,7 @@ def _step_source(item: dict[str, Any]) -> dict[str, Any]:
 
 
 def _equivalent(existing: dict[str, Any], expected: CompiledStep) -> bool:
-    source = _step_source(existing)
-    block = source.get("block", {})
-    return (
-        source.get("position") == expected.position
-        and block.get("name") == expected.block_name
-        and (block.get("source") or {}) == expected.source
-        and html_fingerprint(str(block.get("text") or "")) == html_fingerprint(expected.text)
-    )
+    return step_transport_equivalent(existing, expected)
 
 
 def _placeholder(existing: dict[str, Any]) -> bool:
@@ -115,6 +109,20 @@ def _lesson_after_expected_step(lesson: dict[str, Any], *, step_id: int, expecte
             break
     if not matched:
         raise ContentWriteError(f"Не найден step_id={step_id} для вычисления intermediate fingerprint")
+    return updated
+
+
+def _lesson_after_readback_step(lesson: dict[str, Any], *, step_id: int, readback: dict[str, Any]) -> dict[str, Any]:
+    updated = deepcopy(lesson)
+    matched = False
+    for item in updated.get("steps", []):
+        source = item.get("step_source")
+        if isinstance(source, dict) and int(source.get("id", -1)) == int(step_id):
+            item["step_source"] = deepcopy(readback)
+            matched = True
+            break
+    if not matched:
+        raise ContentWriteError(f"Не найден step_id={step_id} для фиксации фактического read-back")
     return updated
 
 
@@ -347,9 +355,15 @@ def execute_content_sync_one(
             if recorder is not None:
                 recorder.readback_failed(operation_id=operation_id, reason_code="operation-readback-unavailable-or-mismatch")
             raise
+        observed_lesson = _lesson_after_readback_step(expected_lesson, step_id=step_id, readback=readback)
+        observed_after_fp = live_lesson_fingerprint(observed_lesson)
         if recorder is not None:
-            recorder.operation_readback(operation_id=operation_id, expected_fingerprint_after=expected_after_fp)
-        working_lesson = expected_lesson
+            recorder.operation_readback(
+                operation_id=operation_id,
+                expected_fingerprint_after=expected_after_fp,
+                observed_live_fingerprint=observed_after_fp,
+            )
+        working_lesson = observed_lesson
         result.operations.append({"action": "UPDATE_STEP", "step_id": step_id, "position": expected.position})
 
     try:
@@ -366,10 +380,16 @@ def execute_content_sync_one(
     )
     desired_fp = compiled_lesson_fingerprint(expected_title=expected_title, expected_steps=expected_steps)
     live_fp = live_lesson_fingerprint(after_lesson)
-    if live_fp != desired_fp:
+    if not lesson_transport_equivalent(
+        after_lesson,
+        expected_title=expected_title,
+        expected_steps=expected_steps,
+        language="ru",
+        is_public=bool(after_lesson.get("is_public")),
+    ):
         if recorder is not None:
             recorder.readback_failed(operation_id=None, reason_code="final-readback-mismatch")
-        raise ContentWriteError("Финальный read-back после update не совпал с новым compiled content")
+        raise ContentWriteError("Финальный read-back после update не эквивалентен новому compiled content")
 
     final_step_ids = [int(_step_source(item)["id"]) for item in after_lesson.get("steps", [])]
     source_paths = [path for step in expected_steps for path in step.source_git_paths]
@@ -384,12 +404,14 @@ def execute_content_sync_one(
         source_sha=source_sha,
         step_ids=final_step_ids,
         source_git_paths=source_paths,
+        confirmed_live_fingerprint=live_fp,
     )
     if recovery_continuation and not result.operations:
         result.operations.append({"action": "RECOVERY_FINALIZE_PRIOR_APPLIED", "stepik_writes": 0})
     if recorder is not None:
         recorder.final_readback(
-            fingerprint_after=live_fp,
+            fingerprint_after=desired_fp,
+            observed_live_fingerprint=live_fp,
             stepik_object_ids={"lesson_id": lesson_id, "step_ids": final_step_ids},
             status="APPLIED" if result.operations else "NOOP_CONFIRMED",
             baseline_after=result.state_record,
