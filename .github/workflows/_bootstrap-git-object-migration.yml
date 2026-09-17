@@ -1,4 +1,4 @@
-name: Bootstrap Git Object Migration
+name: Bootstrap Governance Documentation
 
 on:
   push:
@@ -9,12 +9,10 @@ permissions:
   contents: write
 
 jobs:
-  build-commit-object:
-    name: Сформировать commit-object миграции
+  docs:
+    name: Зафиксировать нормативные документы v1.5
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Получить рабочую ветку
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -24,100 +22,40 @@ jobs:
       - name: Сформировать итоговые файлы
         run: python scripts/project_governance/migrate_russian_action_summaries.py
 
-      - name: Создать Git blobs, tree и commit без движения branch ref
+      - name: Зафиксировать только нормативные документы
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          import base64
-          import json
-          import os
-          import subprocess
-          import urllib.request
-          from pathlib import Path
-
-          repo = os.environ['GITHUB_REPOSITORY']
-          token = os.environ['GH_TOKEN']
-          head_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
-          base_tree = subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip()
-
-          def api(method, path, payload):
-              request = urllib.request.Request(
-                  f'https://api.github.com/repos/{repo}{path}',
-                  data=json.dumps(payload).encode('utf-8'),
-                  method=method,
-                  headers={
-                      'Authorization': f'Bearer {token}',
-                      'Accept': 'application/vnd.github+json',
-                      'X-GitHub-Api-Version': '2022-11-28',
-                      'Content-Type': 'application/json',
-                  },
-              )
-              with urllib.request.urlopen(request, timeout=30) as response:
-                  return json.load(response)
-
-          raw = subprocess.check_output(['git', 'status', '--porcelain=v1', '-z'])
-          items = raw.decode('utf-8').split('\0')
-          changed = []
-          for item in items:
-              if not item:
-                  continue
-              status = item[:2]
-              path = item[3:]
-              if ' -> ' in path:
-                  path = path.split(' -> ', 1)[1]
-              changed.append((status, path))
-
-          tree_entries = []
-          for status, rel in changed:
-              path = Path(rel)
-              if 'D' in status or not path.exists():
-                  tree_entries.append({'path': rel, 'mode': '100644', 'type': 'blob', 'sha': None})
-                  continue
-              content = base64.b64encode(path.read_bytes()).decode('ascii')
-              blob = api('POST', '/git/blobs', {'content': content, 'encoding': 'base64'})
-              tree_entries.append({'path': rel, 'mode': '100644', 'type': 'blob', 'sha': blob['sha']})
-
-          tree = api('POST', '/git/trees', {'base_tree': base_tree, 'tree': tree_entries})
-          commit = api('POST', '/git/commits', {
-              'message': 'Governance: require Russian GitHub Actions summaries',
-              'tree': tree['sha'],
-              'parents': [head_sha],
-          })
-          Path('remote-commit-sha.txt').write_text(commit['sha'] + '\n', encoding='utf-8')
-          Path('remote-commit-files.txt').write_text('\n'.join(rel for _, rel in changed) + '\n', encoding='utf-8')
-          print('REMOTE_COMMIT_SHA=' + commit['sha'])
-          print('CHANGED_FILES=' + str(len(changed)))
-          PY
-
-      - name: Сохранить доказательство commit-object
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: russian-summary-remote-commit-${{ github.run_id }}
-          path: |
-            remote-commit-sha.txt
-            remote-commit-files.txt
-          if-no-files-found: error
-          retention-days: 7
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            00_governance/project-instructions/project-instructions-v1.5.md \
+            00_governance/project-instructions/README.md \
+            AGENTS.md \
+            README.md
+          git diff --cached --check
+          git commit -m 'Governance: document Russian Actions summary contract'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Русская сводка bootstrap
         if: ${{ always() }}
         shell: bash
         run: |
           {
-            echo '# Итог подготовки commit-object'
+            echo '# Итог bootstrap нормативных документов'
             echo
             echo '## Что должно было быть выполнено'
-            echo '- Сформировать новую проектную инструкцию v1.5.'
-            echo '- Добавить русские Summary во все действующие workflow.'
-            echo '- Добавить автоматическую governance-проверку будущих workflow.'
-            echo '- Создать на GitHub готовый commit-object, не меняя branch ref.'
+            echo '- Создать проектную инструкцию v1.5.'
+            echo '- Зафиксировать правило обязательной русскоязычной Actions Summary.'
+            echo '- Обновить README и AGENTS.'
             echo
             echo '## Результат'
             echo '- Статус job: ${{ job.status }}.'
-            if [[ -f remote-commit-sha.txt ]]; then
-              echo "- Commit-object создан: $(cat remote-commit-sha.txt)."
+            if [[ '${{ job.status }}' == 'success' ]]; then
+              echo '- ✅ Нормативные документы сохранены в рабочей ветке.'
+              echo '- Невыполненных этапов нет.'
+              echo '- Ошибок не зафиксировано.'
             else
-              echo '- Commit-object не создан; main и рабочая ветка не переставлены.'
+              echo '- ❌ Нормативный commit не завершён; main не затронут.'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
