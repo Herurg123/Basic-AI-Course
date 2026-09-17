@@ -9,7 +9,7 @@ from .fingerprints import html_fingerprint
 # general HTML sanitizer: every rule below has been observed in Stepik write/read-back
 # evidence for private course 299189. Deployment fingerprints remain untouched.
 PLAIN_HORIZONTAL_RULE_RE = re.compile(r"<hr\s*/?>", re.IGNORECASE)
-BREAK_RE = re.compile(r"<br\s*/>", re.IGNORECASE)
+BREAK_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
 TEXT_ALIGN_RE = re.compile(r'style="text-align:(left|right|center);?"', re.IGNORECASE)
 PARAGRAPH_RE = re.compile(r"<p>(.*?)</p>", re.IGNORECASE | re.DOTALL)
 BLOCK_TAG_RE = re.compile(
@@ -40,13 +40,14 @@ def normalize_stepik_transport_html(html: str) -> str:
 
     Allowed transformations:
     - plain ``<hr>`` / ``<hr />`` removed by Stepik;
-    - XHTML ``<br />`` represented as HTML ``<br>``;
+    - HTML/XHTML break forms are represented canonically as ``<br>``;
     - exact ``text-align`` style receives a trailing semicolon;
     - newline-separated inline-only text inside one ``<p>`` is represented as
       separate paragraphs.
 
     Text, links, non-transport attributes, block order and learner task structure are
-    deliberately preserved.
+    deliberately preserved. The transform is idempotent so a Stepik-normalized
+    read-back does not receive a second semantic rewrite on comparison.
     """
     normalized = html or ""
     normalized = PARAGRAPH_RE.sub(_split_multiline_inline_paragraph, normalized)
