@@ -25,6 +25,7 @@ STEPIC_BLOCK_TAG_RE = re.compile(
 )
 STEPIC_HTML_NORMALIZATION_V1 = "stepik-plain-horizontal-rule-strip-v1"
 STEPIC_HTML_NORMALIZATION_V2 = "stepik-observed-html-canonicalization-v2"
+STEPIC_HTML_NORMALIZATION_V2_LESSONS = frozenset({"M06-L02"})
 
 
 class VerifiedRenderingError(RuntimeError):
@@ -90,7 +91,9 @@ def normalize_stepik_html(html: str) -> str:
 
     Broad sanitization remains forbidden. Paragraphs containing block tags or explicit
     ``<br>`` markup are not split, attributed ``<hr>`` tags are preserved, and unrelated
-    style attributes are untouched.
+    style attributes are untouched. Production rendering applies this v2 contract only
+    to lessons named in ``STEPIC_HTML_NORMALIZATION_V2_LESSONS`` until equivalent live
+    evidence exists for another lesson.
     """
     normalized = html or ""
     normalized = STEPIC_PARAGRAPH_RE.sub(_split_stepik_multiline_paragraph, normalized)
@@ -317,7 +320,12 @@ def build_rendering_plan(
             )
         html = markdown_to_html(rewritten).strip()
         if apply_stepik_html_normalization:
-            html = normalize_stepik_html(html).strip()
+            normalizer = (
+                normalize_stepik_html
+                if lesson_id in STEPIC_HTML_NORMALIZATION_V2_LESSONS
+                else normalize_stepik_html_v1
+            )
+            html = normalizer(html).strip()
         if not html:
             raise VerifiedRenderingError(f"{lesson_id}: step {source_step.position} rendered в пустой HTML")
         source_paths = tuple(
