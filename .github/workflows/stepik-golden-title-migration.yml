@@ -121,3 +121,16 @@ jobs:
           path: artifacts/stepik-golden-title-migration/
           if-no-files-found: warn
           retention-days: 90
+
+  run_summary:
+    name: Русское резюме запуска
+    if: ${{ always() }}
+    needs: [tests, live]
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+    uses: ./.github/workflows/_russian-run-summary.yml
+    with:
+      purpose: >-
+        Проверить golden-title контракт и при явном owner-dispatch безопасно выполнить только разрешённую миграцию заголовков M00-L01/M00-L02.
