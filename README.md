@@ -14,6 +14,8 @@
 
 Перед работой ИИ-агенты и специализированные чаты должны ознакомиться с bootstrap-инструкцией, затем с актуальной инструкцией проекта в `main`, `AGENTS.md`, действующим манифестом и относящимися к задаче утверждёнными документами непосредственно в `main`.
 
+Все GitHub Actions workflow обязаны завершаться русскоязычной Summary, где без открытия внутренних логов видно: что планировалось, что выполнено, что не выполнено, общий результат и краткая причина ошибки. Для этого используется общий reusable workflow `_russian-run-summary.yml`, а соблюдение правила автоматически проверяется `project-governance.yml`.
+
 ## Автоматическая гигиена веток
 
 В репозитории используется GitHub Actions workflow [`.github/workflows/repository-janitor.yml`](.github/workflows/repository-janitor.yml). Он запускается раз в сутки и может удалять только доказанно безопасные рабочие ветки. Принцип автоматики: при любой неопределённости ветка сохраняется.
@@ -57,7 +59,7 @@ Workflow жёстко разрешён только для репозитори�
 
 - структура репозитория и workflow;
 - [манифест курса v1.3](00_governance/manifest/manifest-v1.3.md), который точечно обновляет полный базовый текст v1.2;
-- [инструкция проекта v1.4](00_governance/project-instructions/project-instructions-v1.4.md);
+- [инструкция проекта v1.5](00_governance/project-instructions/project-instructions-v1.5.md);
 - [карта компетенций v1.2](01_architecture/competency-map/competency-map-v1.2.md), которая точечно обновляет полный базовый текст v1.1 и приводит возрастную границу к D-2026-09-11-AGE;
 - [матрица сервисов v1.1](01_architecture/service-matrix/service-matrix-v1.1.md), которая точечно обновляет полный базовый текст v1.0;
 - [общая архитектура курса v1.1](01_architecture/course-architecture/course-architecture-v1.1.md), которая сохраняет 9 модулей и 21 Lesson ID и снимает age functional testing из внутренних gates;
