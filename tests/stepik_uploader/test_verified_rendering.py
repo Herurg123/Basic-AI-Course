@@ -230,7 +230,7 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertEqual(len(steps), 6)
         self.assertIn(binding.url, steps[1].text)
         self.assertEqual(steps[4].block_name, "free-answer")
-        self.assertIn("Почему найденный вами фрагмент является основанием", steps[4].text)
+        self.assertIn("Почему именно этот фрагмент относится к выбранному утверждению?", steps[4].text)
         self.assertNotIn("будет доступен после verified materialization", "\n".join(step.text for step in steps))
 
     def test_inline_markdown_keeps_instruction_then_appends_material_block(self) -> None:
@@ -243,9 +243,9 @@ class VerifiedRenderingTests(unittest.TestCase):
         step2 = plan.rendered_steps[1].text
         self.assertIn("мини-задачу", step2)
         self.assertIn("материал ниже", step2)
-        self.assertIn("<strong>Материал: безопасная мини-задача</strong>", step2)
+        self.assertIn("<strong>Материал: Короткое напоминание о встрече</strong>", step2)
         self.assertNotIn("M01-L01-A01 —", step2)
-        self.assertIn("начало в 18:30", step2)
+        self.assertIn("18:30", step2)
         self.assertLess(step2.index("материал ниже"), step2.index("Материал:"))
 
     def test_nested_m06_dependency_is_recursively_inlined_without_repo_link(self) -> None:
