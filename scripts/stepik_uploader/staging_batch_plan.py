@@ -18,7 +18,7 @@ else:
     from .canonical import build_structural_manifest
     from .deployment_history import DeploymentHistoryError, GitHubHistoryStore
     from .history_runtime import find_incomplete_object_events
-    from .stepik_uploader.stepik_uploader import source_sha
+    from .stepik_uploader import source_sha
     from .sync_state import load_state
 
 
