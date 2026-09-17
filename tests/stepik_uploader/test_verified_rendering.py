@@ -131,7 +131,7 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertRegex(legacy_html, r"(?i)<hr\s*/?>")
         self.assertNotRegex(normalized_html, r"(?i)<hr\s*/?>")
         self.assertEqual(
-            [normalize_stepik_html(step.text).strip() for step in legacy.rendered_steps],
+            [normalize_stepik_html_v1(step.text).strip() for step in legacy.rendered_steps],
             [step.text for step in normalized.rendered_steps],
         )
 
@@ -182,7 +182,7 @@ class VerifiedRenderingTests(unittest.TestCase):
             asset_report=self.asset_report,
         )
         step2 = plan.rendered_steps[1].text
-        self.assertIn("<p>Там есть исходные данные и подготовленный расчёт.</p>", step2)
+        self.assertIn("<p>Там есть исходные данные и подготовленный расчёт ИИ.</p>", step2)
         self.assertIn('style="text-align:right;"', step2)
         self.assertIn("<br>", step2)
         self.assertNotIn("<br />", step2)
