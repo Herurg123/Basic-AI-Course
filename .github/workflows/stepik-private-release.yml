@@ -205,7 +205,7 @@ jobs:
           PY
             )"
             if [[ "$applicable" != "true" ]]; then
-              python scripts/stepik_uploader/staging_build_runtime.py \
+              python scripts/stepik_uploader/staging_build_entrypoint.py \
                 --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
                 --target-id "$target" --sync-state "$dir/sync-state.previous.json"
             fi
@@ -274,7 +274,7 @@ jobs:
           PY
             )"
             if [[ "$applicable" != "true" ]]; then
-              python scripts/stepik_uploader/staging_build_runtime.py \
+              python scripts/stepik_uploader/staging_build_entrypoint.py \
                 --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
                 --target-id "$target" --sync-state "$dir/sync-state.previous.json" --confirm-write
             fi
