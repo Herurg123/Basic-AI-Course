@@ -478,15 +478,17 @@ class DeploymentRecorder:
     ) -> dict[str, Any]:
         if observed_live_fingerprint is not None and not FP_RE.fullmatch(observed_live_fingerprint):
             raise DeploymentHistoryError("observed_live_fingerprint имеет неверный формат")
+        payload: dict[str, Any] = {
+            "confirmed_at": utc_now(),
+            "operation_id": operation_id,
+            "fingerprint_after": expected_fingerprint_after,
+            "read_back_result": "CONFIRMED",
+        }
+        if observed_live_fingerprint is not None:
+            payload["observed_live_fingerprint"] = observed_live_fingerprint
         return self._append(
             "OP_READBACK_CONFIRMED",
-            {
-                "confirmed_at": utc_now(),
-                "operation_id": operation_id,
-                "fingerprint_after": expected_fingerprint_after,
-                "observed_live_fingerprint": observed_live_fingerprint,
-                "read_back_result": "CONFIRMED",
-            },
+            payload,
             operation_id=operation_id,
         )
 
@@ -511,18 +513,17 @@ class DeploymentRecorder:
             raise DeploymentHistoryError("final read-back поддерживает только APPLIED/NOOP_CONFIRMED")
         if observed_live_fingerprint is not None and not FP_RE.fullmatch(observed_live_fingerprint):
             raise DeploymentHistoryError("observed_live_fingerprint имеет неверный формат")
-        return self._append(
-            "FINAL_READBACK_CONFIRMED",
-            {
-                "confirmed_at": utc_now(),
-                "fingerprint_after": fingerprint_after,
-                "observed_live_fingerprint": observed_live_fingerprint,
-                "actual_confirmed_state": baseline_after,
-                "stepik_object_ids": stepik_object_ids,
-                "read_back_result": "CONFIRMED",
-                "status": status,
-            },
-        )
+        payload: dict[str, Any] = {
+            "confirmed_at": utc_now(),
+            "fingerprint_after": fingerprint_after,
+            "actual_confirmed_state": baseline_after,
+            "stepik_object_ids": stepik_object_ids,
+            "read_back_result": "CONFIRMED",
+            "status": status,
+        }
+        if observed_live_fingerprint is not None:
+            payload["observed_live_fingerprint"] = observed_live_fingerprint
+        return self._append("FINAL_READBACK_CONFIRMED", payload)
 
     def failure(self, *, reason_code: str, before_any_write: bool) -> dict[str, Any]:
         return self._append(
