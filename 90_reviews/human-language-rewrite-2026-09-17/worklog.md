@@ -3,7 +3,8 @@
 **Дата старта:** 2026-09-17  
 **Базовый `main` SHA:** `becc164a6701d2ce6dd91a49842994ecb0d454df`  
 **Snapshot:** `snapshot/pre-human-language-rewrite-2026-09-17`  
-**Рабочая ветка:** `rewrite/human-language-2026-09-17`
+**Рабочая ветка:** `rewrite/human-language-2026-09-17`  
+**Текущий принятый для review SHA:** `09d13a1acc5d75a1d35fcd28b709625c222c303e`
 
 ## Зафиксированное расхождение правил
 
@@ -23,20 +24,32 @@
 - PED-06 — интерфейсные ветки понятны без второго аккаунта;
 - PED-07 — внутренние ID и production terminology не возвращаются в learner-facing слой.
 
+## CI и исправления, обнаруженные после rewrite
+
+Полный PR-CI использовался как структурный gate, а не как замена педагогического аудита. Он выявил машинно значимые H2, topology link-count, старые snapshot-ожидания и два реальных learner-facing дефекта: ссылка на `.txt` в M04-L01 была отделена от самого упражнения, а техническая памятка показывала внутренний ID. Реальные дефекты исправлены; текстовые snapshot-тесты обновлены только там, где они описывали старую формулировку, а не safety-инвариант.
+
+Исторический normalization-recovery M06-L02 после изменения canonical оставлен fail-closed. Production-защита не ослаблялась ради зелёного теста.
+
+На `09d13a1a…` все шесть PR-workflow завершились `success`: Stepik Staging Build, Stepik Private Course Release, Stepik Uploader, Stepik Golden Title Migration, Stepik Staging Batch Build и Stepik Learner Hygiene. PR-событие выполняет offline/test route; Stepik write не выполнялся.
+
 ## Статус
 
 - [x] Зафиксирован SHA исходного `main`.
 - [x] Создан snapshot.
 - [x] Создана feature-ветка.
-- [x] Начато чтение канона из `main`.
-- [ ] Завершено чтение канона и аудитных материалов.
-- [ ] Сформирована полная карта learner-facing файлов.
-- [ ] Rewrite M00–M08 завершён.
-- [ ] Rewrite learner-facing assets завершён.
-- [ ] Rewrite промостраницы завершён.
-- [ ] Авторский self-check завершён.
-- [ ] PR открыт.
-- [ ] Аудитор-новичок завершён.
-- [ ] Аудитор-методист завершён.
+- [x] Завершено чтение канона и аудитных материалов.
+- [x] Сформирована полная карта learner-facing файлов.
+- [x] Rewrite M00–M08 завершён.
+- [x] Rewrite learner-facing assets завершён.
+- [x] Rewrite промостраницы завершён.
+- [x] Авторский self-check завершён.
+- [x] PR #97 открыт как draft.
+- [x] Regression PED-01…PED-07 завершён на source-level.
+- [x] Отдельный аудит глазами новичка завершён.
+- [x] Отдельный методический adversarial audit завершён.
 - [ ] DOCX сформирован и визуально проверен.
 - [ ] OWNER DECISION REQUIRED.
+
+## Открытые реальные gates
+
+Source PASS не закрывает device/live/human доказательства: PED-01, PED-03, PED-06 и Human Pilot остаются открытыми в тех границах, которые были зафиксированы исходным аудитом и critic review. Они не должны быть переименованы в «пройденные» только потому, что rewrite и CI успешны.
