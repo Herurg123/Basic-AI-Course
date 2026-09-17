@@ -1,0 +1,78 @@
+name: Project Governance
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '00_governance/project-instructions/**'
+      - 'AGENTS.md'
+      - 'README.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - '00_governance/project-instructions/**'
+      - 'AGENTS.md'
+      - 'README.md'
+
+permissions:
+  contents: read
+
+jobs:
+  action-summary-contract:
+    name: Проверить контракт русских Actions Summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Получить репозиторий
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Проверить все workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          workflows = Path('.github/workflows')
+          reusable = workflows / '_russian-run-summary.yml'
+          problems = []
+          if not reusable.is_file():
+              problems.append('Отсутствует обязательный reusable workflow _russian-run-summary.yml')
+
+          for path in sorted(workflows.glob('*.yml')):
+              if path.name == '_russian-run-summary.yml':
+                  continue
+              text = path.read_text(encoding='utf-8')
+              if '  run_summary:' not in text:
+                  problems.append(f'{path}: отсутствует job run_summary')
+              if 'always()' not in text:
+                  problems.append(f'{path}: run summary не гарантирован через always()')
+              if 'uses: ./.github/workflows/_russian-run-summary.yml' not in text:
+                  problems.append(f'{path}: не используется общий русскоязычный summary workflow')
+              if 'purpose: >-' not in text:
+                  problems.append(f'{path}: не передано русское описание цели запуска')
+
+          instruction = Path('00_governance/project-instructions/project-instructions-v1.5.md')
+          if not instruction.is_file():
+              problems.append('Нет project-instructions-v1.5.md')
+          elif 'Обязательная русскоязычная GitHub Actions Summary' not in instruction.read_text(encoding='utf-8'):
+              problems.append('В инструкции v1.5 отсутствует нормативный раздел Actions Summary')
+
+          if problems:
+              raise SystemExit('\n'.join(problems))
+          print('PASS: все workflow соблюдают обязательный русскоязычный Actions Summary contract')
+          PY
+
+  run_summary:
+    name: Русское резюме запуска
+    if: ${{ always() }}
+    needs: [action-summary-contract]
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+    uses: ./.github/workflows/_russian-run-summary.yml
+    with:
+      purpose: >-
+        Проверить, что все GitHub Actions workflow соблюдают обязательный проектный контракт русскоязычной сводки запуска.
