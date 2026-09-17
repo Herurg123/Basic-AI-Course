@@ -13,6 +13,7 @@ from scripts.stepik_uploader.verified_rendering import (
     MaterializationRequired,
     build_rendering_plan,
     normalize_stepik_html,
+    normalize_stepik_html_v1,
     require_render_ready,
 )
 
@@ -111,7 +112,7 @@ class VerifiedRenderingTests(unittest.TestCase):
                 self.assertNotRegex(step.text, r"(?i)<hr\s*/?>")
         self.assertEqual(total_steps, 148)
 
-    def test_m02_l01_stepik_render_strips_only_proven_horizontal_rules(self) -> None:
+    def test_m02_l01_stepik_render_strips_proven_horizontal_rules(self) -> None:
         normalized = build_rendering_plan(
             repo_root=self.repo_root,
             lesson_id="M02-L01",
@@ -134,10 +135,58 @@ class VerifiedRenderingTests(unittest.TestCase):
             [step.text for step in normalized.rendered_steps],
         )
 
-    def test_normalizer_does_not_broaden_beyond_plain_horizontal_rule(self) -> None:
-        raw = '<p>a</p><hr /><p>b</p><hr><hr/><hr class="keep"><p>c</p>'
+    def test_v1_normalizer_remains_frozen_for_immutable_event_reconstruction(self) -> None:
+        raw = '<p>a\nb</p><hr /><br /><td style="text-align:right">1</td>'
+        self.assertEqual(
+            normalize_stepik_html_v1(raw),
+            '<p>a\nb</p><br /><td style="text-align:right">1</td>',
+        )
+
+    def test_v2_normalizer_matches_observed_m06_stepik_canonicalization(self) -> None:
+        raw = (
+            '<p>Откройте <a href="https://example.invalid/source">карточку</a>.\n'
+            'Там есть исходные данные и подготовленный расчёт.\n'
+            'Сами выберите, какое число нужно проверить:</p>\n'
+            '<hr />\n'
+            '<table>\n<tr>\n<td style="text-align:right">4</td>\n</tr>\n</table>\n'
+            '<blockquote>\n<p>Строка 1<br />\nСтрока 2</p>\n</blockquote>'
+        )
+        expected = (
+            '<p>Откройте <a href="https://example.invalid/source">карточку</a>.</p>\n'
+            '<p>Там есть исходные данные и подготовленный расчёт.</p>\n'
+            '<p>Сами выберите, какое число нужно проверить:</p>\n\n'
+            '<table>\n<tr>\n<td style="text-align:right;">4</td>\n</tr>\n</table>\n'
+            '<blockquote>\n<p>Строка 1<br>\nСтрока 2</p>\n</blockquote>'
+        )
+        self.assertEqual(normalize_stepik_html(raw), expected)
+
+    def test_v2_normalizer_does_not_broaden_unproven_markup(self) -> None:
+        raw = (
+            '<p>a\nb</p><hr class="keep"><p>x<br />\ny</p>'
+            '<div style="text-align:right">keep</div>'
+            '<td style="color:red;text-align:right">keep</td>'
+        )
         normalized = normalize_stepik_html(raw)
-        self.assertEqual(normalized, '<p>a</p><p>b</p><hr class="keep"><p>c</p>')
+        self.assertEqual(
+            normalized,
+            '<p>a</p>\n<p>b</p><hr class="keep"><p>x<br>\ny</p>'
+            '<div style="text-align:right;">keep</div>'
+            '<td style="color:red;text-align:right">keep</td>',
+        )
+
+    def test_m06_l02_real_step2_uses_stepik_v2_canonical_html(self) -> None:
+        plan = build_rendering_plan(
+            repo_root=self.repo_root,
+            lesson_id="M06-L02",
+            source_steps=self.compiled["M06-L02"],
+            asset_report=self.asset_report,
+        )
+        step2 = plan.rendered_steps[1].text
+        self.assertIn("<p>Там есть исходные данные и подготовленный расчёт.</p>", step2)
+        self.assertIn('style="text-align:right;"', step2)
+        self.assertIn("<br>", step2)
+        self.assertNotIn("<br />", step2)
+        self.assertNotRegex(step2, r"(?i)<hr\s*/?>")
 
     def test_m04_l01_requires_only_txt_before_materialization_and_keeps_author_key_hidden(self) -> None:
         plan = build_rendering_plan(
