@@ -23,6 +23,53 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _history_identity(store: GitHubHistoryStore, event: dict) -> dict:
+    event_id = str(event.get("event_id") or "")
+    if not event_id:
+        raise DeploymentHistoryError("Deployment event artifact не содержит event_id")
+    records = store.load(event_id)
+    if not records:
+        raise DeploymentHistoryError("Deployment event artifact не имеет immutable history records")
+    identities = [row.get("identity") for row in records if isinstance(row.get("identity"), dict)]
+    if not identities:
+        raise DeploymentHistoryError("Immutable history не содержит event identity")
+    first = identities[0]
+    if any(identity != first for identity in identities[1:]):
+        raise DeploymentHistoryError("Immutable history содержит конфликтующие event identities")
+    if first.get("event_id") != event_id:
+        raise DeploymentHistoryError("History identity event_id не совпадает с event artifact")
+    if str(first.get("source_sha") or "") != str(event.get("source_sha") or ""):
+        raise DeploymentHistoryError("History identity source_sha не совпадает с event artifact")
+    return first
+
+
+def _normalize_event_from_history(event: dict, identity: dict, *, event_file: Path) -> dict:
+    """Bind routing metadata to immutable history identity before state commit.
+
+    Event artifact fields are transport metadata. The append-only history identity is
+    authoritative for object_id/kind. Normalizing here prevents a mislabeled helper
+    artifact from committing another lesson's baseline while preserving fail-closed
+    checks for source/event mismatches.
+    """
+    normalized = dict(event)
+    kind = str(identity.get("kind") or "")
+    object_id = str(identity.get("object_id") or "")
+    if kind not in {"lesson", "asset"} or not object_id:
+        raise DeploymentHistoryError("History identity имеет неподдерживаемый kind/object_id")
+    normalized["kind"] = kind
+    if kind == "asset":
+        if not object_id.startswith("asset:"):
+            raise DeploymentHistoryError("Asset history identity не имеет prefix asset:")
+        normalized["source_path"] = object_id.removeprefix("asset:")
+        normalized.pop("canonical_id", None)
+    else:
+        normalized["canonical_id"] = object_id
+        normalized.pop("source_path", None)
+    if normalized != event:
+        event_file.write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return normalized
+
+
 def _baseline_from_state(event: dict, state: dict) -> dict | None:
     kind = str(event.get("kind") or "lesson")
     if kind == "asset":
@@ -43,12 +90,16 @@ def main() -> int:
         state = json.loads(args.state_file.read_text(encoding="utf-8"))
         if not isinstance(state, dict):
             raise DeploymentHistoryError("state-file должен содержать JSON object")
-        baseline_after = _baseline_from_state(event, state)
         store = GitHubHistoryStore(
             repository=os.environ.get("GITHUB_REPOSITORY", ""),
             token=os.environ.get("GITHUB_TOKEN", ""),
             source_sha=str(event.get("source_sha")),
         )
+        identity = _history_identity(store, event)
+        event = _normalize_event_from_history(event, identity, event_file=args.event_file)
+        baseline_after = _baseline_from_state(event, state)
+        if not isinstance(baseline_after, dict):
+            raise DeploymentHistoryError("Machine state не содержит baseline для immutable event identity")
         mark_machine_state_committed(
             store,
             event_id=str(event["event_id"]),
