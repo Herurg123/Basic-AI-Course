@@ -469,13 +469,22 @@ class DeploymentRecorder:
             operation_id=operation_id,
         )
 
-    def operation_readback(self, *, operation_id: str, expected_fingerprint_after: str) -> dict[str, Any]:
+    def operation_readback(
+        self,
+        *,
+        operation_id: str,
+        expected_fingerprint_after: str,
+        observed_live_fingerprint: str | None = None,
+    ) -> dict[str, Any]:
+        if observed_live_fingerprint is not None and not FP_RE.fullmatch(observed_live_fingerprint):
+            raise DeploymentHistoryError("observed_live_fingerprint имеет неверный формат")
         return self._append(
             "OP_READBACK_CONFIRMED",
             {
                 "confirmed_at": utc_now(),
                 "operation_id": operation_id,
                 "fingerprint_after": expected_fingerprint_after,
+                "observed_live_fingerprint": observed_live_fingerprint,
                 "read_back_result": "CONFIRMED",
             },
             operation_id=operation_id,
@@ -496,14 +505,18 @@ class DeploymentRecorder:
         stepik_object_ids: dict[str, Any],
         status: str,
         baseline_after: dict[str, Any] | None,
+        observed_live_fingerprint: str | None = None,
     ) -> dict[str, Any]:
         if status not in {"APPLIED", "NOOP_CONFIRMED"}:
             raise DeploymentHistoryError("final read-back поддерживает только APPLIED/NOOP_CONFIRMED")
+        if observed_live_fingerprint is not None and not FP_RE.fullmatch(observed_live_fingerprint):
+            raise DeploymentHistoryError("observed_live_fingerprint имеет неверный формат")
         return self._append(
             "FINAL_READBACK_CONFIRMED",
             {
                 "confirmed_at": utc_now(),
                 "fingerprint_after": fingerprint_after,
+                "observed_live_fingerprint": observed_live_fingerprint,
                 "actual_confirmed_state": baseline_after,
                 "stepik_object_ids": stepik_object_ids,
                 "read_back_result": "CONFIRMED",
@@ -595,6 +608,10 @@ def summarize_event(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
     dispatch_ids = {str(record.get("operation_id")) for record in dispatches}
     known_failed_ids = {str(record.get("operation_id")) for record in known_failed}
     last_confirmed = confirmed_ops[-1] if confirmed_ops else None
+    final_expected = None if final is None else final.get("fingerprint_after")
+    final_live = None if final is None else (final.get("observed_live_fingerprint") or final_expected)
+    last_expected = None if last_confirmed is None else last_confirmed.get("fingerprint_after")
+    last_live = None if last_confirmed is None else (last_confirmed.get("observed_live_fingerprint") or last_expected)
     return {
         "phases": phases,
         "external_write_started": bool(dispatches),
@@ -605,10 +622,12 @@ def summarize_event(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
         "ambiguous": bool(ambiguous),
         "readback_failed": bool(readback_failed),
         "final_readback_confirmed": final is not None,
-        "final_fingerprint": None if final is None else final.get("fingerprint_after"),
+        "final_fingerprint": final_expected,
+        "final_live_fingerprint": final_live,
         "final_status": None if final is None else final.get("status"),
         "machine_state_committed": committed is not None,
         "committed_baseline_after": None if committed is None else committed.get("baseline_after"),
-        "last_confirmed_operation_fingerprint": None if last_confirmed is None else last_confirmed.get("fingerprint_after"),
+        "last_confirmed_operation_fingerprint": last_live,
+        "last_confirmed_operation_expected_fingerprint": last_expected,
         "confirmed_operation_count": len(confirmed_ops),
     }
