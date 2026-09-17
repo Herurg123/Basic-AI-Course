@@ -106,3 +106,16 @@ jobs:
           path: artifacts/stepik-bulk-status/
           if-no-files-found: warn
           retention-days: 90
+
+  run_summary:
+    name: Русское резюме запуска
+    if: ${{ always() }}
+    needs: [tests, bulk_status]
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+    uses: ./.github/workflows/_russian-run-summary.yml
+    with:
+      purpose: >-
+        Провести offline-проверки и read-only сверку статуса всех 21 уроков приватного курса Stepik без записей.
