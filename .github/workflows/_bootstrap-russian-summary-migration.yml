@@ -1,0 +1,90 @@
+name: Bootstrap Russian Actions Summary Migration
+
+on:
+  push:
+    branches:
+      - governance/russian-action-summaries-2026-09-17
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    name: Применить миграцию Actions Summary
+    if: github.repository == 'Herurg123/Basic-AI-Course'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Получить рабочую ветку
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Применить нормативные и workflow-изменения
+        run: python scripts/project_governance/migrate_russian_action_summaries.py
+
+      - name: Проверить результат миграции
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f 00_governance/project-instructions/project-instructions-v1.5.md
+          test -f .github/workflows/_russian-run-summary.yml
+          test -f .github/workflows/project-governance.yml
+          test ! -f .github/workflows/_bootstrap-russian-summary-migration.yml
+          test ! -f scripts/project_governance/migrate_russian_action_summaries.py
+          python - <<'PY'
+          from pathlib import Path
+          problems = []
+          for path in sorted(Path('.github/workflows').glob('*.yml')):
+              if path.name == '_russian-run-summary.yml':
+                  continue
+              text = path.read_text(encoding='utf-8')
+              if '  run_summary:' not in text:
+                  problems.append(f'{path}: нет run_summary')
+              if 'if: ${{ always() }}' not in text:
+                  problems.append(f'{path}: нет always() summary')
+              if 'uses: ./.github/workflows/_russian-run-summary.yml' not in text:
+                  problems.append(f'{path}: нет общего summary workflow')
+          if problems:
+              raise SystemExit('\n'.join(problems))
+          print('PASS: миграция покрывает все действующие workflow')
+          PY
+
+      - name: Зафиксировать изменения в рабочей ветке
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'Нет изменений для commit.'
+            exit 0
+          fi
+          git commit -m 'Governance: require Russian GitHub Actions summaries'
+          git push origin HEAD:${GITHUB_REF_NAME}
+
+      - name: Русская сводка bootstrap-миграции
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '# Итог bootstrap-миграции Actions Summary'
+            echo
+            echo '## Что должно было быть выполнено'
+            echo '- Добавить проектное правило русскоязычной GitHub Actions Summary.'
+            echo '- Обновить все действующие workflow общим summary-job.'
+            echo '- Добавить автоматическую governance-проверку будущих workflow.'
+            echo '- Сохранить изменения в рабочей ветке и удалить временный bootstrap-код.'
+            echo
+            echo '## Что выполнено / что не выполнено'
+            if [[ "${{ job.status }}" == 'success' ]]; then
+              echo '- ✅ Миграция выполнена и изменения отправлены в рабочую ветку.'
+              echo '- Невыполненных этапов нет.'
+              echo '- Ошибок не зафиксировано.'
+            else
+              echo '- ❌ Bootstrap-миграция завершилась с ошибкой.'
+              echo '- Не выполненные после точки сбоя этапы требуют разбора текущего job.'
+              echo '- Краткая ошибка: один из этапов миграции/валидации/commit завершился неуспешно; ветка main не затронута.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
