@@ -37,6 +37,17 @@ class TransportHistoryCompatibilityTests(unittest.TestCase):
         self.assertEqual(twice, once)
         self.assertIn("<br>", once)
 
+    def test_multiline_split_accepts_line_local_inline_markup(self) -> None:
+        raw = '<p>Откройте <a href="https://example.org/">карточку</a>.\nПродолжите работу.</p>'
+        self.assertEqual(
+            normalize_stepik_transport_html(raw),
+            '<p>Откройте <a href="https://example.org/">карточку</a>.</p>\n<p>Продолжите работу.</p>',
+        )
+
+    def test_multiline_split_does_not_cut_across_open_inline_tag(self) -> None:
+        raw = '<p><strong>Первая строка\nВторая строка</strong></p>'
+        self.assertEqual(normalize_stepik_transport_html(raw), raw)
+
     def test_old_operation_readback_record_without_observed_field_remains_idempotent(self) -> None:
         store = MemoryHistoryStore()
         recorder = DeploymentRecorder(store, _identity())
