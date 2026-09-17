@@ -53,6 +53,18 @@ class GoldenContentRefresh8to8Tests(unittest.TestCase):
             "applied_fingerprint": "sha256:" + "a" * 64,
         }
 
+    def _desired(self) -> list[CompiledStep]:
+        return [
+            CompiledStep(
+                position=position,
+                block_name="text",
+                text=f"<p>Шаг {position}</p>",
+                source={},
+                source_git_paths=("lesson.md",),
+            )
+            for position in range(1, 9)
+        ]
+
     def test_accepted_eight_step_fixture_with_pending_routes_to_refresh(self) -> None:
         args = self._args()
         state = {"pending": {"lessons": {"M00-L02": {"status": "PENDING"}}}}
@@ -101,23 +113,48 @@ class GoldenContentRefresh8to8Tests(unittest.TestCase):
         with self.assertRaises(refresh.GoldenContentRefreshError):
             refresh._assert_same_eight_ids(lesson, self._baseline())
 
-    def test_changed_positions_never_implies_create_or_delete(self) -> None:
+    def test_changed_positions_are_content_only(self) -> None:
         lesson = self._lesson()
-        desired = []
-        for position in range(1, 9):
-            text = f"<p>Шаг {position}</p>"
-            if position in {2, 6}:
-                text += "<p>Изменение</p>"
-            desired.append(
-                CompiledStep(
-                    position=position,
-                    block_name="text",
-                    text=text,
-                    source={},
-                    source_git_paths=("lesson.md",),
-                )
-            )
+        desired = self._desired()
+        desired[1] = CompiledStep(
+            position=2,
+            block_name="text",
+            text="<p>Изменённый текст</p>",
+            source={},
+            source_git_paths=("lesson.md",),
+        )
+        desired[5] = CompiledStep(
+            position=6,
+            block_name="text",
+            text="<p>Ещё изменённый текст</p>",
+            source={},
+            source_git_paths=("lesson.md",),
+        )
         self.assertEqual(refresh._changed_positions(lesson, desired), [2, 6])
+
+    def test_block_type_change_is_blocked(self) -> None:
+        desired = self._desired()
+        desired[2] = CompiledStep(
+            position=3,
+            block_name="free-answer",
+            text=desired[2].text,
+            source={"is_html_enabled": True},
+            source_git_paths=("lesson.md",),
+        )
+        with self.assertRaises(refresh.GoldenContentRefreshError):
+            refresh._assert_content_only_shape(self._lesson(), desired)
+
+    def test_block_source_change_is_blocked(self) -> None:
+        desired = self._desired()
+        desired[4] = CompiledStep(
+            position=5,
+            block_name="text",
+            text=desired[4].text,
+            source={"unexpected": True},
+            source_git_paths=("lesson.md",),
+        )
+        with self.assertRaises(refresh.GoldenContentRefreshError):
+            refresh._assert_content_only_shape(self._lesson(), desired)
 
     def test_refresh_requires_exactly_eight_live_steps(self) -> None:
         lesson = self._lesson()
