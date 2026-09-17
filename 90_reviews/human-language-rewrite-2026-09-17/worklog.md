@@ -3,8 +3,7 @@
 **Дата старта:** 2026-09-17  
 **Базовый `main` SHA:** `becc164a6701d2ce6dd91a49842994ecb0d454df`  
 **Snapshot:** `snapshot/pre-human-language-rewrite-2026-09-17`  
-**Рабочая ветка:** `rewrite/human-language-2026-09-17`  
-**Текущий принятый для review SHA:** `09d13a1acc5d75a1d35fcd28b709625c222c303e`
+**Рабочая ветка:** `rewrite/human-language-2026-09-17`
 
 ## Зафиксированное расхождение правил
 
@@ -24,32 +23,39 @@
 - PED-06 — интерфейсные ветки понятны без второго аккаунта;
 - PED-07 — внутренние ID и production terminology не возвращаются в learner-facing слой.
 
-## CI и исправления, обнаруженные после rewrite
-
-Полный PR-CI использовался как структурный gate, а не как замена педагогического аудита. Он выявил машинно значимые H2, topology link-count, старые snapshot-ожидания и два реальных learner-facing дефекта: ссылка на `.txt` в M04-L01 была отделена от самого упражнения, а техническая памятка показывала внутренний ID. Реальные дефекты исправлены; текстовые snapshot-тесты обновлены только там, где они описывали старую формулировку, а не safety-инвариант.
-
-Исторический normalization-recovery M06-L02 после изменения canonical оставлен fail-closed. Production-защита не ослаблялась ради зелёного теста.
-
-На `09d13a1a…` все шесть PR-workflow завершились `success`: Stepik Staging Build, Stepik Private Course Release, Stepik Uploader, Stepik Golden Title Migration, Stepik Staging Batch Build и Stepik Learner Hygiene. PR-событие выполняет offline/test route; Stepik write не выполнялся.
-
-## Статус
+## Статус на 17 сентября 2026
 
 - [x] Зафиксирован SHA исходного `main`.
 - [x] Создан snapshot.
 - [x] Создана feature-ветка.
-- [x] Завершено чтение канона и аудитных материалов.
-- [x] Сформирована полная карта learner-facing файлов.
+- [x] Завершено чтение канона и предыдущих аудитных материалов.
+- [x] Сформирована карта learner-facing файлов.
 - [x] Rewrite M00–M08 завершён.
 - [x] Rewrite learner-facing assets завершён.
 - [x] Rewrite промостраницы завершён.
 - [x] Авторский self-check завершён.
-- [x] PR #97 открыт как draft.
-- [x] Regression PED-01…PED-07 завершён на source-level.
-- [x] Отдельный аудит глазами новичка завершён.
-- [x] Отдельный методический adversarial audit завершён.
-- [ ] DOCX сформирован и визуально проверен.
-- [ ] OWNER DECISION REQUIRED.
+- [x] Draft PR #97 открыт.
+- [x] PR/offline CI на learner-content SHA `09d13a1a…` — success по всем шести workflow.
+- [x] Regression PED-01…PED-07 повторно проверен на новой редакции; source-level blockers не найдены.
+- [x] Аудит глазами абсолютного новичка завершён — source-level PASS.
+- [x] Методический adversarial audit завершён — source-level PASS.
+- [x] DOCX review-копия сформирована.
+- [x] DOCX отрендерен в 54 страницы и все 54 страницы просмотрены визуально — PASS.
+- [ ] Real-device PED-01 acceptance на телефоне и компьютере.
+- [ ] Live-account PED-03 acceptance для актуальной бесплатной генерации/редактирования.
+- [ ] Публикационный route/visual check PED-06 в фактически собранном маршруте.
+- [ ] Human Pilot на абсолютных новичках.
+- [ ] Merge PR #97.
 
-## Открытые реальные gates
+## OWNER DECISION REQUIRED
 
-Source PASS не закрывает device/live/human доказательства: PED-01, PED-03, PED-06 и Human Pilot остаются открытыми в тех границах, которые были зафиксированы исходным аудитом и critic review. Они не должны быть переименованы в «пройденные» только потому, что rewrite и CI успешны.
+Source-редакция, regression-проверки, независимые model-аудиты, PR/offline CI и review-DOCX готовы для решения владельца. Однако это **не** закрывает реальные device/live-account gates и Human Pilot.
+
+До явного решения владельца:
+
+- PR #97 остаётся draft;
+- `main` не изменять;
+- Stepik writes не выполнять;
+- не выдавать source/model PASS за подтверждение понятности живыми новичками.
+
+Отдельный отчёт по DOCX: `90_reviews/human-language-rewrite-2026-09-17/docx-visual-qa.md`.
