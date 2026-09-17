@@ -16,6 +16,16 @@ INTERNAL_TITLE_PREFIX_RE = re.compile(
     r"^M\d{2}-L\d{2}(?:-[AEC]\d{2}(?:-[A-Za-z0-9_-]+)?)?\s*(?:[—–:]\s*)?"
 )
 STEPIC_HORIZONTAL_RULE_RE = re.compile(r"<hr\s*/?>", re.IGNORECASE)
+STEPIC_BREAK_RE = re.compile(r"<br\s*/>", re.IGNORECASE)
+STEPIC_TEXT_ALIGN_RE = re.compile(r'style="text-align:(left|right|center)"', re.IGNORECASE)
+STEPIC_PARAGRAPH_RE = re.compile(r"<p>(.*?)</p>", re.IGNORECASE | re.DOTALL)
+STEPIC_BLOCK_TAG_RE = re.compile(
+    r"<(?:p|div|table|thead|tbody|tr|td|th|ul|ol|li|blockquote|pre|hr|h[1-6])\b",
+    re.IGNORECASE,
+)
+STEPIC_HTML_NORMALIZATION_V1 = "stepik-plain-horizontal-rule-strip-v1"
+STEPIC_HTML_NORMALIZATION_V2 = "stepik-observed-html-canonicalization-v2"
+STEPIC_HTML_NORMALIZATION_V2_LESSONS = frozenset({"M06-L02"})
 
 
 class VerifiedRenderingError(RuntimeError):
@@ -50,16 +60,47 @@ class RenderingPlan:
         return not self.materialization_requirements
 
 
-def normalize_stepik_html(html: str) -> str:
-    """Remove only markup proven to be discarded by Stepik on write/read-back.
+def normalize_stepik_html_v1(html: str) -> str:
+    """Historical normalization contract used by already-started deployment events.
 
-    Production evidence from issue #80 shows that Stepik removes plain horizontal-rule
-    tags (`<hr>`, `<hr/>`, `<hr />`) from text blocks. Keeping them in the outgoing
-    canonical payload makes an otherwise successful PUT permanently unverifiable.
-    This boundary intentionally does not perform broad HTML sanitization: every other
-    tag remains part of the read-back contract until separately proven otherwise.
+    Incident #80 proved only one transformation at that time: Stepik removes plain
+    horizontal-rule tags. This function is intentionally frozen so an immutable event
+    created under v1 can be reconstructed after the production renderer moves forward.
     """
     return STEPIC_HORIZONTAL_RULE_RE.sub("", html or "")
+
+
+def _split_stepik_multiline_paragraph(match: re.Match[str]) -> str:
+    body = match.group(1)
+    if "\n" not in body or STEPIC_BREAK_RE.search(body) or STEPIC_BLOCK_TAG_RE.search(body):
+        return match.group(0)
+    lines = body.splitlines()
+    if len(lines) < 2 or any(not line.strip() for line in lines):
+        return match.group(0)
+    return "\n".join(f"<p>{line.strip()}</p>" for line in lines)
+
+
+def normalize_stepik_html(html: str) -> str:
+    """Apply only HTML canonicalizations observed in Stepik write/read-back evidence.
+
+    The v2 contract extends the frozen v1 rule with three transformations reproduced
+    byte-for-byte from the M06-L02 incident in private course 299189:
+    - newline-separated inline-only paragraph bodies become separate paragraphs;
+    - XHTML-style ``<br />`` becomes ``<br>``;
+    - exact table alignment styles receive Stepik's trailing semicolon.
+
+    Broad sanitization remains forbidden. Paragraphs containing block tags or explicit
+    ``<br>`` markup are not split, attributed ``<hr>`` tags are preserved, and unrelated
+    style attributes are untouched. Production rendering applies this v2 contract only
+    to lessons named in ``STEPIC_HTML_NORMALIZATION_V2_LESSONS`` until equivalent live
+    evidence exists for another lesson.
+    """
+    normalized = html or ""
+    normalized = STEPIC_PARAGRAPH_RE.sub(_split_stepik_multiline_paragraph, normalized)
+    normalized = STEPIC_HORIZONTAL_RULE_RE.sub("", normalized)
+    normalized = STEPIC_BREAK_RE.sub("<br>", normalized)
+    normalized = STEPIC_TEXT_ALIGN_RE.sub(lambda match: f'style="text-align:{match.group(1).lower()};"', normalized)
+    return normalized
 
 
 def _normalize_repo_path(value: str) -> str:
@@ -279,7 +320,12 @@ def build_rendering_plan(
             )
         html = markdown_to_html(rewritten).strip()
         if apply_stepik_html_normalization:
-            html = normalize_stepik_html(html).strip()
+            normalizer = (
+                normalize_stepik_html
+                if lesson_id in STEPIC_HTML_NORMALIZATION_V2_LESSONS
+                else normalize_stepik_html_v1
+            )
+            html = normalizer(html).strip()
         if not html:
             raise VerifiedRenderingError(f"{lesson_id}: step {source_step.position} rendered в пустой HTML")
         source_paths = tuple(
