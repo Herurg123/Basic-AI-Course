@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ class VisualMaterializationError(RuntimeError):
 
 
 SUPPORTED_MODES = {"stepik-image-upload", "rasterize-png-stepik-image"}
+VERSION_SUFFIX_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
 
 
 def _sha256_bytes(content: bytes) -> str:
@@ -55,10 +57,21 @@ def prepare_visual_file(
     expected_source_sha256: str,
     mode: str,
     work_dir: Path,
+    filename_suffix: str | None = None,
 ) -> tuple[Path, str, str]:
-    """Return materialized file path, file SHA and deterministic materialization fingerprint."""
+    """Return materialized file path, file SHA and deterministic materialization fingerprint.
+
+    ``filename_suffix`` is used by the guarded refresh route when canonical visual
+    bytes changed after an earlier attachment was already confirmed. Stepik does not
+    offer a proven safe in-place attachment replacement contract in this project, so
+    refresh publishes immutable versioned filenames instead of overwriting/deleting
+    the old attachment. The suffix is deterministic (normally derived from source
+    SHA), therefore retries target the same expected filename.
+    """
     if mode not in SUPPORTED_MODES:
         raise VisualMaterializationError(f"Неподдерживаемый visual materialization mode: {mode}")
+    if filename_suffix is not None and not VERSION_SUFFIX_RE.fullmatch(filename_suffix):
+        raise VisualMaterializationError("Visual filename suffix должен быть коротким lowercase alnum/hyphen token")
     source_file = source_file.resolve()
     if not source_file.is_file():
         raise VisualMaterializationError(f"Visual source отсутствует: {source_path}")
@@ -87,6 +100,11 @@ def prepare_visual_file(
         png_header = material_file.read_bytes()[:8]
         if png_header != b"\x89PNG\r\n\x1a\n":
             raise VisualMaterializationError(f"Rasterizer создал не PNG для {source_path}")
+
+    if filename_suffix is not None:
+        versioned = work_dir / f"{material_file.stem}-{filename_suffix}{material_file.suffix.lower()}"
+        versioned.write_bytes(material_file.read_bytes())
+        material_file = versioned
 
     materialized_sha = file_sha256(material_file)
     fingerprint = _materialization_fingerprint(
@@ -206,6 +224,7 @@ def materialize_visual(
     mode: str,
     stepik_lesson_id: int,
     work_dir: Path,
+    filename_suffix: str | None = None,
 ) -> tuple[dict[str, Any], str]:
     material_file, materialized_sha, materialization_fp = prepare_visual_file(
         source_file=source_file,
@@ -213,6 +232,7 @@ def materialize_visual(
         expected_source_sha256=expected_source_sha256,
         mode=mode,
         work_dir=work_dir,
+        filename_suffix=filename_suffix,
     )
     if recorder.identity.desired_fingerprint != materialization_fp:
         raise VisualMaterializationError("Visual event desired fingerprint не совпадает с prepared materialization")
