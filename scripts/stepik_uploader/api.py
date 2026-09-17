@@ -78,12 +78,23 @@ class StepikClient:
             raise StepikAPIError(f"{context}: неожиданный формат JSON")
         return payload
 
+    def _read_retry_delay(self, attempt: int) -> float:
+        return self.retry_policy.base_delay_seconds * (2 ** (attempt - 1))
+
     def _request_get(self, path: str, *, params: list[tuple[str, Any]] | None = None) -> dict[str, Any]:
         url = f"{self.api_host}{path}"
         attempts = self.retry_policy.attempts
         last_status: int | None = None
         for attempt in range(1, attempts + 1):
-            response = self.session.get(url, headers=self.headers, params=params, timeout=30)
+            try:
+                response = self.session.get(url, headers=self.headers, params=params, timeout=30)
+            except (requests.Timeout, requests.ConnectionError) as exc:
+                if attempt == attempts:
+                    raise StepikAPIError(
+                        f"GET {path}: Stepik network read failed after {attempts} attempts"
+                    ) from exc
+                self._sleep(self._read_retry_delay(attempt))
+                continue
             last_status = response.status_code
             if response.status_code < 400:
                 return self._json(response, f"GET {path}")
@@ -94,9 +105,9 @@ class StepikClient:
                 try:
                     delay = min(float(retry_after), 10.0)
                 except ValueError:
-                    delay = self.retry_policy.base_delay_seconds * (2 ** (attempt - 1))
+                    delay = self._read_retry_delay(attempt)
             else:
-                delay = self.retry_policy.base_delay_seconds * (2 ** (attempt - 1))
+                delay = self._read_retry_delay(attempt)
             self._sleep(delay)
         raise StepikAPIError(f"GET {path}: Stepik вернул HTTP {last_status}")
 
@@ -116,7 +127,15 @@ class StepikClient:
         attempts = self.retry_policy.attempts
         last_status: int | None = None
         for attempt in range(1, attempts + 1):
-            response = self.session.get(url, headers=self.headers, timeout=30)
+            try:
+                response = self.session.get(url, headers=self.headers, timeout=30)
+            except (requests.Timeout, requests.ConnectionError) as exc:
+                if attempt == attempts:
+                    raise StepikAPIError(
+                        f"GET {context}: Stepik network read failed after {attempts} attempts"
+                    ) from exc
+                self._sleep(self._read_retry_delay(attempt))
+                continue
             last_status = response.status_code
             if response.status_code < 400:
                 content = getattr(response, "content", None)
@@ -125,7 +144,7 @@ class StepikClient:
                 return bytes(content)
             if response.status_code not in self.retry_policy.retry_statuses or attempt == attempts:
                 break
-            self._sleep(self.retry_policy.base_delay_seconds * (2 ** (attempt - 1)))
+            self._sleep(self._read_retry_delay(attempt))
         raise StepikAPIError(f"GET {context}: Stepik вернул HTTP {last_status}")
 
     def _request_options(self, path: str) -> tuple[dict[str, Any], str]:
