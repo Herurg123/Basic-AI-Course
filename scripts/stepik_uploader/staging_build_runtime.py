@@ -126,6 +126,10 @@ def _manifest_lesson(manifest: dict[str, Any], target_id: str) -> tuple[dict[str
     raise ContentCompileError(f"В manifest отсутствует {target_id}")
 
 
+def _learner_step_count(lesson_manifest: dict[str, Any]) -> int:
+    return sum(1 for row in lesson_manifest.get("steps", []) if row.get("author_only") is not True)
+
+
 def _live_lesson(snapshot: dict[str, Any], *, module_position: int, lesson_position: int) -> dict[str, Any]:
     sections = [item for item in snapshot.get("sections", []) if item.get("position") == module_position]
     if len(sections) != 1:
@@ -660,9 +664,9 @@ def main() -> int:
                 bindings=preflight_bindings,
             )
             preflight_steps = list(require_render_ready(preflight_rendering))
-            if len(preflight_steps) != len(lesson_manifest.get("steps", [])):
+            if len(preflight_steps) != _learner_step_count(lesson_manifest):
                 raise VerifiedRenderingError(
-                    f"{target_id}: preflight rendered step count не совпадает с canonical plan"
+                    f"{target_id}: preflight rendered learner step count не совпадает с canonical learner plan"
                 )
 
             report.update(
@@ -711,8 +715,10 @@ def main() -> int:
             bindings=bindings,
         )
         rendered_steps = list(require_render_ready(rendering))
-        if len(rendered_steps) != len(lesson_manifest.get("steps", [])):
-            raise VerifiedRenderingError(f"{target_id}: rendered step count не совпадает с canonical Stepik plan")
+        if len(rendered_steps) != _learner_step_count(lesson_manifest):
+            raise VerifiedRenderingError(
+                f"{target_id}: rendered learner step count не совпадает с canonical learner Stepik plan"
+            )
         desired_fp = compiled_lesson_fingerprint(expected_title=expected_title, expected_steps=rendered_steps)
 
         current_snapshot = client.inspect_course(args.course_id)
