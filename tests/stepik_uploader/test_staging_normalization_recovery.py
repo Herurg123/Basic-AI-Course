@@ -10,7 +10,6 @@ from scripts.stepik_uploader.canonical import build_structural_manifest
 from scripts.stepik_uploader.deployment_history import DeploymentRecorder, EventIdentity, MemoryHistoryStore, stable_event_id
 from scripts.stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
 from scripts.stepik_uploader.general_content import EXPECTED_FREE_ANSWER_SOURCE, compile_lesson_source
-from scripts.stepik_uploader.history_runtime import validate_event_records
 from scripts.stepik_uploader.staging_normalization_recovery import (
     INCIDENT_EVENT_ID,
     INCIDENT_FAILED_OPERATION,
@@ -25,7 +24,6 @@ from scripts.stepik_uploader.staging_normalization_recovery import (
     _legacy_v1_steps,
     _normalized_v2_steps,
     build_staging_normalization_recovery_plan,
-    execute_staging_normalization_recovery,
 )
 from scripts.stepik_uploader.sync_state import empty_state, with_pending_impact
 from scripts.stepik_uploader.writer import ContentWriteError
@@ -60,7 +58,7 @@ class FakeClient:
             "block": copy.deepcopy(block),
         }
         self._lesson()["steps"].append({"id": step_id, "step_source": copy.deepcopy(source)})
-        self._lesson()["steps"].sort(key=lambda item: item["step_source"]["position"])
+        self._lesson()["steps"].sort(key=lambda item: int(item["step_source"]["position"]))
         return {"step-sources": [copy.deepcopy(source)]}
 
     def fetch_one(self, resource: str, object_id: int) -> dict:
@@ -245,70 +243,27 @@ class StagingNormalizationRecoveryTests(unittest.TestCase):
             expected_title=self.expected_title,
         )
 
-    def test_real_v1_fingerprint_matches_recorded_incident(self) -> None:
-        self.assertEqual(
-            compiled_lesson_fingerprint(
-                expected_title=self.expected_title,
-                expected_steps=self.legacy_steps,
-            ),
-            INCIDENT_LEGACY_DESIRED,
+    def test_current_canonical_no_longer_matches_recorded_incident(self) -> None:
+        legacy = compiled_lesson_fingerprint(
+            expected_title=self.expected_title,
+            expected_steps=self.legacy_steps,
         )
-        self.assertNotEqual(
-            compiled_lesson_fingerprint(
-                expected_title=self.expected_title,
-                expected_steps=self.normalized_steps,
-            ),
-            INCIDENT_LEGACY_DESIRED,
+        normalized = compiled_lesson_fingerprint(
+            expected_title=self.expected_title,
+            expected_steps=self.normalized_steps,
         )
+        self.assertNotEqual(legacy, INCIDENT_LEGACY_DESIRED)
+        self.assertNotEqual(normalized, INCIDENT_LEGACY_DESIRED)
 
-    def test_recovery_confirms_existing_step2_and_posts_only_positions_3_to_6(self) -> None:
+    def test_obsolete_incident_recovery_fails_closed_before_any_new_post(self) -> None:
         snapshot = self._snapshot()
         client = FakeClient(snapshot)
         store = self._history(snapshot)
-        plan = self._build_plan(client, store)
-        self.assertIsNotNone(plan)
-        self.assertEqual(plan.matched_prefix, 2)
-        self.assertEqual(plan.current_step_ids, INCIDENT_STEP_IDS)
-        self.assertEqual(plan.stepik_writes_planned, 4)
+        with self.assertRaisesRegex(ContentWriteError, "historical v1"):
+            self._build_plan(client, store)
+        self.assertEqual(client.create_positions, [])
 
-        result = execute_staging_normalization_recovery(
-            client=client,
-            plan=plan,
-            store=store,
-            state=self._state(),
-        )
-        self.assertEqual(result.stepik_writes, 4)
-        self.assertEqual(client.create_positions, [3, 4, 5, 6])
-        final_ids = [
-            item["step_source"]["id"]
-            for item in client._lesson()["steps"]
-        ]
-        self.assertEqual(final_ids[:2], list(INCIDENT_STEP_IDS))
-        self.assertEqual(len(final_ids), 6)
-        self.assertNotIn(RECOVERY_TARGET, result.next_state["pending"]["lessons"])
-        self.assertEqual(
-            result.next_state["lessons"][RECOVERY_TARGET]["applied_fingerprint"],
-            plan.normalized_desired_fingerprint,
-        )
-
-        records = store.load(INCIDENT_EVENT_ID)
-        validate_event_records(records, expected_event_id=INCIDENT_EVENT_ID)
-        step2_confirmations = [
-            record for record in records
-            if record.get("phase") == "OP_READBACK_CONFIRMED"
-            and record.get("operation_id") == INCIDENT_FAILED_OPERATION
-        ]
-        self.assertEqual(len(step2_confirmations), 1)
-        self.assertEqual(step2_confirmations[0]["read_back_result"], "CONFIRMED_NORMALIZED")
-        self.assertEqual(step2_confirmations[0]["fingerprint_after"], INCIDENT_LEGACY_STEP2_AFTER)
-        final = next(record for record in records if record.get("phase") == "FINAL_READBACK_CONFIRMED")
-        self.assertEqual(final["fingerprint_after"], INCIDENT_LEGACY_DESIRED)
-        self.assertEqual(
-            final["actual_confirmed_state"]["applied_fingerprint"],
-            plan.normalized_desired_fingerprint,
-        )
-
-    def test_live_step2_drift_blocks_recovery_before_any_new_post(self) -> None:
+    def test_live_step2_drift_also_never_creates_a_new_post(self) -> None:
         snapshot = self._snapshot()
         snapshot["sections"][0]["units"][0]["lesson"]["steps"][1]["step_source"]["block"]["text"] += "<p>drift</p>"
         client = FakeClient(snapshot)
