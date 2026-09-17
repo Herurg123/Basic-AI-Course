@@ -6,8 +6,8 @@
     "language": "ru",
     "is_public": false
   },
-  "observed_run_id": 35086056899,
-  "observed_source_sha": "e31cef0c934a2a9223675c612acc279e9fb9e6b4",
+  "observed_run_id": 35201710600,
+  "observed_source_sha": "59e0ac97fce70d51138f342d52538d51e435bad6",
   "golden_lessons": {
     "M00-L01": {
       "stepik_section_id": 755023,
@@ -37,8 +37,12 @@
         "563e9ccb8a52a7a4fd763d3e11947278a9a32779548ce6993fffae6807f58825",
         "3530ae6e9ba83768e7d9fcaa85b7a42d0f4ad8b7c5840d0c6cc5156434293b78"
       ],
-      "free_answer_positions": [5],
-      "inline_markdown_asset_ids": ["M00-L01-A01"],
+      "free_answer_positions": [
+        5
+      ],
+      "inline_markdown_asset_ids": [
+        "M00-L01-A01"
+      ],
       "stepik_file_assets": []
     },
     "M00-L02": {
@@ -51,9 +55,10 @@
       "unit_position": 2,
       "language": "ru",
       "is_public": false,
-      "plan_rows": 7,
-      "step_count": 7,
+      "plan_rows": 8,
+      "step_count": 8,
       "block_sequence": [
+        "text",
         "text",
         "text",
         "text",
@@ -63,16 +68,21 @@
         "text"
       ],
       "step_text_sha256": [
-        "c2c34513aa0b8bde0d758b75d4273ccfe535f12b990e171a5dbff325d3b163af",
-        "4acfd1fef364d3dd4fca9ae65c433a31e1b3bbd1672f107435a6e14bd4e19af2",
-        "a8a8c372b1f83e010009dd74a06bf56bcedc8ebea65b5cf92871285301549600",
-        "0581fb4bc3884b46187ea60658885ace3dc04eb362285c227e0a549c12d46366",
-        "efda23e96c2c584d76d34105c3e3916542417f2f0dbd820615cfee9b0afd630a",
-        "5a8dacee5c840118ad61a3f13528b5635e4047de4bbd61155f87a3746f4cb51e",
-        "c55d1e4ff24ba004223df5900d70575a4822b633b6651776ae93996c52e5af95"
+        "3fbe0c979f7c712cb1111ca963fea43247c9d620ff6b1e7adafac49ac94c4d8f",
+        "2588e3ee83f98363761eadd46375afaf2220e2b3b42932fa26d0701ae2504621",
+        "398b5208c01779822a35e4d334fd7074272f85bc93785b2df7b7d4d76908adee",
+        "803ff7dc36399b3b8cab6d67445b412bc26dde059874696231c898a278d86383",
+        "0a988524debe4547dfe7cbc12a46862f05372aecf7ff77cf965ed33d13cfa1a6",
+        "96836322e749be8d47273a1abecc93f2867d0d0bfb31dd00e0a505979779ac60",
+        "aa9deec6cbe277e677e901e3f63ed773f0540fd5db9dcb46380596483c015400",
+        "afcbc18d5ca6047c6f7a9d2e7b86b24dcfdbc42d854fdc2386a376e736d67ff8"
       ],
-      "free_answer_positions": [6],
-      "inline_markdown_asset_ids": ["M00-L02-A03"],
+      "free_answer_positions": [
+        7
+      ],
+      "inline_markdown_asset_ids": [
+        "M00-L02-A03"
+      ],
       "stepik_file_assets": [
         {
           "asset_id": "M00-L02-A01",
@@ -86,7 +96,8 @@
           "delivery": "stepik-lesson-file",
           "confirmed_url": "https://stepik.org/media/attachments/lesson/2591710/M00-L02-A02.png"
         }
-      ]
+      ],
+      "content_observed_run_id": 35201710600
     }
   },
   "observed_conventions": {
