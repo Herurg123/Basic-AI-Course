@@ -254,7 +254,11 @@ class TransportEquivalenceTests(unittest.TestCase):
                 lesson_id,
             )
 
-        self.assertIn("M06-L02", strict_delta_lessons)
+        # M06-L02 is already rendered through the proven v2 writer contract, so the
+        # generic transport layer has no additional strict delta there. These are the
+        # remaining current lessons whose strict HTML representation can differ while
+        # the learner-visible content remains transport-equivalent.
+        self.assertEqual(strict_delta_lessons, {"M01-L01", "M01-L02", "M06-L04"})
 
 
 if __name__ == "__main__":
