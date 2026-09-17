@@ -1,0 +1,117 @@
+name: Русское резюме GitHub Actions
+
+on:
+  workflow_call:
+    inputs:
+      purpose:
+        description: 'Краткое русское описание того, что должен выполнить вызывающий workflow.'
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+
+jobs:
+  summary:
+    name: Сформировать русское резюме
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Сформировать итог запуска на русском
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          RUN_PURPOSE: ${{ inputs.purpose }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const runId = Number(process.env.GITHUB_RUN_ID);
+            const purpose = String(process.env.RUN_PURPOSE || '').trim();
+            const { owner, repo } = context.repo;
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              owner, repo, run_id: runId, per_page: 100, filter: 'latest',
+            });
+            const relevantJobs = jobs.filter((job) =>
+              !String(job.name || '').includes('Сформировать русское резюме')
+            );
+            const statusRu = {
+              success: 'выполнено успешно', failure: 'ошибка', cancelled: 'отменено',
+              skipped: 'пропущено по условию запуска', timed_out: 'превышен лимит времени',
+              action_required: 'требуется действие', neutral: 'нейтральный результат',
+              stale: 'устаревший результат', startup_failure: 'ошибка запуска runner',
+            };
+            const escapeMd = (value) => String(value ?? '')
+              .replaceAll('\\', '\\\\').replaceAll('|', '\\|')
+              .replaceAll('\r', ' ').replaceAll('\n', ' ').trim();
+            const isInfraStep = (name) => {
+              const value = String(name || '');
+              return value === 'Set up job' || value === 'Complete job'
+                || value.startsWith('Post ') || value === 'Сформировать итог запуска на русском';
+            };
+            async function errorDetail(job, failedStep) {
+              const fallback = failedStep
+                ? `Этап «${escapeMd(failedStep.name)}» завершился неуспешно.`
+                : `Job «${escapeMd(job.name)}» завершился неуспешно.`;
+              try {
+                const match = String(job.check_run_url || '').match(/\/check-runs\/(\d+)$/);
+                if (!match) return fallback;
+                const response = await github.rest.checks.listAnnotations({
+                  owner, repo, check_run_id: Number(match[1]), per_page: 100,
+                });
+                const annotation = response.data.find((item) => item.annotation_level === 'failure')
+                  || response.data.find((item) => item.annotation_level === 'warning');
+                if (!annotation?.message) return fallback;
+                return `${fallback} GitHub: ${escapeMd(annotation.message).slice(0, 500)}`;
+              } catch (error) {
+                return fallback;
+              }
+            }
+            const failedJobs = relevantJobs.filter((job) =>
+              ['failure', 'cancelled', 'timed_out', 'startup_failure', 'action_required'].includes(job.conclusion)
+            );
+            const successfulJobs = relevantJobs.filter((job) => job.conclusion === 'success');
+            let overall = '✅ УСПЕХ';
+            if (failedJobs.length > 0) overall = '❌ ОШИБКА';
+            else if (relevantJobs.some((job) => !['success', 'skipped'].includes(job.conclusion)))
+              overall = '⚠️ ЧАСТИЧНЫЙ/НЕОПРЕДЕЛЁННЫЙ РЕЗУЛЬТАТ';
+
+            const lines = ['# Итог GitHub Actions', '', `**Итог:** ${overall}`, '',
+              `**Что должен был сделать запуск:** ${escapeMd(purpose) || 'описание цели не передано'}`, ''];
+
+            lines.push('## Что должно было быть выполнено');
+            if (relevantJobs.length === 0) lines.push('- GitHub не вернул список функциональных jobs.');
+            for (const job of relevantJobs) {
+              lines.push(`- **${escapeMd(job.name)}**`);
+              for (const step of (job.steps || []).filter((step) => !isInfraStep(step.name)))
+                lines.push(`  - ${escapeMd(step.name)}`);
+            }
+
+            lines.push('', '## Что выполнено');
+            if (successfulJobs.length === 0) lines.push('- Успешно завершённых функциональных jobs нет.');
+            for (const job of successfulJobs) {
+              lines.push(`- ✅ **${escapeMd(job.name)}** — выполнено успешно.`);
+              for (const step of (job.steps || []).filter((step) => !isInfraStep(step.name) && step.conclusion === 'success'))
+                lines.push(`  - ✅ ${escapeMd(step.name)}`);
+            }
+
+            lines.push('', '## Что не выполнено');
+            const notDoneJobs = relevantJobs.filter((job) => job.conclusion !== 'success');
+            if (notDoneJobs.length === 0) lines.push('- Невыполненных этапов нет.');
+            for (const job of notDoneJobs) {
+              lines.push(`- ${job.conclusion === 'skipped' ? '⏭️' : '❌'} **${escapeMd(job.name)}** — ${statusRu[job.conclusion] || escapeMd(job.conclusion || job.status)}.`);
+              for (const step of (job.steps || []).filter((step) => !isInfraStep(step.name) && step.conclusion !== 'success')) {
+                const mark = step.conclusion === 'skipped' ? '⏭️' : '❌';
+                lines.push(`  - ${mark} ${escapeMd(step.name)} — ${statusRu[step.conclusion] || escapeMd(step.conclusion || step.status)}.`);
+              }
+            }
+
+            lines.push('', '## Ошибки');
+            if (failedJobs.length === 0) lines.push('- Ошибок не зафиксировано.');
+            for (const job of failedJobs) {
+              const failedStep = (job.steps || []).find((step) =>
+                ['failure', 'cancelled', 'timed_out'].includes(step.conclusion));
+              lines.push(`- ❌ **${escapeMd(job.name)}**: ${await errorDetail(job, failedStep)}`);
+            }
+            lines.push('', '> Для принятия обычного следующего решения достаточно этой сводки. Логи нужны только для углублённой диагностики или исправления кода.');
+            await core.summary.addRaw(lines.join('\n')).write();
