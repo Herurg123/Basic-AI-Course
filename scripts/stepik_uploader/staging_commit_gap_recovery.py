@@ -168,8 +168,9 @@ def main() -> int:
         if int(baseline.get("stepik_lesson_id", -1)) != int(live_lesson.get("id", -2)):
             raise DeploymentHistoryError("Recovery lesson baseline относится к другому Stepik lesson")
         live_fp = live_lesson_fingerprint(live_lesson)
-        if baseline.get("applied_fingerprint") != live_fp:
-            raise DeploymentHistoryError("Recovery live lesson больше не совпадает с machine baseline")
+        proven_live_fp = baseline.get("confirmed_live_fingerprint") or baseline.get("applied_fingerprint")
+        if proven_live_fp != live_fp:
+            raise DeploymentHistoryError("Recovery live lesson больше не совпадает с подтверждённым live baseline")
         if baseline.get("applied_source_sha") != sha:
             raise DeploymentHistoryError("Recovery baseline относится не к current main SHA")
 
@@ -180,8 +181,11 @@ def main() -> int:
                 f"{target_id}: baseline существует, но найдено {len(incomplete_lessons)} incomplete lesson events вместо одного"
             )
         lesson_identity, lesson_records, lesson_summary = incomplete_lessons[0]
-        if lesson_identity.source_sha != sha or lesson_identity.desired_fingerprint != live_fp:
-            raise DeploymentHistoryError("Recovery lesson event identity не совпадает с current main/live fingerprint")
+        if lesson_identity.source_sha != sha or lesson_identity.desired_fingerprint != baseline.get("applied_fingerprint"):
+            raise DeploymentHistoryError("Recovery lesson event identity не совпадает с current main/desired fingerprint")
+        final_live_fp = lesson_summary.get("final_live_fingerprint") or lesson_summary.get("final_fingerprint")
+        if final_live_fp != live_fp:
+            raise DeploymentHistoryError("Recovery final history относится к другому фактическому live fingerprint")
         if not lesson_summary.get("final_readback_confirmed") or lesson_summary.get("machine_state_committed"):
             raise DeploymentHistoryError("Recovery ожидает final-readback-confirmed event без MACHINE_STATE_COMMITTED")
         recovered_lesson, lesson_status = _final_state(lesson_records, label=target_id)
