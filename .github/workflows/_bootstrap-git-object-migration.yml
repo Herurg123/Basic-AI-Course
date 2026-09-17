@@ -20,7 +20,11 @@ jobs:
           fetch-depth: 1
 
       - name: Сформировать итоговые файлы
-        run: python scripts/project_governance/migrate_russian_action_summaries.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/project_governance/migrate_russian_action_summaries.py
+          sed -i 's/[[:space:]]\+$//' 00_governance/project-instructions/project-instructions-v1.5.md
 
       - name: Зафиксировать только нормативные документы
         shell: bash
