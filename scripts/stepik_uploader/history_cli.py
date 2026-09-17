@@ -15,6 +15,9 @@ else:
     from .history_runtime import load_event_artifact, mark_machine_state_committed
 
 
+LESSON_HISTORY_KINDS = {"lesson", "golden-content-refresh", "golden-content-migration"}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Commit durable Stepik deployment history after machine-state PATCH")
     parser.add_argument("command", choices=["mark-state-committed"])
@@ -47,14 +50,15 @@ def _normalize_event_from_history(event: dict, identity: dict, *, event_file: Pa
     """Bind routing metadata to immutable history identity before state commit.
 
     Event artifact fields are transport metadata. The append-only history identity is
-    authoritative for object_id/kind. Normalizing here prevents a mislabeled helper
-    artifact from committing another lesson's baseline while preserving fail-closed
-    checks for source/event mismatches.
+    authoritative for object_id/kind. Golden content routes intentionally use their
+    own immutable ``kind`` values but still commit a lesson baseline; ordinary lesson
+    and asset events keep the same rule. This prevents a mislabeled helper artifact
+    from committing another object's baseline.
     """
     normalized = dict(event)
     kind = str(identity.get("kind") or "")
     object_id = str(identity.get("object_id") or "")
-    if kind not in {"lesson", "asset"} or not object_id:
+    if kind not in LESSON_HISTORY_KINDS | {"asset"} or not object_id:
         raise DeploymentHistoryError("History identity имеет неподдерживаемый kind/object_id")
     normalized["kind"] = kind
     if kind == "asset":
@@ -78,6 +82,8 @@ def _baseline_from_state(event: dict, state: dict) -> dict | None:
             raise DeploymentHistoryError("Asset deployment event не содержит source_path")
         baseline = state.get("assets", {}).get(source_path)
         return baseline if isinstance(baseline, dict) else None
+    if kind not in LESSON_HISTORY_KINDS:
+        raise DeploymentHistoryError(f"Неподдерживаемый lesson-like history kind: {kind}")
     canonical_id = str(event.get("canonical_id"))
     baseline = state.get("lessons", {}).get(canonical_id)
     return baseline if isinstance(baseline, dict) else None
