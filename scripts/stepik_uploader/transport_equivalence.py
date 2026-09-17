@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from html.parser import HTMLParser
 from typing import Any, Iterable
 
 from .fingerprints import html_fingerprint
@@ -16,10 +17,45 @@ BLOCK_TAG_RE = re.compile(
     r"<(?:p|div|table|thead|tbody|tr|td|th|ul|ol|li|blockquote|pre|hr|h[1-6])\b",
     re.IGNORECASE,
 )
+ALLOWED_INLINE_TAGS = {"a", "strong", "em", "code", "span", "b", "i", "u", "s", "sup", "sub"}
 
 
 class TransportEquivalenceError(RuntimeError):
     pass
+
+
+class _BalancedInlineParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.stack: list[str] = []
+        self.invalid = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        lowered = tag.lower()
+        if lowered not in ALLOWED_INLINE_TAGS:
+            self.invalid = True
+            return
+        self.stack.append(lowered)
+
+    def handle_endtag(self, tag: str) -> None:
+        lowered = tag.lower()
+        if not self.stack or self.stack[-1] != lowered:
+            self.invalid = True
+            return
+        self.stack.pop()
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.invalid = True
+
+
+def _line_has_balanced_inline_markup(line: str) -> bool:
+    parser = _BalancedInlineParser()
+    try:
+        parser.feed(line)
+        parser.close()
+    except Exception:
+        return False
+    return not parser.invalid and not parser.stack
 
 
 def _split_multiline_inline_paragraph(match: re.Match[str]) -> str:
@@ -28,6 +64,10 @@ def _split_multiline_inline_paragraph(match: re.Match[str]) -> str:
         return match.group(0)
     lines = body.splitlines()
     if len(lines) < 2 or any(not line.strip() for line in lines):
+        return match.group(0)
+    # Stepik's observed paragraph split is safe only when inline markup closes on
+    # the same line. Never split across an open <a>/<strong>/etc. boundary.
+    if any(not _line_has_balanced_inline_markup(line) for line in lines):
         return match.group(0)
     return "\n".join(f"<p>{line.strip()}</p>" for line in lines)
 
@@ -42,8 +82,8 @@ def normalize_stepik_transport_html(html: str) -> str:
     - plain ``<hr>`` / ``<hr />`` removed by Stepik;
     - HTML/XHTML break forms are represented canonically as ``<br>``;
     - exact ``text-align`` style receives a trailing semicolon;
-    - newline-separated inline-only text inside one ``<p>`` is represented as
-      separate paragraphs.
+    - newline-separated text/line-local inline markup inside one ``<p>`` is
+      represented as separate paragraphs.
 
     Text, links, non-transport attributes, block order and learner task structure are
     deliberately preserved. The transform is idempotent so a Stepik-normalized
