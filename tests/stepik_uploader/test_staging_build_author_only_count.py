@@ -29,8 +29,8 @@ class StagingBuildAuthorOnlyCountTests(unittest.TestCase):
         self.assertEqual(_learner_step_count(m06), 6)
         self.assertEqual([row["position"] for row in m06["steps"] if row["author_only"]], [6])
 
-        self.assertEqual(len(m07["steps"]), 8)
-        self.assertEqual(_learner_step_count(m07), 7)
+        self.assertEqual(len(m07["steps"]), 9)
+        self.assertEqual(_learner_step_count(m07), 8)
         self.assertEqual([row["position"] for row in m07["steps"] if row["author_only"]], [7])
 
     def test_non_author_only_lesson_keeps_existing_count_contract(self) -> None:
