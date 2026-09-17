@@ -7,7 +7,7 @@ from typing import Any
 
 from .api import StepikAPIError, StepikWriteAmbiguousError
 from .content import CompiledStep
-from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
+from .fingerprints import compiled_lesson_fingerprint, html_fingerprint, live_lesson_fingerprint
 from .sync_state import SyncAssessment, assess_sync, build_record
 from .transport_equivalence import lesson_transport_equivalent, step_transport_equivalent
 
@@ -385,7 +385,7 @@ def execute_content_sync_one(
         expected_title=expected_title,
         expected_steps=expected_steps,
         language="ru",
-        is_public=bool(after_lesson.get("is_public")),
+        is_public=False,
     ):
         if recorder is not None:
             recorder.readback_failed(operation_id=None, reason_code="final-readback-mismatch")
