@@ -14,6 +14,7 @@ from .fingerprints import (
     live_lesson_fingerprint,
     live_lesson_payload,
 )
+from .transport_equivalence import lesson_transport_equivalent, step_transport_equivalent
 
 SCHEMA_VERSION = 3
 PREVIOUS_SCHEMA_VERSION = 2
@@ -89,7 +90,7 @@ def _fingerprint(value: Any, *, field: str) -> str:
     return value
 
 
-def _asset_path(value: Any, *, field: str) -> str:
+def _asset_path(value: str, *, field: str) -> str:
     if not isinstance(value, str) or not value:
         raise SyncStateError(f"{field}: ожидается непустой repo-relative source path")
     path = PurePosixPath(value)
@@ -107,6 +108,7 @@ def _baseline_ref(record: dict[str, Any] | None, *, canonical_id: str) -> dict[s
         "applied_source_sha": record.get("applied_source_sha"),
         "applied_at": record.get("applied_at"),
         "applied_fingerprint": record.get("applied_fingerprint"),
+        "confirmed_live_fingerprint": record.get("confirmed_live_fingerprint"),
     }
 
 
@@ -122,6 +124,9 @@ def _validate_baseline_ref(value: Any, *, field: str) -> None:
     fingerprint = value.get("applied_fingerprint")
     if fingerprint is not None:
         _fingerprint(fingerprint, field=f"{field}.applied_fingerprint")
+    live_fingerprint = value.get("confirmed_live_fingerprint")
+    if live_fingerprint is not None:
+        _fingerprint(live_fingerprint, field=f"{field}.confirmed_live_fingerprint")
     applied_sha = value.get("applied_source_sha")
     if applied_sha is not None:
         _sha(applied_sha, field=f"{field}.applied_source_sha")
@@ -209,6 +214,9 @@ def validate_state(payload: Any, *, course_id: int) -> dict[str, Any]:
         if record.get("canonical_id") not in {None, canonical_id}:
             raise SyncStateError(f"{canonical_id}: canonical_id внутри record не совпадает с ключом")
         _fingerprint(record.get("applied_fingerprint"), field=f"{canonical_id}.applied_fingerprint")
+        confirmed_live = record.get("confirmed_live_fingerprint")
+        if confirmed_live is not None:
+            _fingerprint(confirmed_live, field=f"{canonical_id}.confirmed_live_fingerprint")
         if not isinstance(record.get("stepik_lesson_id"), int):
             raise SyncStateError(f"{canonical_id}: отсутствует stepik_lesson_id")
         step_ids = record.get("step_ids")
@@ -340,21 +348,53 @@ def assess_sync(*, canonical_id: str, live_lesson: dict[str, Any], expected_titl
     desired = compiled_lesson_fingerprint(expected_title=expected_title, expected_steps=expected_steps_list)
     live = live_lesson_fingerprint(live_lesson)
     baseline_fp = None if baseline is None else str(baseline.get("applied_fingerprint"))
-    changed_positions: list[int] = []
-    live_by_position = {step["position"]: step for step in live_payload["steps"]}
-    for step in desired_payload["steps"]:
-        if live_by_position.get(step["position"]) != step:
-            changed_positions.append(int(step["position"]))
+    transport_match = lesson_transport_equivalent(
+        live_lesson,
+        expected_title=expected_title,
+        expected_steps=expected_steps_list,
+        language="ru",
+        is_public=False,
+    )
+
+    live_items: dict[int, dict[str, Any]] = {}
+    for item in live_lesson.get("steps", []):
+        source = item.get("step_source") if isinstance(item, dict) else None
+        if isinstance(source, dict) and isinstance(source.get("position"), int):
+            live_items[int(source["position"])] = item
+    changed_positions = [
+        int(step.position)
+        for step in expected_steps_list
+        if int(step.position) not in live_items or not step_transport_equivalent(live_items[int(step.position)], step)
+    ]
+
     if baseline is None:
-        if desired == live:
-            return SyncAssessment(canonical_id, "BASELINE_BOOTSTRAP_REQUIRED", desired, live, None, tuple(changed_positions), ("live content совпадает с каноном, но подтверждённый deployment baseline ещё не записан",))
+        if transport_match:
+            return SyncAssessment(canonical_id, "BASELINE_BOOTSTRAP_REQUIRED", desired, live, None, tuple(changed_positions), ("live content транспортно эквивалентен канону, но подтверждённый deployment baseline ещё не записан",))
         return SyncAssessment(canonical_id, "BASELINE_MISSING_BLOCKED", desired, live, None, tuple(changed_positions), ("нет подтверждённого baseline, поэтому существующий Stepik content нельзя перезаписывать автоматически",))
+
     if int(baseline.get("stepik_lesson_id", -1)) != int(live_lesson.get("id", -2)):
         return SyncAssessment(canonical_id, "DRIFT_BLOCKED", desired, live, baseline_fp, tuple(changed_positions), ("Stepik lesson ID отличается от deployment baseline",))
-    if live != baseline_fp:
+
+    baseline_live_fp_raw = baseline.get("confirmed_live_fingerprint")
+    baseline_live_fp = str(baseline_live_fp_raw) if isinstance(baseline_live_fp_raw, str) else None
+
+    # If canonical content has not changed since the proven baseline, a new Stepik
+    # representation-only rewrite is allowed only when the full lesson remains transport-equivalent.
+    if desired == baseline_fp and transport_match:
+        return SyncAssessment(
+            canonical_id,
+            "IN_SYNC",
+            desired,
+            live,
+            baseline_fp,
+            (),
+            ("канон не изменился; Stepik read-back транспортно эквивалентен подтверждённому содержанию",),
+        )
+
+    proven_live_fp = baseline_live_fp or baseline_fp
+    if live != proven_live_fp:
         return SyncAssessment(canonical_id, "DRIFT_BLOCKED", desired, live, baseline_fp, tuple(changed_positions), ("Stepik изменён после последнего подтверждённого sync или sync journal устарел",))
-    if desired == baseline_fp:
-        return SyncAssessment(canonical_id, "IN_SYNC", desired, live, baseline_fp, (), ("канон, Stepik и последний подтверждённый baseline совпадают",))
+
     metadata_diffs = [field for field in ("title", "language", "is_public") if desired_payload.get(field) != live_payload.get(field)]
     if metadata_diffs:
         return SyncAssessment(canonical_id, "METADATA_UPDATE_BLOCKED", desired, live, baseline_fp, tuple(changed_positions), ("изменились lesson metadata, для которых безопасный update route ещё не подтверждён: " + ", ".join(metadata_diffs),))
@@ -362,13 +402,13 @@ def assess_sync(*, canonical_id: str, live_lesson: dict[str, Any], expected_titl
     live_positions = _positions(live_payload)
     if desired_positions != live_positions:
         return SyncAssessment(canonical_id, "STRUCTURAL_UPDATE_BLOCKED", desired, live, baseline_fp, tuple(changed_positions), (f"изменилась структура steps: desired positions={desired_positions}, live positions={live_positions}; DELETE/reorder автоматически запрещены",))
-    return SyncAssessment(canonical_id, "UPDATE_REQUIRED", desired, live, baseline_fp, tuple(changed_positions), ("канон изменился, а Stepik всё ещё точно совпадает с последним подтверждённым baseline",))
+    return SyncAssessment(canonical_id, "UPDATE_REQUIRED", desired, live, baseline_fp, tuple(changed_positions), ("канон изменился, а Stepik всё ещё совпадает с последним подтверждённым live baseline",))
 
 
-def build_record(*, canonical_id: str, stepik_lesson_id: int, expected_title: str, expected_steps: Iterable[Any], source_sha: str, step_ids: Iterable[int], source_git_paths: Iterable[str], applied_at: str | None = None) -> dict[str, Any]:
+def build_record(*, canonical_id: str, stepik_lesson_id: int, expected_title: str, expected_steps: Iterable[Any], source_sha: str, step_ids: Iterable[int], source_git_paths: Iterable[str], applied_at: str | None = None, confirmed_live_fingerprint: str | None = None) -> dict[str, Any]:
     expected_steps_list = list(expected_steps)
     timestamp = applied_at or datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    return {
+    record = {
         "canonical_id": canonical_id,
         "stepik_lesson_id": int(stepik_lesson_id),
         "applied_source_sha": source_sha,
@@ -377,6 +417,10 @@ def build_record(*, canonical_id: str, stepik_lesson_id: int, expected_title: st
         "step_ids": [int(value) for value in step_ids],
         "source_git_paths": sorted(set(str(value) for value in source_git_paths)),
     }
+    if confirmed_live_fingerprint is not None:
+        _fingerprint(confirmed_live_fingerprint, field=f"{canonical_id}.confirmed_live_fingerprint")
+        record["confirmed_live_fingerprint"] = confirmed_live_fingerprint
+    return record
 
 
 def with_record(state: dict[str, Any], *, canonical_id: str, record: dict[str, Any]) -> dict[str, Any]:

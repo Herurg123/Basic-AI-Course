@@ -163,8 +163,9 @@ def classify_reconcile(
                 owner=True,
                 reasons=["final-readback-with-unresolved-dispatch-evidence"],
             )
-        confirmed_fp = summary.get("final_fingerprint")
-        if confirmed_fp == live_fingerprint == desired_fingerprint:
+        confirmed_expected_fp = summary.get("final_fingerprint")
+        confirmed_live_fp = summary.get("final_live_fingerprint") or confirmed_expected_fp
+        if confirmed_expected_fp == desired_fingerprint and confirmed_live_fp == live_fingerprint:
             return _decision(
                 "VERIFIED_WRITE_STATE_PATCH_MISSING",
                 "AUTO_RECOVER_MACHINE_STATE",
@@ -190,8 +191,15 @@ def classify_reconcile(
         )
 
     if summary.get("machine_state_committed"):
-        if baseline_fingerprint == live_fingerprint:
-            if live_fingerprint == desired_fingerprint:
+        committed_baseline = summary.get("committed_baseline_after")
+        committed_live_fp = (
+            committed_baseline.get("confirmed_live_fingerprint")
+            if isinstance(committed_baseline, dict)
+            else None
+        )
+        proven_live_fp = committed_live_fp or baseline_fingerprint
+        if proven_live_fp == live_fingerprint:
+            if baseline_fingerprint == desired_fingerprint:
                 return _decision(
                     "IN_SYNC",
                     "NOOP",

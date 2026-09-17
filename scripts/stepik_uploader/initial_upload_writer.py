@@ -7,11 +7,13 @@ from .api import StepikAPIError, StepikWriteAmbiguousError
 from .content import CompiledStep
 from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
 from .sync_state import build_record
+from .transport_equivalence import lesson_transport_equivalent
 from .writer import (
     ContentWriteError,
     SyncWriteResult,
     _assert_readback,
     _created_id,
+    _lesson_after_readback_step,
     _step_source,
     _target_lesson,
     classify_existing_steps,
@@ -132,9 +134,10 @@ def execute_initial_upload_one(
             )
         live_fp = live_lesson_fingerprint(lesson)
         confirmed_fingerprints = {
-            str(item.get("fingerprint_after"))
+            str(item.get("observed_live_fingerprint") or item.get("fingerprint_after"))
             for item in history_before
-            if item.get("phase") == "OP_READBACK_CONFIRMED" and item.get("fingerprint_after")
+            if item.get("phase") == "OP_READBACK_CONFIRMED"
+            and (item.get("observed_live_fingerprint") or item.get("fingerprint_after"))
         }
         if live_fp not in confirmed_fingerprints:
             raise ContentWriteError(
@@ -217,11 +220,13 @@ def execute_initial_upload_one(
                 reason_code="initial-placeholder-readback-unavailable-or-mismatch",
             )
             raise
+        working_lesson = _lesson_after_readback_step(expected_lesson, step_id=first_id, readback=readback)
+        observed_after_fp = live_lesson_fingerprint(working_lesson)
         recorder.operation_readback(
             operation_id=operation_id,
             expected_fingerprint_after=expected_after_fp,
+            observed_live_fingerprint=observed_after_fp,
         )
-        working_lesson = expected_lesson
         result.operations.append({"action": "UPDATE_PLACEHOLDER", "step_id": first_id, "position": 1})
         matched = 1
     elif state == "partial":
@@ -278,12 +283,14 @@ def execute_initial_upload_one(
                 reason_code="initial-create-step-readback-unavailable-or-mismatch",
             )
             raise
+        working_lesson = deepcopy(expected_lesson)
+        working_lesson["steps"][-1]["step_source"] = readback
+        observed_after_fp = live_lesson_fingerprint(working_lesson)
         recorder.operation_readback(
             operation_id=operation_id,
             expected_fingerprint_after=expected_after_fp,
+            observed_live_fingerprint=observed_after_fp,
         )
-        working_lesson = deepcopy(expected_lesson)
-        working_lesson["steps"][-1]["step_source"] = readback
         result.operations.append({"action": "CREATE_STEP", "step_id": step_id, "position": expected.position})
 
     try:
@@ -305,8 +312,14 @@ def execute_initial_upload_one(
             expected_steps=expected_steps,
         )
         live_fp = live_lesson_fingerprint(after_lesson)
-        if live_fp != desired_fp:
-            raise ContentWriteError("Финальный fingerprint initial upload не совпал с desired")
+        if not lesson_transport_equivalent(
+            after_lesson,
+            expected_title=expected_title,
+            expected_steps=expected_steps,
+            language="ru",
+            is_public=False,
+        ):
+            raise ContentWriteError("Финальный read-back initial upload не эквивалентен desired content")
     except Exception:
         recorder.readback_failed(
             operation_id=None,
@@ -327,11 +340,13 @@ def execute_initial_upload_one(
         source_sha=source_sha,
         step_ids=final_step_ids,
         source_git_paths=source_paths,
+        confirmed_live_fingerprint=live_fp,
     )
     event_records = recorder.records(refresh=True)
     event_had_writes = any(item.get("phase") == "WRITE_DISPATCH_STARTED" for item in event_records)
     recorder.final_readback(
-        fingerprint_after=live_fp,
+        fingerprint_after=desired_fp,
+        observed_live_fingerprint=live_fp,
         stepik_object_ids={"lesson_id": lesson_id, "step_ids": final_step_ids},
         status="APPLIED" if event_had_writes else "NOOP_CONFIRMED",
         baseline_after=result.state_record,
