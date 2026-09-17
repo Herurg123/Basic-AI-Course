@@ -55,35 +55,35 @@ class GoldenContentRefresh8to8Tests(unittest.TestCase):
 
     def test_accepted_eight_step_fixture_with_pending_routes_to_refresh(self) -> None:
         args = self._args()
-        state = {
-            "pending": {"lessons": {"M00-L02": {"status": "PENDING"}}},
-        }
+        state = {"pending": {"lessons": {"M00-L02": {"status": "PENDING"}}}}
+        expected_profile = self._profile()
         with (
             patch.object(migration.legacy, "parse_args", return_value=args),
-            patch.object(migration.legacy, "load_golden_profile", return_value=self._profile()),
+            patch.object(migration.legacy, "load_golden_profile", return_value=expected_profile),
             patch.object(migration.legacy, "load_state", return_value=state),
             patch.object(migration.refresh, "run", return_value=0) as refresh_run,
             patch.object(migration, "_current_fixture_noop", return_value=99) as noop,
             patch.object(migration.legacy, "main", return_value=98) as legacy_main,
         ):
             self.assertEqual(migration.main(), 0)
-        refresh_run.assert_called_once_with(args, self._profile())
+        refresh_run.assert_called_once_with(args, expected_profile)
         noop.assert_not_called()
         legacy_main.assert_not_called()
 
     def test_accepted_eight_step_fixture_without_pending_keeps_noop_route(self) -> None:
         args = self._args()
         state = {"pending": {"lessons": {}}}
+        expected_profile = self._profile()
         with (
             patch.object(migration.legacy, "parse_args", return_value=args),
-            patch.object(migration.legacy, "load_golden_profile", return_value=self._profile()),
+            patch.object(migration.legacy, "load_golden_profile", return_value=expected_profile),
             patch.object(migration.legacy, "load_state", return_value=state),
             patch.object(migration.refresh, "run", return_value=98) as refresh_run,
             patch.object(migration, "_current_fixture_noop", return_value=0) as noop,
             patch.object(migration.legacy, "main", return_value=97) as legacy_main,
         ):
             self.assertEqual(migration.main(), 0)
-        noop.assert_called_once_with(args, self._profile())
+        noop.assert_called_once_with(args, expected_profile)
         refresh_run.assert_not_called()
         legacy_main.assert_not_called()
 
@@ -111,7 +111,7 @@ class GoldenContentRefresh8to8Tests(unittest.TestCase):
             desired.append(
                 CompiledStep(
                     position=position,
-                    step_type="text",
+                    block_name="text",
                     text=text,
                     source={},
                     source_git_paths=("lesson.md",),
