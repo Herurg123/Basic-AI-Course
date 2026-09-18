@@ -213,8 +213,8 @@ def main() -> int:
         client = StepikClient(client_id, client_secret, api_host=args.api_host)
         snapshot = client.inspect_course(args.course_id)
         write_json(report_dir / "course-snapshot.json", snapshot)
-        plan = plan_dry_run(manifest, snapshot)
         profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
+        plan = plan_dry_run(manifest, snapshot, golden_profile=profile)
         profile_blockers = validate_golden_profile(profile, snapshot, manifest)
         golden_status = mark_golden_profile_result(plan, profile_blockers)
         if golden_status != "confirmed" or plan.blockers:
