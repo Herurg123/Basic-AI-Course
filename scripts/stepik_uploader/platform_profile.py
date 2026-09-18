@@ -5,7 +5,10 @@ from pathlib import Path
 from typing import Any
 
 
-PLATFORM_PROFILE_PATH = Path("04_course/stepik/automation/stepik-platform-profile.v1.json")\n\n\nclass PlatformProfileError(RuntimeError):
+PLATFORM_PROFILE_PATH = Path("04_course/stepik/automation/stepik-platform-profile.v1.json")
+
+
+class PlatformProfileError(RuntimeError):
     pass
 
 
@@ -25,18 +28,17 @@ def load_platform_profile(path: Path, *, course_id: int = 299189) -> dict[str, A
         raise PlatformProfileError(
             f"Stepik platform profile относится к course_id={payload.get('course_id')}, ожидается {course_id}"
         )
-    text_source = payload.get("text_block_source")
-    if text_source != {}:
+    if payload.get("text_block_source") != {}:
         raise PlatformProfileError("Подтверждённый text_block_source должен оставаться пустым object")
-    free_answer = payload.get("free_answer_source")
+
     expected = {
         "is_attachments_enabled": False,
         "is_html_enabled": True,
         "manual_scoring": False,
     }
-    if free_answer != expected:
+    if payload.get("free_answer_source") != expected:
         raise PlatformProfileError(
-            f"free_answer_source изменился: ожидалось {expected!r}, найдено {free_answer!r}"
+            f"free_answer_source изменился: ожидалось {expected!r}, найдено {payload.get('free_answer_source')!r}"
         )
     return payload
 
