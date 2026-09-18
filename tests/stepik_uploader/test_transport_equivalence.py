@@ -7,7 +7,7 @@ from pathlib import Path
 from scripts.stepik_uploader.asset_inventory import build_asset_inventory
 from scripts.stepik_uploader.asset_resolution import assess_asset_publication, load_asset_publication_policy
 from scripts.stepik_uploader.canonical import build_structural_manifest
-from scripts.stepik_uploader.content import CompiledStep
+from scripts.stepik_uploader.step_model import RenderedStep
 from scripts.stepik_uploader.deployment_history import DeploymentRecorder, EventIdentity, MemoryHistoryStore, summarize_event
 from scripts.stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
 from scripts.stepik_uploader.general_content import EXPECTED_FREE_ANSWER_SOURCE, compile_all_lesson_sources
@@ -21,8 +21,8 @@ from scripts.stepik_uploader.verified_rendering import AssetBinding, build_rende
 
 
 class TransportEquivalenceTests(unittest.TestCase):
-    def _step(self, html: str, *, position: int = 1, source: dict | None = None) -> CompiledStep:
-        return CompiledStep(
+    def _step(self, html: str, *, position: int = 1, source: dict | None = None) -> RenderedStep:
+        return RenderedStep(
             position=position,
             block_name="text",
             text=html,
@@ -30,7 +30,7 @@ class TransportEquivalenceTests(unittest.TestCase):
             source_git_paths=("04_course/test.md",),
         )
 
-    def _live_item(self, step: CompiledStep, html: str, *, source: dict | None = None) -> dict:
+    def _live_item(self, step: RenderedStep, html: str, *, source: dict | None = None) -> dict:
         return {
             "step_source": {
                 "id": 100 + int(step.position),
