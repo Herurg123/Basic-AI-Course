@@ -80,13 +80,30 @@ def _drifted_id_candidates(lesson: dict[str, Any], live: list[dict[str, Any]]) -
     ]
 
 
-def _golden_identity_candidates(lesson: dict[str, Any], live: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Golden mapping отделён от canonical title equality.
+def _golden_identity_candidates(
+    lesson: dict[str, Any],
+    live: list[dict[str, Any]],
+    *,
+    golden_profile: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Golden mapping не должен зависеть от текущего canonical title.
 
-    Stable canonical ID в Stepik title остаётся достаточным identity-candidate, чтобы
-    законное изменение canonical title не превращало неизменный READ_ONLY golden в
-    глобальный blocker. Точная live integrity проверяется отдельно golden profile.
+    Если доступен подтверждённый golden profile, immutable Stepik lesson_id является
+    первичным identity key. Title/позиции/структура/HTML затем независимо проверяются
+    validate_golden_profile(), поэтому profile-based identity не ослабляет integrity
+    guard и не позволяет угадать другой lesson по похожему заголовку.
+
+    Legacy title/prefix fallback сохраняется только для вызовов, где profile намеренно
+    не передан (например, отдельные offline/unit сценарии).
     """
+    canonical_id = str(lesson["canonical_id"])
+    if isinstance(golden_profile, dict):
+        expected = golden_profile.get("golden_lessons", {}).get(canonical_id)
+        if isinstance(expected, dict):
+            expected_lesson_id = expected.get("stepik_lesson_id")
+            if isinstance(expected_lesson_id, int):
+                return [item for item in live if item.get("lesson_id") == expected_lesson_id]
+
     return [
         item
         for item in live
@@ -143,7 +160,11 @@ def _golden_canonical_notices(
     return notices
 
 
-def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+def recognize_golden(
+    manifest: dict[str, Any],
+    snapshot: dict[str, Any],
+    golden_profile: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], list[str]]:
     canonical = {lesson["canonical_id"]: (module, lesson) for module, lesson in _canonical_lessons(manifest)}
     live = _flat_live_lessons(snapshot)
     blockers: list[str] = []
@@ -151,11 +172,21 @@ def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tupl
 
     for canonical_id in GOLDEN_IDS:
         module, lesson = canonical[canonical_id]
-        candidates = _golden_identity_candidates(lesson, live)
+        candidates = _golden_identity_candidates(lesson, live, golden_profile=golden_profile)
         if len(candidates) != 1:
-            expected = " / ".join(sorted(_accepted_live_titles(lesson)))
+            profile_row = (
+                golden_profile.get("golden_lessons", {}).get(canonical_id)
+                if isinstance(golden_profile, dict)
+                else None
+            )
+            if isinstance(profile_row, dict) and isinstance(profile_row.get("stepik_lesson_id"), int):
+                expected = f"golden-profile lesson_id={profile_row['stepik_lesson_id']}"
+                identity_mode = "confirmed golden-profile lesson ID"
+            else:
+                expected = " / ".join(sorted(_accepted_live_titles(lesson)))
+                identity_mode = "canonical ID/title"
             blockers.append(
-                f"golden:{canonical_id}: ожидался ровно один identity-candidate по canonical ID/заголовку "
+                f"golden:{canonical_id}: ожидался ровно один identity-candidate по {identity_mode} "
                 f"(ориентир «{expected}»), найдено {len(candidates)}"
             )
             continue
@@ -182,7 +213,12 @@ def recognize_golden(manifest: dict[str, Any], snapshot: dict[str, Any]) -> tupl
     return golden, blockers
 
 
-def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = None) -> PlanResult:
+def plan_dry_run(
+    manifest: dict[str, Any],
+    snapshot: dict[str, Any] | None = None,
+    *,
+    golden_profile: dict[str, Any] | None = None,
+) -> PlanResult:
     result = PlanResult()
     if snapshot is None:
         for module, lesson in _canonical_lessons(manifest):
@@ -199,7 +235,7 @@ def plan_dry_run(manifest: dict[str, Any], snapshot: dict[str, Any] | None = Non
         result.blockers.append("needs-golden-profile")
         return result
 
-    golden, blockers = recognize_golden(manifest, snapshot)
+    golden, blockers = recognize_golden(manifest, snapshot, golden_profile)
     result.golden = golden
     result.blockers.extend(blockers)
     if blockers:
