@@ -79,6 +79,7 @@ class FakeClient:
     def __init__(self) -> None:
         self.snapshot = skeleton()
         self.update_calls = 0
+        self.title_update_calls = 0
         self.create_calls = 0
         self.next_id = 2
 
@@ -96,6 +97,14 @@ class FakeClient:
         }
         return {"step-sources": [copy.deepcopy(item["step_source"])]}
 
+    def update_lesson_title(self, *, lesson_id: int, title: str) -> dict:
+        self.title_update_calls += 1
+        lesson = self.snapshot["sections"][0]["units"][0]["lesson"]
+        if lesson_id != lesson["id"]:
+            raise AssertionError(lesson_id)
+        lesson["title"] = title
+        return {"lessons": [{"id": lesson_id, "title": title}]}
+
     def create_step_source(self, *, lesson_id: int, position: int, block: dict) -> dict:
         self.create_calls += 1
         step_id = self.next_id
@@ -110,13 +119,19 @@ class FakeClient:
         return {"step-sources": [copy.deepcopy(source)]}
 
     def fetch_one(self, resource: str, object_id: int) -> dict:
-        self.assert_resource(resource)
-        return copy.deepcopy(next(value["step_source"] for value in self._steps() if value["id"] == object_id))
-
-    @staticmethod
-    def assert_resource(resource: str) -> None:
-        if resource != "step-sources":
-            raise AssertionError(resource)
+        if resource == "step-sources":
+            return copy.deepcopy(next(value["step_source"] for value in self._steps() if value["id"] == object_id))
+        if resource == "lessons":
+            lesson = self.snapshot["sections"][0]["units"][0]["lesson"]
+            if object_id != lesson["id"]:
+                raise AssertionError(object_id)
+            return {
+                "id": lesson["id"],
+                "title": lesson["title"],
+                "is_public": lesson["is_public"],
+                "language": lesson["language"],
+            }
+        raise AssertionError(resource)
 
     def inspect_course(self, course_id: int) -> dict:
         if course_id != 299189:
@@ -245,6 +260,54 @@ class WriterTests(unittest.TestCase):
         self.assertTrue(result.verified)
         self.assertEqual(client.update_calls, before_updates + 1)
         self.assertEqual(result.operations[0]["action"], "UPDATE_STEP")
+
+    def test_tracked_title_change_updates_title_inside_same_sync(self) -> None:
+        client = FakeClient()
+        initial = execute_content_test_one(
+            client,
+            client.inspect_course(299189),
+            expected_steps=EXPECTED,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+        )
+        baseline = {
+            "stepik_lesson_id": initial.lesson_id,
+            "applied_fingerprint": compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED),
+        }
+        renamed = TITLE + " — новый"
+        before_step_updates = client.update_calls
+        result = execute_content_sync_one(
+            client,
+            client.inspect_course(299189),
+            canonical_id="M02-L01",
+            expected_steps=EXPECTED,
+            module_position=3,
+            lesson_position=1,
+            expected_title=renamed,
+            baseline=baseline,
+            source_sha="a" * 40,
+        )
+        self.assertTrue(result.verified)
+        self.assertEqual(client.title_update_calls, 1)
+        self.assertEqual(client.update_calls, before_step_updates)
+        self.assertEqual(result.operations[0]["action"], "UPDATE_LESSON_TITLE")
+        self.assertEqual(client.snapshot["sections"][0]["units"][0]["lesson"]["title"], renamed)
+
+        second = execute_content_sync_one(
+            client,
+            client.inspect_course(299189),
+            canonical_id="M02-L01",
+            expected_steps=EXPECTED,
+            module_position=3,
+            lesson_position=1,
+            expected_title=renamed,
+            baseline=result.state_record,
+            source_sha="b" * 40,
+        )
+        self.assertTrue(second.verified)
+        self.assertEqual(client.title_update_calls, 1)
+        self.assertEqual(second.operations[0]["action"], "NOOP_ALREADY_IN_SYNC")
 
     def test_manual_stepik_drift_blocks_before_overwrite(self) -> None:
         client = FakeClient()
