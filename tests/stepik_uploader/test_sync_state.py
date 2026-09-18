@@ -99,7 +99,7 @@ class SyncStateTests(unittest.TestCase):
         )
         self.assertEqual(result.status, "STRUCTURAL_UPDATE_BLOCKED")
 
-    def test_title_change_is_metadata_update_blocked(self) -> None:
+    def test_baseline_proven_title_change_is_update_required(self) -> None:
         old = [compiled("<p>old</p>")]
         result = assess_sync(
             canonical_id="M02-L01",
@@ -108,7 +108,20 @@ class SyncStateTests(unittest.TestCase):
             expected_steps=old,
             baseline=baseline(old),
         )
-        self.assertEqual(result.status, "METADATA_UPDATE_BLOCKED")
+        self.assertEqual(result.status, "UPDATE_REQUIRED")
+        self.assertTrue(result.write_allowed)
+
+    def test_manual_title_drift_still_blocks(self) -> None:
+        old = [compiled("<p>old</p>")]
+        result = assess_sync(
+            canonical_id="M02-L01",
+            live_lesson=live_lesson(old, title="Manual title"),
+            expected_title="M02-L01 — Renamed",
+            expected_steps=old,
+            baseline=baseline(old),
+        )
+        self.assertEqual(result.status, "DRIFT_BLOCKED")
+        self.assertFalse(result.write_allowed)
 
     def test_matching_untracked_live_requires_baseline_bootstrap_not_write(self) -> None:
         current = [compiled("<p>same</p>")]
