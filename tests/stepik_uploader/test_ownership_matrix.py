@@ -10,10 +10,8 @@ REQUIRED_CLASSES = {
     "shared_learner_dependency_change",
     "lesson_asset_change",
     "course_page",
-    "golden_lesson",
-    "golden_canonical_divergence",
-    "normal_lesson_with_baseline",
-    "normal_lesson_without_baseline",
+    "lesson_with_baseline",
+    "lesson_without_baseline",
     "metadata_change",
     "structural_step_change",
     "manual_stepik_drift",
@@ -68,14 +66,13 @@ class OwnershipMatrixTests(unittest.TestCase):
         self.assertFalse(defaults["delete_allowed"])
         self.assertEqual(defaults["unknown_state"], "STOP")
 
-    def test_golden_canonical_divergence_is_target_scoped_owner_state(self) -> None:
+    def test_no_lesson_has_a_special_runtime_class(self) -> None:
         payload = json.loads(MATRIX.read_text(encoding="utf-8"))
-        rule = payload["classes"]["golden_canonical_divergence"]
-        self.assertTrue(rule["owner_approval"])
-        self.assertFalse(rule["auto_rebaseline"])
-        self.assertFalse(rule["auto_retry"])
-        self.assertIn("golden target", rule["stop"])
-        self.assertIn("independent non-golden", rule["stop"])
+        names = set(payload["classes"])
+        self.assertNotIn("golden_lesson", names)
+        self.assertNotIn("golden_canonical_divergence", names)
+        self.assertIn("lesson_with_baseline", names)
+        self.assertIn("lesson_without_baseline", names)
 
 
 if __name__ == "__main__":
