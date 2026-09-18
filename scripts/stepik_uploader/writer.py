@@ -8,6 +8,7 @@ from typing import Any
 from .api import StepikAPIError, StepikWriteAmbiguousError
 from .content import CompiledStep
 from .fingerprints import compiled_lesson_fingerprint, html_fingerprint, live_lesson_fingerprint
+from .lesson_title_write import LessonTitleWriteError, execute_lesson_title_update
 from .sync_state import SyncAssessment, assess_sync, build_record
 from .transport_equivalence import lesson_transport_equivalent, step_transport_equivalent
 
@@ -293,11 +294,24 @@ def execute_content_sync_one(
             f"sync status={assessment.status}: {'; '.join(assessment.reasons)}"
         )
 
-    existing = sorted(lesson.get("steps", []), key=lambda item: _step_source(item).get("position", 10**9))
+    working_lesson = deepcopy(lesson)
+    try:
+        working_lesson, title_operation = execute_lesson_title_update(
+            client,
+            working_lesson,
+            expected_title=expected_title,
+            recorder=recorder,
+            operation_id=f"lesson-title-{lesson_id}",
+        )
+    except LessonTitleWriteError as exc:
+        raise ContentWriteError(str(exc)) from exc
+    if title_operation is not None:
+        result.operations.append(title_operation)
+
+    existing = sorted(working_lesson.get("steps", []), key=lambda item: _step_source(item).get("position", 10**9))
     if len(existing) != len(expected_steps):
         raise ContentWriteError("Update route не меняет количество steps")
 
-    working_lesson = deepcopy(lesson)
     for current, expected in zip(existing, expected_steps, strict=True):
         if _equivalent(current, expected):
             continue
