@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 
-class PlatformProfileError(RuntimeError):
+PLATFORM_PROFILE_PATH = Path("04_course/stepik/automation/stepik-platform-profile.v1.json")\n\n\nclass PlatformProfileError(RuntimeError):
     pass
 
 
