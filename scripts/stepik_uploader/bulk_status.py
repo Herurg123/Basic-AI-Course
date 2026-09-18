@@ -462,8 +462,8 @@ def main() -> int:
         snapshot = client.inspect_course(args.course_id)
         write_json(report_dir / "course-snapshot.json", snapshot)
 
-        plan = plan_dry_run(manifest, snapshot)
         profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
+        plan = plan_dry_run(manifest, snapshot, golden_profile=profile)
         profile_blockers = validate_golden_profile(
             profile,
             snapshot,

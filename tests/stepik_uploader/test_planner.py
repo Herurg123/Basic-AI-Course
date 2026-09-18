@@ -22,6 +22,29 @@ def manifest() -> dict:
     }
 
 
+def golden_profile() -> dict:
+    return {
+        "golden_lessons": {
+            "M00-L01": {
+                "stepik_lesson_id": 201,
+                "stepik_unit_id": 101,
+                "stepik_section_id": 11,
+                "lesson_title": "Первый",
+                "section_position": 1,
+                "unit_position": 1,
+            },
+            "M00-L02": {
+                "stepik_lesson_id": 202,
+                "stepik_unit_id": 102,
+                "stepik_section_id": 11,
+                "lesson_title": "Второй",
+                "section_position": 1,
+                "unit_position": 2,
+            },
+        }
+    }
+
+
 def snapshot(*, duplicate_third: bool = False, prefixed_titles: bool = False) -> dict:
     def title(canonical_id: str, text: str) -> str:
         return f"{canonical_id} — {text}" if prefixed_titles else text
@@ -60,6 +83,30 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(actions["M00-L02"], "READ_ONLY_GOLDEN")
         self.assertEqual(actions["M00-L03"], "SKIP")
         self.assertFalse(any(op["action"] == "PLANNED_CREATE" for op in plan.operations))
+
+    def test_golden_profile_ids_recognize_pre_rewrite_unprefixed_titles(self) -> None:
+        changed = copy.deepcopy(manifest())
+        changed["modules"][0]["lessons"][0]["title"] = "Новый первый"
+        changed["modules"][0]["lessons"][1]["title"] = "Новый второй"
+
+        plan = plan_dry_run(changed, snapshot(), golden_profile=golden_profile())
+
+        actions = {op["lesson"]: op["action"] for op in plan.operations}
+        self.assertEqual(actions["M00-L01"], "READ_ONLY_GOLDEN")
+        self.assertEqual(actions["M00-L02"], "READ_ONLY_GOLDEN")
+        self.assertFalse(any(blocker.startswith("golden:M00-L0") for blocker in plan.blockers))
+        notices = {item["canonical_id"]: item for item in plan.notices}
+        self.assertIn("CANONICAL_GOLDEN_TITLE_DIFFERS_FROM_CONFIRMED_LIVE", notices["M00-L01"]["reason_codes"])
+        self.assertIn("CANONICAL_GOLDEN_TITLE_DIFFERS_FROM_CONFIRMED_LIVE", notices["M00-L02"]["reason_codes"])
+
+    def test_golden_profile_identity_never_falls_back_to_matching_wrong_title(self) -> None:
+        profile = golden_profile()
+        profile["golden_lessons"]["M00-L01"]["stepik_lesson_id"] = 999999
+
+        golden, blockers = recognize_golden(manifest(), snapshot(), profile)
+
+        self.assertNotIn("M00-L01", golden)
+        self.assertTrue(any("golden-profile lesson_id=999999" in blocker for blocker in blockers))
 
     def test_golden_canonical_drift_is_notice_not_global_blocker(self) -> None:
         changed = copy.deepcopy(manifest())
