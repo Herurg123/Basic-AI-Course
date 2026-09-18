@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .api import StepikAPIError, StepikWriteAmbiguousError
-from .content import CompiledStep
+from .step_model import RenderedStep
 from .fingerprints import compiled_lesson_fingerprint, html_fingerprint, live_lesson_fingerprint
 from .lesson_title_write import LessonTitleWriteError, execute_lesson_title_update
 from .sync_state import SyncAssessment, assess_sync, build_record
@@ -26,7 +26,7 @@ def _step_source(item: dict[str, Any]) -> dict[str, Any]:
     return source
 
 
-def _equivalent(existing: dict[str, Any], expected: CompiledStep) -> bool:
+def _equivalent(existing: dict[str, Any], expected: RenderedStep) -> bool:
     return step_transport_equivalent(existing, expected)
 
 
@@ -98,7 +98,7 @@ def _target_lesson(
     return lesson
 
 
-def _lesson_after_expected_step(lesson: dict[str, Any], *, step_id: int, expected: CompiledStep) -> dict[str, Any]:
+def _lesson_after_expected_step(lesson: dict[str, Any], *, step_id: int, expected: RenderedStep) -> dict[str, Any]:
     updated = deepcopy(lesson)
     matched = False
     for item in updated.get("steps", []):
@@ -142,7 +142,7 @@ class SyncWriteResult(WriteResult):
     state_record: dict[str, Any] | None = None
 
 
-def classify_existing_steps(existing: list[dict[str, Any]], expected: list[CompiledStep]) -> tuple[str, int]:
+def classify_existing_steps(existing: list[dict[str, Any]], expected: list[RenderedStep]) -> tuple[str, int]:
     ordered = sorted(existing, key=lambda item: _step_source(item).get("position", 10**9))
     positions = [_step_source(item).get("position") for item in ordered]
     if positions != list(range(1, len(ordered) + 1)):
@@ -163,7 +163,7 @@ def classify_existing_steps(existing: list[dict[str, Any]], expected: list[Compi
     return ("complete" if matched == len(expected) else "partial"), matched
 
 
-def _assert_readback(readback: dict[str, Any], expected: CompiledStep) -> None:
+def _assert_readback(readback: dict[str, Any], expected: RenderedStep) -> None:
     wrapped = {"step_source": readback}
     if not _equivalent(wrapped, expected):
         raise ContentWriteError(f"Read-back step position={expected.position} не совпал с compiled content")
@@ -181,7 +181,7 @@ def execute_content_test_one(
     client: Any,
     snapshot: dict[str, Any],
     *,
-    expected_steps: list[CompiledStep],
+    expected_steps: list[RenderedStep],
     module_position: int,
     lesson_position: int,
     expected_title: str,
@@ -245,7 +245,7 @@ def execute_content_sync_one(
     snapshot: dict[str, Any],
     *,
     canonical_id: str,
-    expected_steps: list[CompiledStep],
+    expected_steps: list[RenderedStep],
     module_position: int,
     lesson_position: int,
     expected_title: str,
