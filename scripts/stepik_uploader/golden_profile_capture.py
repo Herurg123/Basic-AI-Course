@@ -41,6 +41,23 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _validated_baselines(state: dict) -> dict[str, dict]:
+    pending_lessons = state.get("pending", {}).get("lessons", {})
+    remaining = sorted(target for target in EXPECTED_COUNTS if target in pending_lessons)
+    if remaining:
+        raise GoldenProfileCaptureError("Golden capture запрещён при PENDING: " + ", ".join(remaining))
+
+    baselines: dict[str, dict] = {}
+    for target, count in EXPECTED_COUNTS.items():
+        baseline = baseline_for(state, target)
+        if not isinstance(baseline, dict):
+            raise GoldenProfileCaptureError(f"{target}: отсутствует confirmed machine baseline")
+        if len(baseline.get("step_ids", [])) != count:
+            raise GoldenProfileCaptureError(f"{target}: baseline не подтверждает {count} step IDs")
+        baselines[target] = baseline
+    return baselines
+
+
 def main() -> int:
     args = parse_args()
     repo_root = args.repo_root.resolve()
@@ -58,19 +75,7 @@ def main() -> int:
             raise GoldenProfileCaptureError(f"capture разрешён только для course_id={COURSE_ID}")
         state_path = args.sync_state if args.sync_state.is_absolute() else repo_root / args.sync_state
         state = load_state(state_path, course_id=COURSE_ID)
-        pending_lessons = state.get("pending", {}).get("lessons", {})
-        remaining = sorted(target for target in EXPECTED_COUNTS if target in pending_lessons)
-        if remaining:
-            raise GoldenProfileCaptureError("Golden capture запрещён при PENDING: " + ", ".join(remaining))
-
-        baselines: dict[str, dict] = {}
-        for target, count in EXPECTED_COUNTS.items():
-            baseline = baseline_for(state, target)
-            if not isinstance(baseline, dict):
-                raise GoldenProfileCaptureError(f"{target}: отсутствует confirmed machine baseline")
-            if len(baseline.get("step_ids", [])) != count:
-                raise GoldenProfileCaptureError(f"{target}: baseline не подтверждает {count} step IDs")
-            baselines[target] = baseline
+        baselines = _validated_baselines(state)
 
         profile = load_golden_profile(repo_root / m00_l01.GOLDEN_PROFILE_PATH)
         client_id, client_secret = m00_l01.legacy._credentials()
