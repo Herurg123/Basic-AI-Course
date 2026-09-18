@@ -15,7 +15,7 @@ if __package__ in {None, ""}:
     from stepik_uploader.asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from stepik_uploader.attachment_materialization import verify_attachment_capability
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
-    from stepik_uploader.content import ContentCompileError
+    from stepik_uploader.general_content import GeneralContentCompileError as ContentCompileError, compile_lesson_source
     from stepik_uploader.deployment_history import (
         DeploymentHistoryError,
         DeploymentRecorder,
@@ -23,7 +23,6 @@ if __package__ in {None, ""}:
         event_identity_from_environment,
     )
     from stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
-    from stepik_uploader.general_content import compile_lesson_source
     from stepik_uploader.platform_profile import (
         PLATFORM_PROFILE_PATH,
         PlatformProfileError,
@@ -63,7 +62,7 @@ else:
     from .asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from .attachment_materialization import verify_attachment_capability
     from .canonical import CanonicalBuildError, build_structural_manifest
-    from .content import ContentCompileError
+    from .general_content import GeneralContentCompileError as ContentCompileError, compile_lesson_source
     from .deployment_history import (
         DeploymentHistoryError,
         DeploymentRecorder,
@@ -71,7 +70,6 @@ else:
         event_identity_from_environment,
     )
     from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
-    from .general_content import compile_lesson_source
     from .platform_profile import (
         PLATFORM_PROFILE_PATH,
         PlatformProfileError,
