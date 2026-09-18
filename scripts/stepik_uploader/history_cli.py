@@ -15,7 +15,7 @@ else:
     from .history_runtime import identity_from_records, load_event_artifact, mark_machine_state_committed
 
 
-LESSON_HISTORY_KINDS = {"lesson", "golden-content-refresh", "golden-content-migration"}
+LESSON_HISTORY_KINDS = {"lesson", "golden-content-refresh", "golden-content-migration"}  # legacy kinds kept read-compatible
 
 
 def parse_args() -> argparse.Namespace:
@@ -43,7 +43,7 @@ def _normalize_event_from_history(event: dict, identity: dict, *, event_file: Pa
     """Bind routing metadata to immutable history identity before state commit.
 
     Event artifact fields are transport metadata. The append-only history identity is
-    authoritative for object_id/kind. Golden content routes intentionally use their
+    authoritative for object_id/kind. Historical pre-unification lesson events used
     own immutable ``kind`` values but still commit a lesson baseline; ordinary lesson
     and asset events keep the same rule. This prevents a mislabeled helper artifact
     from committing another object's baseline.
