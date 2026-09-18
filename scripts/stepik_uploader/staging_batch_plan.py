@@ -40,6 +40,13 @@ def _manifest_index(manifest: dict[str, Any]) -> tuple[list[str], set[str]]:
 
 
 def select_targets(manifest: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+    """Split PENDING ordinary lessons into initial uploads and guarded refreshes.
+
+    A confirmed machine baseline is not a blocker by itself. It is precisely the
+    evidence required by the refresh runtime to prove that live Stepik has not
+    drifted before any PUT is allowed. Golden lessons remain outside the ordinary
+    route and are handled only by their explicit owner-approved workflows.
+    """
     pending = state.get("pending", {})
     pending_lessons = pending.get("lessons", {})
     baselines = state.get("lessons", {})
@@ -60,8 +67,8 @@ def select_targets(manifest: dict[str, Any], state: dict[str, Any]) -> dict[str,
         )
 
     initial_targets: list[str] = []
+    refresh_targets: list[str] = []
     excluded_golden_pending: list[str] = []
-    incompatible_existing_baselines: list[str] = []
 
     for canonical_id in canonical_order:
         record = pending_lessons.get(canonical_id)
@@ -71,23 +78,20 @@ def select_targets(manifest: dict[str, Any], state: dict[str, Any]) -> dict[str,
             excluded_golden_pending.append(canonical_id)
             continue
         if canonical_id in baselines:
-            incompatible_existing_baselines.append(canonical_id)
-            continue
-        initial_targets.append(canonical_id)
+            refresh_targets.append(canonical_id)
+        else:
+            initial_targets.append(canonical_id)
 
-    if incompatible_existing_baselines:
-        blockers.append(
-            "Batch initial-staging route не обновляет lessons с существующим baseline: "
-            + ", ".join(incompatible_existing_baselines)
-        )
-
+    selected = set(initial_targets) | set(refresh_targets)
+    target_ids = [canonical_id for canonical_id in canonical_order if canonical_id in selected]
     course_page_pending = pending.get("course_page")
 
     return {
         "initial_target_ids": initial_targets,
+        "refresh_target_ids": refresh_targets,
         "recovery_target_ids": [],
-        "target_ids": list(initial_targets),
-        "target_count": len(initial_targets),
+        "target_ids": target_ids,
+        "target_count": len(target_ids),
         "excluded_golden_pending": excluded_golden_pending,
         "course_page_pending": course_page_pending is not None,
         "blockers": blockers,
@@ -105,7 +109,9 @@ def add_history_recovery_targets(
     course_id: int,
 ) -> dict[str, Any]:
     canonical_order, golden_ids = _manifest_index(manifest)
-    initial_targets = set(selection.get("initial_target_ids", []))
+    active_targets = set(selection.get("initial_target_ids", [])) | set(
+        selection.get("refresh_target_ids", [])
+    )
     pending_lessons = state.get("pending", {}).get("lessons", {})
     baselines = state.get("lessons", {})
     blockers = list(selection.get("blockers", []))
@@ -117,10 +123,10 @@ def add_history_recovery_targets(
 
         incomplete = find_incomplete_object_events(store, object_id=canonical_id)
 
-        # Initial targets are always re-checked by staging_build_runtime itself. It owns
-        # the strict rules for old/partial/incomplete history because that history may
-        # describe writes into the exact live lesson we are about to touch.
-        if canonical_id in initial_targets:
+        # Active initial/refresh targets are re-checked by their own strict runtime.
+        # Those runtimes own partial-write recovery because they also know the exact
+        # compiled desired content and current baseline for the target.
+        if canonical_id in active_targets:
             continue
 
         # For already-closed, non-target lessons only a commit gap for *this exact
@@ -150,7 +156,7 @@ def add_history_recovery_targets(
         has_baseline = canonical_id in baselines
         if has_pending:
             blockers.append(
-                f"{canonical_id}: current-source recovery event существует одновременно с PENDING outside initial scope"
+                f"{canonical_id}: current-source recovery event существует одновременно с PENDING outside active scope"
             )
             continue
         if not has_baseline:
@@ -160,12 +166,8 @@ def add_history_recovery_targets(
             continue
         recovery_targets.append(canonical_id)
 
-    recovery_set = set(recovery_targets)
-    total_targets = [
-        canonical_id
-        for canonical_id in canonical_order
-        if canonical_id in initial_targets or canonical_id in recovery_set
-    ]
+    all_targets = active_targets | set(recovery_targets)
+    total_targets = [canonical_id for canonical_id in canonical_order if canonical_id in all_targets]
     result = dict(selection)
     result["recovery_target_ids"] = recovery_targets
     result["target_ids"] = total_targets
@@ -224,7 +226,9 @@ def build_plan(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Plan guarded sequential staging for all ordinary PENDING lessons")
+    parser = argparse.ArgumentParser(
+        description="Plan guarded sequential initial/refresh staging for all ordinary PENDING lessons"
+    )
     parser.add_argument("--course-id", type=int, required=True)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--sync-state", type=Path, required=True)
