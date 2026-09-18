@@ -39,8 +39,8 @@ class AssetResolutionTests(unittest.TestCase):
     def test_current_course_asset_route_gate_is_fully_resolved(self) -> None:
         report = self._assess()
         self.assertTrue(report["route_gate_passed"])
-        self.assertFalse(report["ready_for_bulk_write"])
-        self.assertEqual(report["next_gate"], "verified-rendering-and-first-upload")
+        self.assertTrue(report["ready_for_lesson_sync"])
+        self.assertEqual(report["next_gate"], "verified-rendering-and-guarded-sync")
         self.assertEqual(report["stepik_writes"], 0)
         self.assertEqual(report["decision"], "D-2026-09-15-STEPIK-ATTACHMENTS")
         self.assertEqual(
@@ -119,7 +119,7 @@ class AssetResolutionTests(unittest.TestCase):
         self.assertEqual(compiler_links, inventory_direct)
         self.assertEqual(sum(compiler_links.values()), 48)
 
-    def test_golden_existing_urls_are_bound_to_exact_source_hashes(self) -> None:
+    def test_existing_urls_are_bound_to_exact_source_hashes(self) -> None:
         report = self._assess()
         confirmed = [item for item in report["resolutions"] if item["mode"] == "confirmed-url"]
         self.assertEqual(len(confirmed), 2)
@@ -132,9 +132,9 @@ class AssetResolutionTests(unittest.TestCase):
         )
         for item in confirmed:
             self.assertTrue(item["url"].startswith("https://stepik.org/media/attachments/lesson/2591710/"))
-            self.assertEqual(item["binding_scope"], "golden-read-only-live-observation")
+            self.assertEqual(item["binding_scope"], "confirmed-existing-stepik-binding")
 
-    def test_non_golden_visuals_use_future_transactional_materialization_routes(self) -> None:
+    def test_visuals_use_transactional_materialization_routes(self) -> None:
         report = self._assess()
         materialized = {
             item["source_path"]: item["mode"]
