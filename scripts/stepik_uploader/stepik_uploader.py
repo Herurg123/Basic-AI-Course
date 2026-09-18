@@ -230,13 +230,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"LIVE MODE BLOCKER: {exc}", file=sys.stderr)
             return 2
 
-    plan = plan_dry_run(manifest, snapshot)
     profile: dict[str, Any] | None = None
     profile_blockers: list[str] = []
     golden_profile_status = "not-checked"
     if snapshot is not None:
         profile, profile_blockers = load_and_validate_saved_golden_profile(repo_root, snapshot, manifest)
+        plan = plan_dry_run(manifest, snapshot, golden_profile=profile)
         golden_profile_status = mark_golden_profile_result(plan, profile_blockers)
+    else:
+        plan = plan_dry_run(manifest, snapshot)
 
     write_json(report_dir / "dry-run-plan.json", {"operations": plan.operations, "blockers": plan.blockers})
 
