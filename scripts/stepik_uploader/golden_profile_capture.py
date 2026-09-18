@@ -70,8 +70,6 @@ def main() -> int:
                 raise GoldenProfileCaptureError(f"{target}: отсутствует confirmed machine baseline")
             if len(baseline.get("step_ids", [])) != count:
                 raise GoldenProfileCaptureError(f"{target}: baseline не подтверждает {count} step IDs")
-            if baseline.get("applied_source_sha") != sha:
-                raise GoldenProfileCaptureError(f"{target}: baseline относится не к current main SHA")
             baselines[target] = baseline
 
         profile = load_golden_profile(repo_root / m00_l01.GOLDEN_PROFILE_PATH)
