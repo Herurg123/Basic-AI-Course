@@ -47,7 +47,7 @@ def build_asset_resolution_report(repo_root: Path, *, course_id: int = 299189) -
         "unresolved_sources": report["unresolved_sources"],
         "topology_fingerprint": report["topology"]["fingerprint"],
         "stepik_writes": 0,
-        "ready_for_bulk_write": False,
+        "ready_for_lesson_sync": bool(report.get("ready_for_lesson_sync")),
         "next_gate": report["next_gate"],
     }
 
