@@ -57,15 +57,15 @@
       "mode": "confirmed-url",
       "url": "https://stepik.org/media/attachments/lesson/2591710/M00-L02-A01.docx",
       "source_sha256": "sha256:fb9fda11dec82e087c28077507c1053e8f29007e8d4824700e4efca0e608d31c",
-      "binding_scope": "golden-read-only-live-observation",
-      "note": "Observed in live READ_ONLY golden M00-L02. This binding is not authority to upload or replace course files."
+      "binding_scope": "confirmed-existing-stepik-binding",
+      "note": "Exact source hash and existing Stepik URL were previously confirmed. This binding is read-only provenance, not authority for blind replacement."
     },
     "05_assets/M00/M00-L02/M00-L02-A02.png": {
       "mode": "confirmed-url",
       "url": "https://stepik.org/media/attachments/lesson/2591710/M00-L02-A02.png",
       "source_sha256": "sha256:f40cc30963a6f94437120c19030ac043d47dbe6d28ee346dc5fc0bdde2b605f2",
-      "binding_scope": "golden-read-only-live-observation",
-      "note": "Observed in live READ_ONLY golden M00-L02. This binding is not authority to upload or replace course files."
+      "binding_scope": "confirmed-existing-stepik-binding",
+      "note": "Exact source hash and existing Stepik URL were previously confirmed. This binding is read-only provenance, not authority for blind replacement."
     },
     "05_assets/M04/M04-L01/M04-L01-A01.txt": {
       "mode": "stepik-attachment-upload",
