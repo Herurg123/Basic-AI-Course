@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from scripts.stepik_uploader.staging_commit_gap_recovery import _materialization_rows
+
 
 class StagingCommitGapWorkflowTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -30,6 +32,29 @@ class StagingCommitGapWorkflowTests(unittest.TestCase):
         self.assertIn("history_cli.py mark-state-committed", block)
         self.assertLess(block.index("gh api --method PATCH"), block.index("history_cli.py mark-state-committed"))
         self.assertNotIn("continue-on-error: true", block)
+
+
+    def test_recovery_has_no_special_m00_class_and_accepts_generic_attachment(self) -> None:
+        runtime = (self.repo_root / "scripts/stepik_uploader/staging_commit_gap_recovery.py").read_text(encoding="utf-8")
+        self.assertNotIn("GOLDEN_IDS", runtime)
+        self.assertNotIn("READ_ONLY_GOLDEN", runtime)
+        self.assertNotIn("M00-L01", runtime)
+        self.assertNotIn("M00-L02", runtime)
+
+        report = {
+            "resolutions": [
+                {
+                    "lesson": "M04-L01",
+                    "source_path": "05_assets/M04/M04-L01/M04-L01-A01.txt",
+                    "source_sha256": "sha256:" + "1" * 64,
+                    "mode": "stepik-attachment-upload",
+                    "materialization_required_at_write": True,
+                }
+            ]
+        }
+        rows = _materialization_rows(report, "M04-L01")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["mode"], "stepik-attachment-upload")
 
     def test_pull_request_runs_offline_tests_only(self) -> None:
         self.assertIn("pull_request:", self.workflow)
