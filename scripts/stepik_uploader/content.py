@@ -109,7 +109,7 @@ def compile_test_lesson(
         "is_html_enabled": True,
         "manual_scoring": False,
     }:
-        raise ContentCompileError("free-answer source не совпадает с подтверждённым golden profile")
+        raise ContentCompileError("free-answer source не совпадает с подтверждённым Stepik platform profile")
 
     repo_root = repo_root.resolve()
     lesson_path = repo_root / "04_course/M02/M02-L01/lesson.md"
