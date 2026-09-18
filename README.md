@@ -51,17 +51,19 @@ Workflow жёстко разрешён только для репозитори�
 
 ## Текущее состояние
 
+**Постоянный gate learner-facing изменений:** любое содержательное изменение материала, с которым непосредственно сталкивается ученик, проходит отдельные `ZERO-LEVEL AUDIT` и `PEDAGOGUE AUDIT`; чисто технические изменения проекта без learner-facing эффекта этим двойным gate не облагаются. Основание: [D-2026-09-18-LEARNER-CONTENT-DUAL-AUDIT](00_governance/decision-log/2026-09-18-learner-content-dual-audit.md).
+
 **Педагогический аудит Astra 14.09.2026:** [отчёт по всем 21 уроку](90_reviews/pedagogy-zero-level-2026-09-14/audit-report.md) выявил PED-01…PED-07. Source-level исправления приняты через PR #59; independent critic обнаружил и помог устранить CRIT-C-01 до merge. [Issue #50](https://github.com/Herurg123/Basic-AI-Course/issues/50) сохраняется как контекст аудита и реальных regression/readiness gates, а не как признак отсутствия source-исправлений. Source PASS не закрывает автоматически PED-01 real device route, PED-03 live generation/edit, PED-06 publication visual check, PED-07 итоговый live learner UI и Human Pilot.
 
 В `main` утверждены:
 
 - структура репозитория и workflow;
 - [манифест курса v1.3](00_governance/manifest/manifest-v1.3.md), который точечно обновляет полный базовый текст v1.2;
-- [инструкция проекта v1.4](00_governance/project-instructions/project-instructions-v1.4.md);
+- [инструкция проекта v1.5](00_governance/project-instructions/project-instructions-v1.5.md);
 - [карта компетенций v1.2](01_architecture/competency-map/competency-map-v1.2.md), которая точечно обновляет полный базовый текст v1.1 и приводит возрастную границу к D-2026-09-11-AGE;
 - [матрица сервисов v1.1](01_architecture/service-matrix/service-matrix-v1.1.md), которая точечно обновляет полный базовый текст v1.0;
 - [общая архитектура курса v1.1](01_architecture/course-architecture/course-architecture-v1.1.md), которая сохраняет 9 модулей и 21 Lesson ID и снимает age functional testing из внутренних gates;
-- [стандарт сценария урока v1.2](01_architecture/lesson-standard/lesson-standard-v1.2.md), который точечно дополняет базовую [v1.1](01_architecture/lesson-standard/lesson-standard-v1.1.md) правилом «зачем до нового осмысленного действия», и `lesson-template.md`;
+- [стандарт сценария урока v1.3](01_architecture/lesson-standard/lesson-standard-v1.3.md), который добавляет двойной педагогический gate для learner-facing изменений; он применяется вместе с [v1.2](01_architecture/lesson-standard/lesson-standard-v1.2.md) и базовой [v1.1](01_architecture/lesson-standard/lesson-standard-v1.1.md), а также с `lesson-template.md`;
 - [полная Матрица покрытия v1.0](01_architecture/coverage-matrix/coverage-matrix-v1.0.md): все 19 компетенций, упражнения, проверки, доказательства, сервисы, риски и Asset ID; нижележащие возрастные формулировки читаются с учётом Манифеста v1.3 и Архитектуры v1.1;
 - [Карта следующих уровней v1.0](01_architecture/next-levels/next-levels-v1.0.md): граница завершенной бесплатной базы и дальнейшего усложнения; будущие продукты пока являются гипотезами;
 - [решение по завершению F1](00_governance/decision-log/2026-09-10-f1-completion.md);
