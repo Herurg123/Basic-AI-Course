@@ -85,8 +85,10 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("golden_content_refresh_m00_l01_6to6.py", l01_block)
         self.assertIn("--confirm-write", l02_block)
         self.assertIn("--confirm-write", l01_block)
-        self.assertNotIn("--target-id M00-L02", raw)
-        self.assertNotIn("--target-id M00-L01", raw)
+        self.assertGreaterEqual(raw.count("--target-id M00-L02"), 2)
+        self.assertGreaterEqual(raw.count("--target-id M00-L01"), 2)
+        self.assertIn("golden_commit_gap_recovery.py", l02_block)
+        self.assertIn("golden_commit_gap_recovery.py", l01_block)
 
     def test_closed_golden_routes_recover_commit_gap_without_stepik_write(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
