@@ -17,6 +17,7 @@ if __package__ in {None, ""}:
     from stepik_uploader.deployment_history import DeploymentRecorder, event_identity_from_environment, summarize_event
     from stepik_uploader.general_content import compile_lesson_source
     from stepik_uploader.golden import validate_golden_profile
+    from stepik_uploader.lesson_title_write import LessonTitleWriteError, execute_lesson_title_update
     from stepik_uploader.transport_equivalence import lesson_transport_equivalent
     from stepik_uploader.verified_rendering import build_rendering_plan, require_render_ready
 else:
@@ -26,6 +27,7 @@ else:
     from .deployment_history import DeploymentRecorder, event_identity_from_environment, summarize_event
     from .general_content import compile_lesson_source
     from .golden import validate_golden_profile
+    from .lesson_title_write import LessonTitleWriteError, execute_lesson_title_update
     from .transport_equivalence import lesson_transport_equivalent
     from .verified_rendering import build_rendering_plan, require_render_ready
 
@@ -221,6 +223,10 @@ def _update_profile_row(row: dict[str, Any], live: dict[str, Any], *, run_id: in
         for item in steps
         if item["step_source"]["block"].get("name") == "free-answer"
     ]
+    if not isinstance(live.get("title"), str) or not str(live.get("title")).strip():
+        raise GoldenM00L01RefreshError("Golden profile capture требует непустой final live title")
+    row["lesson_title"] = str(live["title"])
+    row["lesson_title_observed_run_id"] = run_id
     row["content_observed_run_id"] = run_id
 
 
@@ -281,8 +287,6 @@ def main() -> int:
         if len(desired_steps) != 6 or len(target_manifest.get("steps", [])) != 6:
             raise GoldenM00L01RefreshError(f"{TARGET_ID}: canonical target должен оставаться ровно 6 steps")
         expected_title = str(target_manifest["title"])
-        if expected_title != str(observed.get("lesson_title")):
-            raise GoldenM00L01RefreshError(f"{TARGET_ID}: title change запрещён content-only route")
         desired_fp = legacy.compiled_lesson_fingerprint(expected_title=expected_title, expected_steps=desired_steps)
         legacy.write_json(report_dir / "asset-report.json", asset_report)
 
@@ -305,8 +309,10 @@ def main() -> int:
         if course.get("is_public") is not False or course.get("language") not in {None, "ru"}:
             raise GoldenM00L01RefreshError("M00-L01 refresh разрешён только в private ru course")
         lesson = legacy._live_target(snapshot, lesson_id=int(observed["stepik_lesson_id"]))
-        if lesson.get("is_public") is not False or lesson.get("language") != "ru" or lesson.get("title") != expected_title:
-            raise GoldenM00L01RefreshError(f"{TARGET_ID}: live metadata drift запрещает content-only route")
+        if lesson.get("is_public") is not False or lesson.get("language") != "ru":
+            raise GoldenM00L01RefreshError(f"{TARGET_ID}: live private/language metadata drift")
+        if not isinstance(lesson.get("title"), str) or not str(lesson.get("title")).strip():
+            raise GoldenM00L01RefreshError(f"{TARGET_ID}: live title отсутствует")
         live_ids = _assert_content_only_shape(lesson, desired_steps)
         live_fp = legacy.live_lesson_fingerprint(lesson)
 
@@ -363,10 +369,14 @@ def main() -> int:
             return 0
 
         changed = _changed_positions(lesson, desired_steps)
+        title_change = lesson.get("title") != expected_title
         plan = {
             "accepted_fixture_steps": 6,
             "desired_steps": 6,
             "changed_existing_positions": changed,
+            "title_update_required": title_change,
+            "accepted_live_title": str(observed.get("lesson_title") or ""),
+            "desired_title": expected_title,
             "creates_allowed": False,
             "deletes_allowed": False,
             "reorder_allowed": False,
@@ -382,9 +392,9 @@ def main() -> int:
             report.update(
                 {
                     "verdict": "READY",
-                    "status": "UPDATE_REQUIRED" if changed else "NOOP_PENDING",
+                    "status": "UPDATE_REQUIRED" if (changed or title_change) else "NOOP_PENDING",
                     "plan": plan,
-                    "stepik_writes_planned": len(changed),
+                    "stepik_writes_planned": len(changed) + (1 if title_change else 0),
                     "blockers": [],
                 }
             )
@@ -414,6 +424,20 @@ def main() -> int:
 
         working = deepcopy(lesson)
         operations: list[dict[str, Any]] = []
+        try:
+            working, title_operation = execute_lesson_title_update(
+                client,
+                working,
+                expected_title=expected_title,
+                recorder=recorder,
+                operation_id=f"golden-title-{int(lesson['id'])}",
+            )
+        except LessonTitleWriteError as exc:
+            raise GoldenM00L01RefreshError(str(exc)) from exc
+        if title_operation is not None:
+            operations.append(title_operation)
+            report["stepik_writes"] = int(report["stepik_writes"]) + 1
+
         for current, expected in zip(_ordered_steps(working), desired_steps, strict=True):
             if legacy.step_equivalent(current, expected):
                 continue
