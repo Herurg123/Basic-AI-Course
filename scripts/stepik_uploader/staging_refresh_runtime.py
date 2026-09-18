@@ -715,7 +715,7 @@ def main() -> int:
             module_position=int(module["position"]),
             lesson_position=int(lesson_manifest["position"]),
         )
-        _assert_target_live(current_snapshot, current_lesson, expected_title)
+        _assert_refresh_target_live(current_snapshot, current_lesson)
         assessment = assess_sync(
             canonical_id=target_id,
             live_lesson=current_lesson,
