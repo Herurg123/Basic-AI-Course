@@ -41,6 +41,31 @@ class HistoryCliIdentityTests(unittest.TestCase):
                 "M00-L01",
             )
 
+    def test_golden_content_history_is_lesson_like_and_uses_immutable_object_id(self) -> None:
+        for kind in ("golden-content-refresh", "golden-content-migration"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
+                event_file = Path(tmp) / "event.json"
+                event = {
+                    "event_id": "evt-golden",
+                    "source_sha": "c" * 40,
+                    "kind": "lesson",
+                    "canonical_id": "WRONG",
+                    "status": "APPLIED",
+                }
+                event_file.write_text(json.dumps(event), encoding="utf-8")
+                identity = {
+                    "event_id": "evt-golden",
+                    "source_sha": "c" * 40,
+                    "kind": kind,
+                    "object_id": "M00-L02",
+                }
+                normalized = _normalize_event_from_history(event, identity, event_file=event_file)
+                self.assertEqual(normalized["kind"], kind)
+                self.assertEqual(normalized["canonical_id"], "M00-L02")
+                state = {"lessons": {"M00-L02": {"canonical_id": "M00-L02", "stepik_lesson_id": 2}}}
+                self.assertEqual(_baseline_from_state(normalized, state)["canonical_id"], "M00-L02")
+
+
     def test_asset_identity_reconstructs_source_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             event_file = Path(tmp) / "event.json"
