@@ -5,7 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.stepik_uploader.history_cli import _baseline_from_state, _normalize_event_from_history
+from scripts.stepik_uploader.deployment_history import stable_event_id
+from scripts.stepik_uploader.history_cli import _baseline_from_state, _history_identity, _normalize_event_from_history
 
 
 class HistoryCliIdentityTests(unittest.TestCase):
@@ -65,6 +66,61 @@ class HistoryCliIdentityTests(unittest.TestCase):
                 state = {"lessons": {"M00-L02": {"canonical_id": "M00-L02", "stepik_lesson_id": 2}}}
                 self.assertEqual(_baseline_from_state(normalized, state)["canonical_id"], "M00-L02")
 
+
+    def test_history_identity_allows_same_event_across_workflow_runs(self) -> None:
+        source_sha = "d" * 40
+        desired = "sha256:" + "a" * 64
+        baseline = "sha256:" + "b" * 64
+        pending_first_sha = "e" * 40
+        event_id = stable_event_id(
+            course_id=299189,
+            object_id="M00-L02",
+            kind="golden-content-refresh",
+            source_sha=source_sha,
+            desired_fingerprint=desired,
+            baseline_fingerprint=baseline,
+            pending_first_sha=pending_first_sha,
+        )
+
+        def identity(run_id: str) -> dict:
+            return {
+                "event_id": event_id,
+                "course_id": 299189,
+                "object_id": "M00-L02",
+                "kind": "golden-content-refresh",
+                "source_sha": source_sha,
+                "workflow": {"run_id": run_id, "run_attempt": "1", "run_url": None},
+                "desired_fingerprint": desired,
+                "baseline_fingerprint_before": baseline,
+                "pending_first_sha": pending_first_sha,
+                "retry_of_event_id": None,
+                "continuation_of_event_id": None,
+            }
+
+        records = [
+            {
+                "history_schema_version": 1,
+                "record_id": "r1",
+                "phase": "EVENT_STARTED",
+                "identity": identity("100"),
+                "fingerprint_before": baseline,
+            },
+            {
+                "history_schema_version": 1,
+                "record_id": "r2",
+                "phase": "RECOVERY_CLASSIFIED",
+                "identity": identity("200"),
+            },
+        ]
+
+        class Store:
+            def load(self, value: str) -> list[dict]:
+                self.assert_event = value
+                return records
+
+        resolved = _history_identity(Store(), {"event_id": event_id, "source_sha": source_sha})
+        self.assertEqual(resolved["event_id"], event_id)
+        self.assertEqual(resolved["object_id"], "M00-L02")
 
     def test_asset_identity_reconstructs_source_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
