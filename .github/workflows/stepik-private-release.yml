@@ -181,13 +181,15 @@ jobs:
           print('true' if state.get('pending', {}).get('lessons', {}).get('M00-L02') is not None else 'false')
           PY
           )"
-          if [[ "$pending" != "true" ]]; then
-            echo 'M00-L02 already closed; preflight skip' > "$dir/already-closed.txt"
-            exit 0
+          if [[ "$pending" == "true" ]]; then
+            python scripts/stepik_uploader/golden_content_migration.py \
+              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
+              --sync-state "$base/sync-state.initial.json"
+          else
+            python scripts/stepik_uploader/golden_commit_gap_recovery.py \
+              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
+              --target-id M00-L02 --sync-state "$base/sync-state.initial.json"
           fi
-          python scripts/stepik_uploader/golden_content_migration.py \
-            --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-            --sync-state "$base/sync-state.initial.json"
 
       - name: Preflight owner-approved M00-L01 6→6 без записи
         shell: bash
@@ -202,13 +204,15 @@ jobs:
           print('true' if state.get('pending', {}).get('lessons', {}).get('M00-L01') is not None else 'false')
           PY
           )"
-          if [[ "$pending" != "true" ]]; then
-            echo 'M00-L01 already closed; preflight skip' > "$dir/already-closed.txt"
-            exit 0
+          if [[ "$pending" == "true" ]]; then
+            python scripts/stepik_uploader/golden_content_refresh_m00_l01_6to6.py \
+              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
+              --sync-state "$base/sync-state.initial.json"
+          else
+            python scripts/stepik_uploader/golden_commit_gap_recovery.py \
+              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
+              --target-id M00-L01 --sync-state "$base/sync-state.initial.json"
           fi
-          python scripts/stepik_uploader/golden_content_refresh_m00_l01_6to6.py \
-            --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-            --sync-state "$base/sync-state.initial.json"
 
       - name: Preflight всех ordinary PENDING lessons без записи
         env:
@@ -454,7 +458,26 @@ jobs:
           PY
           )"
           if [[ "$pending" != "true" ]]; then
-            echo 'M00-L02 already closed; write skip' > "$dir/already-closed.txt"
+            python scripts/stepik_uploader/golden_commit_gap_recovery.py \
+              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
+              --target-id M00-L02 --sync-state "$dir/sync-state.previous.json"
+            applicable="$(python - "$dir/commit-gap-recovery.json" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding='utf-8'))
+          print('true' if data.get('applicable') is True else 'false')
+          PY
+            )"
+            if [[ "$applicable" == "true" ]]; then
+              for required in sync-state.next.json lesson-deployment-event.json sync-journal.md; do
+                test -f "$dir/$required" || { echo "M00-L02 recovery missing $required" >&2; exit 2; }
+              done
+              python scripts/stepik_uploader/history_cli.py mark-state-committed \
+                --event-file "$dir/lesson-deployment-event.json" --state-file "$dir/sync-state.next.json"
+              gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$dir/sync-journal.md"
+              echo 'M00-L02 commit-gap recovered without Stepik write' > "$dir/already-closed.txt"
+            else
+              echo 'M00-L02 already closed; no current-source commit gap' > "$dir/already-closed.txt"
+            fi
             exit 0
           fi
           python scripts/stepik_uploader/golden_content_migration.py \
@@ -497,7 +520,26 @@ jobs:
           PY
           )"
           if [[ "$pending" != "true" ]]; then
-            echo 'M00-L01 already closed; write skip' > "$dir/already-closed.txt"
+            python scripts/stepik_uploader/golden_commit_gap_recovery.py \
+              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
+              --target-id M00-L01 --sync-state "$dir/sync-state.previous.json"
+            applicable="$(python - "$dir/commit-gap-recovery.json" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding='utf-8'))
+          print('true' if data.get('applicable') is True else 'false')
+          PY
+            )"
+            if [[ "$applicable" == "true" ]]; then
+              for required in sync-state.next.json lesson-deployment-event.json sync-journal.md; do
+                test -f "$dir/$required" || { echo "M00-L01 recovery missing $required" >&2; exit 2; }
+              done
+              python scripts/stepik_uploader/history_cli.py mark-state-committed \
+                --event-file "$dir/lesson-deployment-event.json" --state-file "$dir/sync-state.next.json"
+              gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$dir/sync-journal.md"
+              echo 'M00-L01 commit-gap recovered without Stepik write' > "$dir/already-closed.txt"
+            else
+              echo 'M00-L01 already closed; no current-source commit gap' > "$dir/already-closed.txt"
+            fi
             exit 0
           fi
           python scripts/stepik_uploader/golden_content_refresh_m00_l01_6to6.py \
@@ -544,11 +586,11 @@ jobs:
               if not isinstance(baseline, dict) or len(baseline.get('step_ids', [])) != count:
                   raise SystemExit(f'{target} final machine baseline не подтверждает {count} steps')
           PY
-          if [[ -f "$base/write/M00-L01/golden-profile.next.json" ]]; then
-            cp "$base/write/M00-L01/golden-profile.next.json" "$base/golden-profile.final.next.json"
-          elif [[ -f "$base/write/M00-L02/golden-profile.next.json" ]]; then
-            cp "$base/write/M00-L02/golden-profile.next.json" "$base/golden-profile.final.next.json"
-          fi
+          python scripts/stepik_uploader/golden_profile_capture.py \
+            --repo-root . --course-id "$COURSE_ID" \
+            --sync-state "$base/sync-state.final.json" \
+            --output "$base/golden-profile.final.next.json" \
+            --report "$base/golden-profile-final-capture.json"
           test -f "$base/golden-profile.final.next.json"
 
       - name: Сводка
