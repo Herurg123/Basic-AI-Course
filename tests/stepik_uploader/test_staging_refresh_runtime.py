@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 from scripts.stepik_uploader.staging_refresh_runtime import (
     _assessment_or_history_gate,
+    _assert_refresh_target_live,
     _refresh_materialization_plan,
     _version_suffix,
 )
@@ -45,6 +46,15 @@ class StagingRefreshRuntimeTests(unittest.TestCase):
                 desired_fp="sha256:" + "2" * 64,
                 sha="a" * 40,
             )
+
+    def test_refresh_metadata_guard_allows_title_difference_but_requires_private_ru(self) -> None:
+        snapshot = {"course": {"is_public": False, "language": "ru"}}
+        lesson = {"id": 1, "title": "Old proven title", "is_public": False, "language": "ru"}
+        _assert_refresh_target_live(snapshot, lesson)
+        with self.assertRaises(ContentWriteError):
+            _assert_refresh_target_live(snapshot, {**lesson, "is_public": True})
+        with self.assertRaises(ContentWriteError):
+            _assert_refresh_target_live(snapshot, {**lesson, "language": "en"})
 
     def test_version_suffix_uses_source_sha_prefix(self) -> None:
         source_sha = "sha256:" + "abcdef123456" + "0" * 52

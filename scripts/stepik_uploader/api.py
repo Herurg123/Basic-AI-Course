@@ -358,6 +358,15 @@ class StepikClient:
     def create_lesson(self, title: str) -> dict[str, Any]:
         return self._request_write("POST", "/api/lessons", {"lesson": {"title": title}})
 
+    def update_lesson_title(self, *, lesson_id: int, title: str) -> dict[str, Any]:
+        if not isinstance(title, str) or not title.strip():
+            raise ValueError("Lesson title должен быть непустой строкой")
+        return self._request_write(
+            "PUT",
+            f"/api/lessons/{int(lesson_id)}",
+            {"lesson": {"title": title}},
+        )
+
     def create_section(self, course_id: int, title: str, position: int) -> dict[str, Any]:
         return self._request_write(
             "POST",

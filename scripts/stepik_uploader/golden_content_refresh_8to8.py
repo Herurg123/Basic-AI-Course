@@ -9,9 +9,11 @@ from typing import Any
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     import stepik_uploader.golden_content_migration_7to8 as legacy
+    from stepik_uploader.lesson_title_write import LessonTitleWriteError, execute_lesson_title_update
     from stepik_uploader.transport_equivalence import lesson_transport_equivalent
 else:
     from . import golden_content_migration_7to8 as legacy
+    from .lesson_title_write import LessonTitleWriteError, execute_lesson_title_update
     from .transport_equivalence import lesson_transport_equivalent
 
 
@@ -236,12 +238,10 @@ def run(args: Any, profile: dict[str, Any]) -> int:
                 "Golden 8→8 refresh разрешён только в private ru course"
             )
         lesson = legacy._live_target(snapshot, lesson_id=int(observed["stepik_lesson_id"]))
-        if (
-            lesson.get("title") != expected_title
-            or lesson.get("is_public") is not False
-            or lesson.get("language") != "ru"
-        ):
-            raise GoldenContentRefreshError(f"{TARGET_ID}: live metadata drift")
+        if lesson.get("is_public") is not False or lesson.get("language") != "ru":
+            raise GoldenContentRefreshError(f"{TARGET_ID}: live private/language metadata drift")
+        if not isinstance(lesson.get("title"), str) or not str(lesson.get("title")).strip():
+            raise GoldenContentRefreshError(f"{TARGET_ID}: live title отсутствует")
         live_ids = _assert_same_eight_ids(lesson, baseline)
         _assert_content_only_shape(lesson, desired_steps)
         live_fp = legacy.live_lesson_fingerprint(lesson)
@@ -307,10 +307,14 @@ def run(args: Any, profile: dict[str, Any]) -> int:
             return 0
 
         changed = _changed_positions(lesson, desired_steps)
+        title_change = lesson.get("title") != expected_title
         plan = {
             "accepted_fixture_steps": 8,
             "desired_steps": 8,
             "changed_existing_positions": changed,
+            "title_update_required": title_change,
+            "accepted_live_title": str(observed.get("lesson_title") or ""),
+            "desired_title": expected_title,
             "creates_allowed": False,
             "deletes_allowed": False,
             "reorder_allowed": False,
@@ -327,9 +331,9 @@ def run(args: Any, profile: dict[str, Any]) -> int:
             report.update(
                 {
                     "verdict": "READY",
-                    "status": "UPDATE_REQUIRED" if changed else "NOOP_PENDING",
+                    "status": "UPDATE_REQUIRED" if (changed or title_change) else "NOOP_PENDING",
                     "plan": plan,
-                    "stepik_writes_planned": len(changed),
+                    "stepik_writes_planned": len(changed) + (1 if title_change else 0),
                     "blockers": [],
                 }
             )
@@ -363,6 +367,20 @@ def run(args: Any, profile: dict[str, Any]) -> int:
 
         working = deepcopy(lesson)
         operations: list[dict[str, Any]] = []
+        try:
+            working, title_operation = execute_lesson_title_update(
+                client,
+                working,
+                expected_title=expected_title,
+                recorder=recorder,
+                operation_id=f"golden-title-{int(lesson['id'])}",
+            )
+        except LessonTitleWriteError as exc:
+            raise GoldenContentRefreshError(str(exc)) from exc
+        if title_operation is not None:
+            operations.append(title_operation)
+            report["stepik_writes"] = int(report["stepik_writes"]) + 1
+
         for current, expected in zip(_ordered_steps(working), desired_steps, strict=True):
             if legacy.step_equivalent(current, expected):
                 continue

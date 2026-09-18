@@ -8,6 +8,7 @@ from scripts.stepik_uploader.golden_content_refresh_m00_l01_6to6 import (
     TARGET_ID,
     _assert_content_only_shape,
     _target_profile,
+    _update_profile_row,
 )
 
 
@@ -75,6 +76,14 @@ class GoldenM00L01RefreshTests(unittest.TestCase):
         desired[2] = ExpectedStep(3, "free-answer", {"is_always_correct": False})
         with self.assertRaises(GoldenM00L01RefreshError):
             _assert_content_only_shape(self.lesson(), desired)
+
+    def test_final_profile_row_captures_live_title(self) -> None:
+        live = self.lesson()
+        live["title"] = "Новый канонический заголовок"
+        row = {"lesson_title": "Старый заголовок"}
+        _update_profile_row(row, live, run_id=123)
+        self.assertEqual(row["lesson_title"], "Новый канонический заголовок")
+        self.assertEqual(row["lesson_title_observed_run_id"], 123)
 
     def test_target_profile_narrows_fixture_without_changing_global_policy(self) -> None:
         profile = {

@@ -187,9 +187,13 @@ def _next_profile(profile: dict[str, Any], snapshot: dict[str, Any], *, sha: str
         for item in steps
         if item["step_source"]["block"].get("name") == "free-answer"
     ]
+    if not isinstance(live.get("title"), str) or not str(live.get("title")).strip():
+        raise GoldenProfileError(f"{TARGET_ID}: final live title отсутствует")
+    row["lesson_title"] = str(live["title"])
     run_id_raw = os.getenv("GITHUB_RUN_ID")
     run_id: int | str | None = int(run_id_raw) if isinstance(run_id_raw, str) and run_id_raw.isdigit() else run_id_raw
     row["content_observed_run_id"] = run_id
+    row["lesson_title_observed_run_id"] = run_id
     proposed["observed_run_id"] = run_id
     proposed["observed_source_sha"] = sha
     blockers = validate_golden_profile(proposed, snapshot)

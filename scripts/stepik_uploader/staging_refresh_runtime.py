@@ -125,6 +125,21 @@ COURSE_ID = 299189
 SAFE_ASSESSMENT_STATUSES = {"IN_SYNC", "UPDATE_REQUIRED"}
 
 
+def _assert_refresh_target_live(snapshot: dict[str, Any], lesson: dict[str, Any]) -> None:
+    """Validate immutable safety metadata while allowing a baseline-proven title migration."""
+    course = snapshot.get("course", {})
+    if course.get("is_public") is not False:
+        raise ContentWriteError("Refresh разрешён только в private course")
+    if course.get("language") not in {None, "ru"}:
+        raise ContentWriteError("Course language неожиданно отличается от ru")
+    if lesson.get("is_public") is not False:
+        raise ContentWriteError("Refresh разрешён только для private target lesson")
+    if lesson.get("language") != "ru":
+        raise ContentWriteError("Target lesson language не ru")
+    if not isinstance(lesson.get("title"), str) or not str(lesson.get("title")).strip():
+        raise ContentWriteError("Target lesson title отсутствует или некорректен")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Guarded content refresh for an already-baselined private Stepik lesson")
     parser.add_argument("--course-id", type=int, required=True)
@@ -577,7 +592,7 @@ def main() -> int:
             module_position=int(module["position"]),
             lesson_position=int(lesson_manifest["position"]),
         )
-        _assert_target_live(snapshot, live_lesson, expected_title)
+        _assert_refresh_target_live(snapshot, live_lesson)
         if int(baseline.get("stepik_lesson_id", -1)) != int(live_lesson.get("id", -2)):
             raise ContentWriteError(f"{target_id}: live lesson ID отличается от machine baseline")
 
@@ -700,7 +715,7 @@ def main() -> int:
             module_position=int(module["position"]),
             lesson_position=int(lesson_manifest["position"]),
         )
-        _assert_target_live(current_snapshot, current_lesson, expected_title)
+        _assert_refresh_target_live(current_snapshot, current_lesson)
         assessment = assess_sync(
             canonical_id=target_id,
             live_lesson=current_lesson,
