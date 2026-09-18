@@ -396,12 +396,31 @@ def assess_sync(*, canonical_id: str, live_lesson: dict[str, Any], expected_titl
         return SyncAssessment(canonical_id, "DRIFT_BLOCKED", desired, live, baseline_fp, tuple(changed_positions), ("Stepik изменён после последнего подтверждённого sync или sync journal устарел",))
 
     metadata_diffs = [field for field in ("title", "language", "is_public") if desired_payload.get(field) != live_payload.get(field)]
-    if metadata_diffs:
-        return SyncAssessment(canonical_id, "METADATA_UPDATE_BLOCKED", desired, live, baseline_fp, tuple(changed_positions), ("изменились lesson metadata, для которых безопасный update route ещё не подтверждён: " + ", ".join(metadata_diffs),))
+    unsafe_metadata = [field for field in metadata_diffs if field != "title"]
+    if unsafe_metadata:
+        return SyncAssessment(
+            canonical_id,
+            "METADATA_UPDATE_BLOCKED",
+            desired,
+            live,
+            baseline_fp,
+            tuple(changed_positions),
+            ("изменились lesson metadata, для которых безопасный update route не разрешён: " + ", ".join(unsafe_metadata),),
+        )
     desired_positions = _positions(desired_payload)
     live_positions = _positions(live_payload)
     if desired_positions != live_positions:
         return SyncAssessment(canonical_id, "STRUCTURAL_UPDATE_BLOCKED", desired, live, baseline_fp, tuple(changed_positions), (f"изменилась структура steps: desired positions={desired_positions}, live positions={live_positions}; DELETE/reorder автоматически запрещены",))
+    if metadata_diffs == ["title"]:
+        return SyncAssessment(
+            canonical_id,
+            "UPDATE_REQUIRED",
+            desired,
+            live,
+            baseline_fp,
+            tuple(changed_positions),
+            ("канонический title изменился, а live полностью совпадает с подтверждённым baseline; guarded title PUT разрешён внутри того же deployment event",),
+        )
     return SyncAssessment(canonical_id, "UPDATE_REQUIRED", desired, live, baseline_fp, tuple(changed_positions), ("канон изменился, а Stepik всё ещё совпадает с последним подтверждённым live baseline",))
 
 
