@@ -9,10 +9,10 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from stepik_uploader.deployment_history import DeploymentHistoryError, GitHubHistoryStore
-    from stepik_uploader.history_runtime import load_event_artifact, mark_machine_state_committed
+    from stepik_uploader.history_runtime import identity_from_records, load_event_artifact, mark_machine_state_committed
 else:
     from .deployment_history import DeploymentHistoryError, GitHubHistoryStore
-    from .history_runtime import load_event_artifact, mark_machine_state_committed
+    from .history_runtime import identity_from_records, load_event_artifact, mark_machine_state_committed
 
 
 LESSON_HISTORY_KINDS = {"lesson", "golden-content-refresh", "golden-content-migration"}
@@ -33,17 +33,10 @@ def _history_identity(store: GitHubHistoryStore, event: dict) -> dict:
     records = store.load(event_id)
     if not records:
         raise DeploymentHistoryError("Deployment event artifact не имеет immutable history records")
-    identities = [row.get("identity") for row in records if isinstance(row.get("identity"), dict)]
-    if not identities:
-        raise DeploymentHistoryError("Immutable history не содержит event identity")
-    first = identities[0]
-    if any(identity != first for identity in identities[1:]):
-        raise DeploymentHistoryError("Immutable history содержит конфликтующие event identities")
-    if first.get("event_id") != event_id:
-        raise DeploymentHistoryError("History identity event_id не совпадает с event artifact")
-    if str(first.get("source_sha") or "") != str(event.get("source_sha") or ""):
+    identity = identity_from_records(records, expected_event_id=event_id)
+    if identity.source_sha != str(event.get("source_sha") or ""):
         raise DeploymentHistoryError("History identity source_sha не совпадает с event artifact")
-    return first
+    return identity.as_dict()
 
 
 def _normalize_event_from_history(event: dict, identity: dict, *, event_file: Path) -> dict:
