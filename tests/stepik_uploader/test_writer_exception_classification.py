@@ -4,7 +4,7 @@ import copy
 import unittest
 
 from scripts.stepik_uploader.api import StepikAPIError
-from scripts.stepik_uploader.content import CompiledStep
+from scripts.stepik_uploader.step_model import RenderedStep
 from scripts.stepik_uploader.deployment_history import (
     DeploymentRecorder,
     EventIdentity,
@@ -17,11 +17,11 @@ from scripts.stepik_uploader.writer import ContentWriteError, execute_content_sy
 
 SHA = "1" * 40
 TITLE = "M02-L01 — Test"
-OLD_STEP = CompiledStep(1, "text", "<p>old</p>", {}, ("lesson.md",))
-NEW_STEP = CompiledStep(1, "text", "<p>new</p>", {}, ("lesson.md",))
+OLD_STEP = RenderedStep(1, "text", "<p>old</p>", {}, ("lesson.md",))
+NEW_STEP = RenderedStep(1, "text", "<p>new</p>", {}, ("lesson.md",))
 
 
-def snapshot(step: CompiledStep) -> dict:
+def snapshot(step: RenderedStep) -> dict:
     return {
         "course": {"id": 299189, "is_public": False},
         "sections": [
