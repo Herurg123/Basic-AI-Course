@@ -15,7 +15,7 @@ if __package__ in {None, ""}:
     from stepik_uploader.asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from stepik_uploader.attachment_materialization import verify_attachment_capability
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
-    from stepik_uploader.general_content import GeneralContentCompileError as ContentCompileError, compile_lesson_source
+    from stepik_uploader.general_content import GeneralContentCompileError, compile_lesson_source
     from stepik_uploader.deployment_history import (
         DeploymentHistoryError,
         DeploymentRecorder,
@@ -62,7 +62,7 @@ else:
     from .asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from .attachment_materialization import verify_attachment_capability
     from .canonical import CanonicalBuildError, build_structural_manifest
-    from .general_content import GeneralContentCompileError as ContentCompileError, compile_lesson_source
+    from .general_content import GeneralContentCompileError, compile_lesson_source
     from .deployment_history import (
         DeploymentHistoryError,
         DeploymentRecorder,
@@ -129,7 +129,7 @@ def _manifest_lesson(manifest: dict[str, Any], target_id: str) -> tuple[dict[str
         for lesson in module.get("lessons", []):
             if lesson.get("canonical_id") == target_id:
                 return module, lesson
-    raise ContentCompileError(f"В manifest отсутствует {target_id}")
+    raise GeneralContentCompileError(f"В manifest отсутствует {target_id}")
 
 
 def _learner_step_count(lesson_manifest: dict[str, Any]) -> int:
@@ -865,7 +865,7 @@ def main() -> int:
         RuntimeError,
         StepikAPIError,
         CanonicalBuildError,
-        ContentCompileError,
+        GeneralContentCompileError,
         PlatformProfileError,
         ContentWriteError,
         AssetResolutionError,
