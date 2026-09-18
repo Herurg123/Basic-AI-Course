@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "course_id": 299189,
-  "purpose": "Эксплуатационная ownership matrix GitHub → Stepik; не является источником learner-facing содержания.",
+  "purpose": "Current operational ownership matrix for unified GitHub → Stepik sync. No lesson has a special runtime class.",
   "defaults": {
     "source_of_truth": "canonical main + confirmed machine state + immutable deployment history",
     "automatic_retry": false,
@@ -10,29 +10,408 @@
     "unknown_state": "STOP"
   },
   "classes": {
-    "direct_learner_content_change": {"detect":"impact workflow","initiate":"owner live dispatch","execute":"automation after guards","owner_approval":"live dispatch","auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"ambiguity/drift/protected object","evidence":["source SHA","pending","baseline","history"],"state_change":"pending then confirmed baseline","history_event":"deployment"},
-    "shared_learner_dependency_change": {"detect":"dependency-aware impact","initiate":"owner live dispatch","execute":"automation after unambiguous consumer mapping","owner_approval":"live dispatch","auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"unknown/ambiguous consumer mapping","evidence":["before/after dependency graph","source paths","pending"],"state_change":"consumer pending","history_event":"deployment per affected object"},
-    "lesson_asset_change": {"detect":"impact workflow","initiate":"owner live dispatch","execute":"supported object route only","owner_approval":"live dispatch","auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"unresolved asset route or drift","evidence":["Asset/source path","pending","fingerprints"],"state_change":"lesson pending/baseline","history_event":"deployment"},
-    "course_page": {"detect":"impact workflow","initiate":"owner","execute":"no automatic write route in current scope","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"always before write until explicit route exists","evidence":["course-page pending"],"state_change":"pending only","history_event":"none until route exists"},
-    "golden_lesson": {"detect":"golden profile + canonical ID","initiate":"owner only","execute":"separate explicit golden route only","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"normal sync/recovery route","evidence":["golden profile","live snapshot","owner decision"],"state_change":"none automatically","history_event":"owner-approved explicit event only"},
-    "golden_canonical_divergence": {"detect":"canonical manifest vs confirmed live golden observation","initiate":"owner for the golden object only","execute":"read-only notice for independent objects; separate explicit golden route only for the golden object","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"mandatory for golden target write/adoption; not a global blocker for independent non-golden read-only or guarded sync when live golden integrity is confirmed","evidence":["canonical manifest","golden observation profile","fresh live golden integrity result","GOLDEN_OWNER_REQUIRED notice"],"state_change":"none automatically","history_event":"none for unrelated object; golden owner decision/reconcile if acted upon"},
-    "normal_lesson_with_baseline": {"detect":"sync assessment","initiate":"owner live dispatch","execute":"automation","owner_approval":"dispatch","auto_retry":false,"auto_continue_partial":"only confirmed prefix","auto_reconcile":"only proven event","auto_rebaseline":false,"stop":"live != baseline without proven recovery","evidence":["baseline","live fingerprint","desired fingerprint","history"],"state_change":"baseline/pending after verified read-back","history_event":"deployment/recovery"},
-    "normal_lesson_without_baseline": {"detect":"sync assessment","initiate":"owner","execute":"no normal overwrite","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"automatic write","evidence":["live fingerprint","canonical fingerprint","history"],"state_change":"none automatically","history_event":"reconcile/adoption decision"},
-    "metadata_change": {"detect":"sync assessment","initiate":"owner","execute":"separate confirmed route only","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"current automatic route","evidence":["metadata before/desired/live"],"state_change":"none automatically","history_event":"reconcile/owner decision"},
-    "structural_step_change": {"detect":"sync assessment","initiate":"owner","execute":"separate non-destructive route only","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"DELETE/reorder/unknown structure","evidence":["step IDs/positions before/desired/live"],"state_change":"none automatically","history_event":"reconcile/owner decision"},
-    "manual_stepik_drift": {"detect":"live vs baseline","initiate":"owner","execute":"owner-directed reconcile","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"automatic overwrite/adoption","evidence":["baseline","live snapshot","deployment history"],"state_change":"none until decision","history_event":"reconcile"},
-    "partial_write": {"detect":"history + live read-back","initiate":"recovery run","execute":"automation only from proven prefix","owner_approval":"not for proven prefix; otherwise required","auto_retry":false,"auto_continue_partial":"only when live == last confirmed intermediate fingerprint","auto_reconcile":"state-only if final read-back already confirmed","auto_rebaseline":false,"stop":"ambiguous or divergent live","evidence":["WRITE_INTENT","WRITE_DISPATCH_STARTED","write result","per-op read-back","live fingerprint"],"state_change":"only after final confirmed state","history_event":"recovery continuation"},
-    "ambiguous_api_result": {"detect":"write exception/5xx/network ambiguity after dispatch","initiate":"reconcile","execute":"read-only classification","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"mandatory","evidence":["WRITE_INTENT","WRITE_DISPATCH_STARTED","AMBIGUOUS record","fresh live read-back"],"state_change":"none","history_event":"failure/reconcile"},
-    "known_write_failure": {"detect":"WRITE_FAILED_KNOWN after dispatch","initiate":"owner decision for any new dispatch attempt","execute":"no automatic redispatch in history v1","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"new dispatch until explicit retry route; immediate STOP if live diverged","evidence":["WRITE_INTENT","WRITE_DISPATCH_STARTED","WRITE_FAILED_KNOWN","fresh live fingerprint","baseline"],"state_change":"none automatically","history_event":"failure/reconcile; future retry requires separate attempt identity"},
-    "failed_readback": {"detect":"read-back exception or mismatch","initiate":"reconcile","execute":"read-only classification","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"mandatory until provenance proven","evidence":["WRITE_DISPATCH_STARTED","write result","READBACK_FAILED","fresh live state"],"state_change":"none","history_event":"failure/reconcile"},
-    "machine_state_patch_failure": {"detect":"Issue PATCH step fails after FINAL_READBACK_CONFIRMED","initiate":"next recovery run","execute":"state-only recovery when live == history-confirmed final fingerprint","owner_approval":false,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":true,"auto_rebaseline":false,"stop":"live diverged or event/source conflict","evidence":["FINAL_READBACK_CONFIRMED","missing MACHINE_STATE_COMMITTED","current live"],"state_change":"baseline/pending PATCH only; preserve already-confirmed current state","history_event":"recovery then MACHINE_STATE_COMMITTED"},
-    "stale_machine_baseline": {"detect":"latest unambiguous committed history baseline vs current Issue baseline vs live fingerprint","initiate":"reconcile","execute":"no automatic rebaseline","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"mandatory until state provenance is resolved","evidence":["latest MACHINE_STATE_COMMITTED","committed baseline-after","current Issue baseline","fresh live fingerprint"],"state_change":"none automatically","history_event":"RECONCILE_CLASSIFIED"},
-    "state_race": {"detect":"expected/current machine state compare","initiate":"reconcile","execute":"none automatically against changed state","owner_approval":"if ambiguity remains","auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"mandatory","evidence":["expected state","current state","event"],"state_change":"none","history_event":"failure/reconcile"},
-    "tooling_only_change": {"detect":"impact classifier","initiate":"CI","execute":"CI only","owner_approval":false,"auto_retry":true,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"none unless tests fail","evidence":["git diff","CI"],"state_change":"none","history_event":"none"},
-    "author_only_change": {"detect":"impact classifier","initiate":"CI","execute":"CI only","owner_approval":false,"auto_retry":true,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"none unless dependency unexpectedly learner-facing","evidence":["git diff","classification"],"state_change":"none","history_event":"none"},
-    "recovery": {"detect":"incomplete deployment event","initiate":"owner dispatch or next sync","execute":"automation only for provable state","owner_approval":"only for ambiguous/explicit retry classifications","auto_retry":false,"auto_continue_partial":"proven prefix only","auto_reconcile":"verified final state only","auto_rebaseline":false,"stop":"unknown provenance","evidence":["immutable history","current main","live snapshot","machine state"],"state_change":"only proven target object","history_event":"recovery"},
-    "reconcile": {"detect":"live/baseline/canonical/history mismatch","initiate":"owner or blocked automation","execute":"classifier; mutations only when proven","owner_approval":"for any ambiguity or stale baseline","auto_retry":false,"auto_continue_partial":false,"auto_reconcile":"narrow proven cases","auto_rebaseline":false,"stop":"unknown/manual/structural/golden/conflict","evidence":["all four state sources","RECONCILE_CLASSIFIED","reason codes"],"state_change":"target only after decision/proof","history_event":"durable reconcile observation"},
-    "rebaseline_adoption": {"detect":"reconcile decision","initiate":"owner","execute":"explicit adoption route","owner_approval":true,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"automatic adoption forbidden","evidence":["origin proof","fingerprint","event link","owner decision"],"state_change":"explicit baseline only","history_event":"adoption/rebaseline"},
-    "new_git_merge_during_deployment_recovery": {"detect":"current-main guard/source SHA compare","initiate":"automatic guard","execute":"STOP old event","owner_approval":false,"auto_retry":false,"auto_continue_partial":false,"auto_reconcile":false,"auto_rebaseline":false,"stop":"mandatory","evidence":["event source SHA","current main SHA","pending latest SHA"],"state_change":"old event cannot close new pending","history_event":"stale-source failure/reconcile"}
+    "direct_learner_content_change": {
+      "detect": "impact workflow",
+      "initiate": "owner private-release dispatch",
+      "execute": "unified lesson pipeline after guards",
+      "owner_approval": "dispatch",
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "ambiguity/drift/unsupported structure",
+      "evidence": [
+        "source SHA",
+        "pending",
+        "baseline",
+        "history"
+      ],
+      "state_change": "pending then confirmed baseline",
+      "history_event": "lesson deployment"
+    },
+    "shared_learner_dependency_change": {
+      "detect": "dependency-aware impact",
+      "initiate": "owner private-release dispatch",
+      "execute": "unified pipeline after unambiguous consumer mapping",
+      "owner_approval": "dispatch",
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "unknown or ambiguous consumer mapping",
+      "evidence": [
+        "dependency graph",
+        "source paths",
+        "pending"
+      ],
+      "state_change": "affected lessons pending then confirmed",
+      "history_event": "deployment per affected lesson"
+    },
+    "lesson_asset_change": {
+      "detect": "impact workflow",
+      "initiate": "owner private-release dispatch",
+      "execute": "supported asset route inside lesson transaction",
+      "owner_approval": "dispatch",
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "unresolved asset route, changed generic attachment without proven replacement, or drift",
+      "evidence": [
+        "asset source path",
+        "asset baseline",
+        "pending",
+        "history"
+      ],
+      "state_change": "asset and lesson baseline after verified read-back",
+      "history_event": "asset plus lesson deployment"
+    },
+    "course_page": {
+      "detect": "impact workflow",
+      "initiate": "owner private-release dispatch",
+      "execute": "guarded course-page route",
+      "owner_approval": "dispatch",
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": true,
+      "auto_rebaseline": false,
+      "stop": "drift/ambiguous result/read-back failure",
+      "evidence": [
+        "course-page pending",
+        "history",
+        "live read-back"
+      ],
+      "state_change": "course-page pending closes only after final read-back",
+      "history_event": "course-page deployment"
+    },
+    "lesson_with_baseline": {
+      "detect": "pending plus confirmed baseline",
+      "initiate": "owner private-release dispatch",
+      "execute": "staging_refresh_runtime",
+      "owner_approval": "dispatch",
+      "auto_retry": false,
+      "auto_continue_partial": "only proven prefix",
+      "auto_reconcile": "only proven commit gap",
+      "auto_rebaseline": false,
+      "stop": "live differs from baseline without proven recovery",
+      "evidence": [
+        "baseline",
+        "desired fingerprint",
+        "live fingerprint",
+        "history"
+      ],
+      "state_change": "baseline/pending after verified read-back",
+      "history_event": "lesson deployment/recovery"
+    },
+    "lesson_without_baseline": {
+      "detect": "pending without baseline",
+      "initiate": "owner private-release dispatch",
+      "execute": "generic initial route only for proven safe skeleton/import state",
+      "owner_approval": "dispatch",
+      "auto_retry": false,
+      "auto_continue_partial": "only proven history",
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "existing unknown live content or non-pristine skeleton",
+      "evidence": [
+        "canonical position",
+        "live snapshot",
+        "pending",
+        "history"
+      ],
+      "state_change": "first baseline after final read-back",
+      "history_event": "lesson deployment"
+    },
+    "metadata_change": {
+      "detect": "sync assessment",
+      "initiate": "owner private-release dispatch when supported",
+      "execute": "target-scoped guarded update only",
+      "owner_approval": "dispatch",
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "unsupported metadata mutation",
+      "evidence": [
+        "metadata before/desired/live",
+        "baseline"
+      ],
+      "state_change": "baseline only after read-back",
+      "history_event": "lesson deployment"
+    },
+    "structural_step_change": {
+      "detect": "sync assessment",
+      "initiate": "owner",
+      "execute": "no destructive automatic route",
+      "owner_approval": true,
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "DELETE/reorder/unknown structural mutation",
+      "evidence": [
+        "step IDs and positions",
+        "canonical plan",
+        "baseline",
+        "live"
+      ],
+      "state_change": "none automatically",
+      "history_event": "owner-directed migration only"
+    },
+    "manual_stepik_drift": {
+      "detect": "live vs confirmed baseline",
+      "initiate": "owner",
+      "execute": "read-only classification first",
+      "owner_approval": true,
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "automatic overwrite or adoption",
+      "evidence": [
+        "baseline",
+        "fresh live",
+        "history"
+      ],
+      "state_change": "none until decision",
+      "history_event": "reconcile observation"
+    },
+    "partial_write": {
+      "detect": "history plus live read-back",
+      "initiate": "next private-release run",
+      "execute": "continue only from proven prefix",
+      "owner_approval": "not for exact proven continuation; otherwise required",
+      "auto_retry": false,
+      "auto_continue_partial": "proven prefix only",
+      "auto_reconcile": "verified final state only",
+      "auto_rebaseline": false,
+      "stop": "ambiguous or divergent live",
+      "evidence": [
+        "WRITE_INTENT",
+        "WRITE_DISPATCH_STARTED",
+        "per-op read-back",
+        "fresh live"
+      ],
+      "state_change": "only after final confirmed state",
+      "history_event": "recovery continuation"
+    },
+    "ambiguous_api_result": {
+      "detect": "network/5xx/unknown outcome after dispatch",
+      "initiate": "owner/reconcile",
+      "execute": "no blind retry",
+      "owner_approval": true,
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "mandatory",
+      "evidence": [
+        "dispatch record",
+        "ambiguous result",
+        "fresh live"
+      ],
+      "state_change": "none",
+      "history_event": "failure/reconcile"
+    },
+    "known_write_failure": {
+      "detect": "known failed dispatch",
+      "initiate": "owner for new dispatch attempt",
+      "execute": "no implicit redispatch",
+      "owner_approval": true,
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "new dispatch until explicit decision",
+      "evidence": [
+        "write intent",
+        "dispatch",
+        "known failure",
+        "fresh live"
+      ],
+      "state_change": "none",
+      "history_event": "failure/reconcile"
+    },
+    "failed_readback": {
+      "detect": "read-back exception or mismatch",
+      "initiate": "reconcile",
+      "execute": "read-only classification",
+      "owner_approval": true,
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "mandatory until provenance proven",
+      "evidence": [
+        "dispatch/result",
+        "READBACK_FAILED",
+        "fresh live"
+      ],
+      "state_change": "none",
+      "history_event": "failure/reconcile"
+    },
+    "machine_state_patch_failure": {
+      "detect": "final read-back confirmed but Issue PATCH absent",
+      "initiate": "next private-release run",
+      "execute": "state-only recovery when live equals proven final state",
+      "owner_approval": false,
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": true,
+      "auto_rebaseline": false,
+      "stop": "live divergence or event conflict",
+      "evidence": [
+        "FINAL_READBACK_CONFIRMED",
+        "current live",
+        "machine state"
+      ],
+      "state_change": "Issue state only",
+      "history_event": "MACHINE_STATE_COMMITTED"
+    },
+    "stale_machine_baseline": {
+      "detect": "latest committed history vs Issue baseline vs live",
+      "initiate": "owner/reconcile",
+      "execute": "no automatic rebaseline",
+      "owner_approval": true,
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "mandatory until provenance resolved",
+      "evidence": [
+        "committed history",
+        "Issue baseline",
+        "fresh live"
+      ],
+      "state_change": "none automatically",
+      "history_event": "reconcile observation"
+    },
+    "state_race": {
+      "detect": "expected/current Issue state compare",
+      "initiate": "automatic guard",
+      "execute": "STOP changed state",
+      "owner_approval": "if ambiguity remains",
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "mandatory",
+      "evidence": [
+        "expected state",
+        "current state",
+        "event"
+      ],
+      "state_change": "none",
+      "history_event": "failure/reconcile"
+    },
+    "tooling_only_change": {
+      "detect": "impact classifier",
+      "initiate": "CI",
+      "execute": "CI only",
+      "owner_approval": false,
+      "auto_retry": true,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "tests fail",
+      "evidence": [
+        "git diff",
+        "CI"
+      ],
+      "state_change": "none",
+      "history_event": "none"
+    },
+    "author_only_change": {
+      "detect": "impact classifier",
+      "initiate": "CI",
+      "execute": "CI only",
+      "owner_approval": false,
+      "auto_retry": true,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "dependency unexpectedly learner-facing",
+      "evidence": [
+        "git diff",
+        "classification"
+      ],
+      "state_change": "none",
+      "history_event": "none"
+    },
+    "recovery": {
+      "detect": "incomplete deployment event",
+      "initiate": "next private-release run",
+      "execute": "automation only for provable state",
+      "owner_approval": "only for ambiguity or new dispatch after known failure",
+      "auto_retry": false,
+      "auto_continue_partial": "proven prefix only",
+      "auto_reconcile": "verified final state only",
+      "auto_rebaseline": false,
+      "stop": "unknown provenance",
+      "evidence": [
+        "immutable history",
+        "current main",
+        "fresh live",
+        "machine state"
+      ],
+      "state_change": "only proven target object",
+      "history_event": "recovery"
+    },
+    "reconcile": {
+      "detect": "live/baseline/canonical/history mismatch",
+      "initiate": "blocked automation or owner",
+      "execute": "read-only classification unless a narrow state-only recovery is proven",
+      "owner_approval": "for ambiguity/stale baseline/manual drift",
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": "narrow proven cases",
+      "auto_rebaseline": false,
+      "stop": "unknown/manual/structural/conflict",
+      "evidence": [
+        "canonical",
+        "baseline",
+        "live",
+        "history"
+      ],
+      "state_change": "target only after proof/decision",
+      "history_event": "reconcile observation"
+    },
+    "rebaseline_adoption": {
+      "detect": "owner reconcile decision",
+      "initiate": "owner",
+      "execute": "explicit state migration only with origin proof",
+      "owner_approval": true,
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "automatic adoption forbidden",
+      "evidence": [
+        "origin proof",
+        "fingerprint",
+        "owner decision",
+        "read-back"
+      ],
+      "state_change": "explicit baseline only",
+      "history_event": "migration/adoption evidence"
+    },
+    "new_git_merge_during_deployment_recovery": {
+      "detect": "current-main guard/source SHA compare",
+      "initiate": "automatic guard",
+      "execute": "STOP stale event",
+      "owner_approval": false,
+      "auto_retry": false,
+      "auto_continue_partial": false,
+      "auto_reconcile": false,
+      "auto_rebaseline": false,
+      "stop": "mandatory",
+      "evidence": [
+        "event source SHA",
+        "current main SHA",
+        "pending latest SHA"
+      ],
+      "state_change": "stale event cannot close newer pending",
+      "history_event": "stale-source failure/reconcile"
+    }
   }
 }
