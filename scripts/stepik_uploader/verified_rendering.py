@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
-from .content import CompiledStep
+from .step_model import RenderedStep
 from .general_content import CompiledSourceStep
 from .rendering import markdown_to_html
 
@@ -51,7 +51,7 @@ class AssetBinding:
 @dataclass(frozen=True)
 class RenderingPlan:
     lesson_id: str
-    rendered_steps: tuple[CompiledStep, ...]
+    rendered_steps: tuple[RenderedStep, ...]
     materialization_requirements: tuple[dict[str, Any], ...]
     dependency_source_paths: tuple[str, ...]
 
@@ -295,7 +295,7 @@ def build_rendering_plan(
     repo_root = repo_root.resolve()
     resolution_index = _resolution_index(asset_report, lesson_id=lesson_id)
     binding_map = _binding_index(bindings)
-    rendered_steps: list[CompiledStep] = []
+    rendered_steps: list[RenderedStep] = []
     requirements: dict[str, dict[str, Any]] = {}
     all_dependencies: set[str] = set()
 
@@ -333,7 +333,7 @@ def build_rendering_plan(
         )
         all_dependencies.update(dependency_sources)
         rendered_steps.append(
-            CompiledStep(
+            RenderedStep(
                 position=source_step.position,
                 block_name=source_step.block_name,
                 text=html,
@@ -350,7 +350,7 @@ def build_rendering_plan(
     )
 
 
-def require_render_ready(plan: RenderingPlan) -> tuple[CompiledStep, ...]:
+def require_render_ready(plan: RenderingPlan) -> tuple[RenderedStep, ...]:
     if plan.materialization_requirements:
         raise MaterializationRequired(list(plan.materialization_requirements))
     return plan.rendered_steps
