@@ -88,14 +88,27 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
         self.assertNotIn("--target-id M00-L02", raw)
         self.assertNotIn("--target-id M00-L01", raw)
 
-    def test_final_gate_requires_zero_pending_and_both_golden_baselines(self) -> None:
+    def test_closed_golden_routes_recover_commit_gap_without_stepik_write(self) -> None:
+        raw = WORKFLOW.read_text(encoding="utf-8")
+        self.assertGreaterEqual(raw.count("golden_commit_gap_recovery.py"), 4)
+        l02 = raw[raw.index("Обновить owner-approved M00-L02 перед M00-L01"):raw.index("Обновить owner-approved M00-L01 6→6 последним")]
+        l01 = raw[raw.index("Обновить owner-approved M00-L01 6→6 последним"):raw.index("Проверить финальный machine backlog")]
+        for block, target in ((l02, "M00-L02"), (l01, "M00-L01")):
+            self.assertIn(f"--target-id {target}", block)
+            self.assertIn("lesson-deployment-event.json", block)
+            self.assertIn("history_cli.py mark-state-committed", block)
+            self.assertIn("commit-gap recovered without Stepik write", block)
+
+    def test_final_gate_requires_zero_pending_both_golden_baselines_and_fresh_capture(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
         final = raw[raw.index("Проверить финальный machine backlog"):]
         self.assertIn("if lessons:", final)
         self.assertIn("pending.get('course_page')", final)
         self.assertIn("('M00-L01', 6)", final)
         self.assertIn("('M00-L02', 8)", final)
+        self.assertIn("golden_profile_capture.py", final)
         self.assertIn("golden-profile.final.next.json", final)
+        self.assertIn("golden-profile-final-capture.json", final)
 
 
 if __name__ == "__main__":
