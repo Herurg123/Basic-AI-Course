@@ -8,6 +8,7 @@ from urllib.parse import urljoin, urlsplit
 from .api import StepikAPIError, StepikWriteAmbiguousError
 from .deployment_history import DeploymentRecorder, utc_now
 from .fingerprints import canonical_hash
+from .verified_rendering import AssetBinding
 
 
 class AttachmentMaterializationError(RuntimeError):
@@ -135,6 +136,52 @@ def _attachment_listing_payload(items: list[dict[str, Any]]) -> list[dict[str, A
         for item in items
     ]
     return sorted(rows, key=lambda item: (item["id"], item["name"], item["size"]))
+
+
+
+def verify_attachment_binding(
+    client: Any,
+    record: dict[str, Any],
+    *,
+    source_path: str,
+    expected_source_sha256: str,
+    stepik_lesson_id: int,
+) -> AssetBinding:
+    """Verify a previously confirmed generic Stepik attachment baseline."""
+    if record.get("source_path") != source_path or record.get("source_sha256") != expected_source_sha256:
+        raise AttachmentMaterializationError("Attachment baseline не соответствует canonical source")
+    if int(record.get("stepik_lesson_id", -1)) != int(stepik_lesson_id):
+        raise AttachmentMaterializationError("Attachment baseline относится к другому Stepik lesson")
+
+    attachments = client.list_attachments(lesson_id=stepik_lesson_id)
+    attachment_id = int(record.get("stepik_attachment_id", -1))
+    matches = [item for item in attachments if int(item.get("id", -2)) == attachment_id]
+    if len(matches) != 1:
+        raise AttachmentMaterializationError("Attachment baseline ID больше не существует или неоднозначен")
+    live = matches[0]
+    if live.get("name") != record.get("filename"):
+        raise AttachmentMaterializationError("Attachment baseline filename отличается от live")
+    try:
+        if int(live.get("size", -1)) != int(record.get("size", -2)):
+            raise AttachmentMaterializationError("Attachment baseline size отличается от live")
+    except (TypeError, ValueError) as exc:
+        raise AttachmentMaterializationError("Attachment baseline/live size повреждён") from exc
+
+    record_url = str(record.get("url") or "")
+    live_url = _absolute_stepik_url(client, live.get("file"))
+    if record_url != live_url:
+        raise AttachmentMaterializationError("Attachment baseline URL отличается от live")
+    downloaded_sha = file_sha256_bytes(client.download_attachment(record_url))
+    if downloaded_sha != expected_source_sha256:
+        raise AttachmentMaterializationError("Attachment bytes больше не совпадают с canonical source")
+
+    return AssetBinding(
+        source_path=source_path,
+        source_sha256=expected_source_sha256,
+        url=record_url,
+        storage=str(record.get("storage") or "stepik-attachment"),
+        verified=True,
+    )
 
 
 def materialize_attachment(
