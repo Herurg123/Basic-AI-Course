@@ -322,14 +322,31 @@ def find_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentit
 
 
 def find_incomplete_object_events(store: Any, *, object_id: str) -> list[tuple[EventIdentity, list[dict[str, Any]], dict[str, Any]]]:
-    """Return only started deployment events, not reconcile-only observations."""
+    """Return started deployment events that may still affect external-state recovery.
+
+    A terminal FAILED_BEFORE_WRITE event is immutable evidence of an aborted attempt,
+    but it is not an incomplete deployment: no external write was dispatched, so a
+    later source SHA may safely start a new logical event after fresh live/baseline
+    checks. Any event with dispatched writes remains incomplete until committed or
+    explicitly reconciled.
+    """
     result = []
     for item in find_object_events(store, object_id=object_id):
         _identity, records, summary = item
         if not any(record.get("phase") == "EVENT_STARTED" for record in records):
             continue
-        if not summary.get("machine_state_committed"):
-            result.append(item)
+        if summary.get("machine_state_committed"):
+            continue
+
+        failed_before_write = [record for record in records if record.get("phase") == "FAILED_BEFORE_WRITE"]
+        if (
+            len(failed_before_write) == 1
+            and not summary.get("external_write_started")
+            and not summary.get("final_readback_confirmed")
+        ):
+            continue
+
+        result.append(item)
     return result
 
 
