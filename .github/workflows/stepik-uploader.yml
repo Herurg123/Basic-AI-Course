@@ -197,6 +197,7 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.md"
           python scripts/stepik_uploader/sync_issue_state.py extract             --body-file "$base/sync-issue-body.md"             --output "$base/sync-state.json" --course-id "$COURSE_ID"
           python scripts/stepik_uploader/staging_batch_plan.py             --repo-root . --course-id "$COURSE_ID"             --sync-state "$base/sync-state.json"             --output "$base/batch-plan.json"
+          python scripts/stepik_uploader/live_guard.py --output "$base/live-source-guard.target.json"
 
           if [[ "$TARGET_ID" == "course-page" ]]; then
             pending="$(python - "$base/sync-state.json" <<'PY'
