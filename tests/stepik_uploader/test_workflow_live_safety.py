@@ -28,9 +28,25 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
     def test_uploader_manual_mode_is_read_only(self) -> None:
         self.assertIn("- dry-run", self.uploader)
         self.assertIn("- inspect", self.uploader)
-        self.assertNotIn("confirm_write", self.uploader)
-        self.assertNotIn("staging_refresh_runtime.py", self.uploader)
-        self.assertNotIn("staging_build_runtime.py", self.uploader)
+        self.assertIn("- target-preflight", self.uploader)
+
+        inspect = self.uploader[self.uploader.index("  inspect:"):]
+        self.assertNotIn("--confirm-write", inspect)
+        self.assertNotIn("--confirm-recovery", inspect)
+        self.assertNotIn("contents: write", inspect)
+        self.assertNotIn("issues: write", inspect)
+        self.assertNotIn("gh api --method PATCH", inspect)
+        self.assertNotIn("history_cli.py mark-state-committed", inspect)
+        self.assertNotIn("special_history_commit.py", inspect)
+        self.assertNotIn("gh issue comment", inspect)
+
+        # Read-only target-preflight may reuse the exact production runtime in
+        # preflight mode. Write authority is controlled by explicit confirmation
+        # flags and permissions, not by merely importing/invoking the runtime.
+        self.assertIn("staging_refresh_runtime.py", inspect)
+        self.assertIn("staging_build_runtime.py", inspect)
+        self.assertIn("course_page_sync.py", inspect)
+
         self.assertNotIn("first_upload_runtime.py", self.uploader)
         self.assertNotIn("sync_runtime.py", self.uploader)
 

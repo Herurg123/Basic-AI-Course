@@ -20,13 +20,19 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Только read-only Stepik inspection.'
+        description: 'Только read-only Stepik inspection/target preflight.'
         required: true
         default: 'dry-run'
         type: choice
         options:
           - dry-run
           - inspect
+          - target-preflight
+      target_id:
+        description: 'Один PENDING target для target-preflight: Mxx-Lxx или course-page.'
+        required: false
+        default: ''
+        type: string
       course_id:
         description: 'Stepik course_id для inspect.'
         required: false
@@ -128,6 +134,9 @@ jobs:
     needs: tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: read
     concurrency:
       group: stepik-live-course-299189
       cancel-in-progress: false
@@ -137,6 +146,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
       COURSE_ID: ${{ inputs.course_id }}
       MODE: ${{ inputs.mode }}
+      TARGET_ID: ${{ inputs.target_id }}
     steps:
       - name: Получить репозиторий
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -149,19 +159,102 @@ jobs:
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
       - name: Проверить current main перед live inspect
-        if: inputs.mode == 'inspect'
+        if: inputs.mode != 'dry-run'
         run: >-
           python scripts/stepik_uploader/live_guard.py
           --output artifacts/stepik-uploader-live/live-source-guard.json
       - name: Выполнить read-only automation
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          args=("$MODE" --repo-root . --report-dir artifacts/stepik-uploader-live)
-          if [[ "$MODE" == "inspect" ]]; then
-            args+=(--course-id "$COURSE_ID")
+          if [[ "$MODE" == "dry-run" ]]; then
+            python scripts/stepik_uploader/stepik_uploader.py dry-run               --repo-root . --report-dir artifacts/stepik-uploader-live
+            exit 0
           fi
-          python scripts/stepik_uploader/stepik_uploader.py "${args[@]}"
+
+          if [[ "$MODE" == "inspect" ]]; then
+            python scripts/stepik_uploader/stepik_uploader.py inspect               --repo-root . --report-dir artifacts/stepik-uploader-live               --course-id "$COURSE_ID"
+            exit 0
+          fi
+
+          if [[ "$MODE" != "target-preflight" ]]; then
+            echo "Неизвестный read-only mode: $MODE" >&2
+            exit 2
+          fi
+          if [[ "$COURSE_ID" != "299189" ]]; then
+            echo 'target-preflight разрешён только для course_id=299189.' >&2
+            exit 2
+          fi
+          if [[ -z "$TARGET_ID" ]]; then
+            echo 'target-preflight требует target_id.' >&2
+            exit 2
+          fi
+
+          base='artifacts/stepik-uploader-live/target-preflight'
+          mkdir -p "$base"
+          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.md"
+          python scripts/stepik_uploader/sync_issue_state.py extract             --body-file "$base/sync-issue-body.md"             --output "$base/sync-state.json" --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/staging_batch_plan.py             --repo-root . --course-id "$COURSE_ID"             --sync-state "$base/sync-state.json"             --output "$base/batch-plan.json"
+          python scripts/stepik_uploader/live_guard.py --output "$base/live-source-guard.target.json"
+
+          if [[ "$TARGET_ID" == "course-page" ]]; then
+            pending="$(python - "$base/sync-state.json" <<'PY'
+          import json,sys
+          state=json.load(open(sys.argv[1],encoding='utf-8'))
+          print('true' if state.get('pending',{}).get('course_page') is not None else 'false')
+          PY
+            )"
+            if [[ "$pending" != "true" ]]; then
+              echo 'course-page уже не PENDING.'
+              exit 0
+            fi
+            dir="$base/course-page"
+            mkdir -p "$dir"
+            python scripts/stepik_uploader/course_page_commit_gap_recovery.py               --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"               --sync-state "$base/sync-state.json"
+            applicable="$(python - "$dir/course-page-commit-gap-recovery.json" <<'PY'
+          import json,sys
+          print('true' if json.load(open(sys.argv[1],encoding='utf-8')).get('applicable') is True else 'false')
+          PY
+            )"
+            if [[ "$applicable" != "true" ]]; then
+              python scripts/stepik_uploader/course_page_sync.py                 --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"                 --sync-state "$base/sync-state.json"
+            fi
+            exit 0
+          fi
+
+          mode="$(python - "$base/batch-plan.json" "$TARGET_ID" <<'PY'
+          import json,sys
+          plan=json.load(open(sys.argv[1],encoding='utf-8'))
+          target=sys.argv[2]
+          if target in plan.get('refresh_target_ids',[]): print('refresh')
+          elif target in plan.get('initial_target_ids',[]): print('initial')
+          elif target in plan.get('recovery_target_ids',[]): print('recovery')
+          else: raise SystemExit(target+' не является текущим PENDING target')
+          PY
+          )"
+          dir="$base/lessons/$TARGET_ID"
+          mkdir -p "$dir"
+          cp "$base/sync-state.json" "$dir/sync-state.previous.json"
+
+          if [[ "$mode" == "refresh" ]]; then
+            python scripts/stepik_uploader/staging_refresh_runtime.py               --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"               --target-id "$TARGET_ID" --sync-state "$dir/sync-state.previous.json"
+          else
+            python scripts/stepik_uploader/staging_commit_gap_recovery.py               --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"               --target-id "$TARGET_ID" --sync-state "$dir/sync-state.previous.json"
+            applicable="$(python - "$dir/commit-gap-recovery.json" <<'PY'
+          import json,sys
+          print('true' if json.load(open(sys.argv[1],encoding='utf-8')).get('applicable') is True else 'false')
+          PY
+            )"
+            if [[ "$mode" == "recovery" && "$applicable" != "true" ]]; then
+              echo "$TARGET_ID: planned recovery target не прошёл recovery probe" >&2
+              exit 2
+            fi
+            if [[ "$applicable" != "true" ]]; then
+              python scripts/stepik_uploader/staging_build_runtime.py                 --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"                 --target-id "$TARGET_ID" --sync-state "$dir/sync-state.previous.json"
+            fi
+          fi
       - name: Сохранить технический отчёт
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
