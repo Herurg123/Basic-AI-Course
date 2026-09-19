@@ -26,6 +26,13 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
         self.assertGreaterEqual(raw.count("live_guard.py"), 3)
         self.assertIn('if [[ "$COURSE_ID" != "299189" ]]', raw)
 
+    def test_private_release_reuses_immutable_history_anchor_cache(self) -> None:
+        raw = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn(
+            "STEPIK_HISTORY_ANCHOR_CACHE: artifacts/stepik-private-release/history-anchor-cache.json",
+            raw,
+        )
+
     def test_every_lesson_uses_one_preflight_and_write_loop(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("Preflight всех PENDING lessons без записи", raw)
