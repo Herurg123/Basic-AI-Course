@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -197,11 +198,87 @@ def identity_from_records(records: list[dict[str, Any]], *, expected_event_id: s
     return validate_event_records(records, expected_event_id=expected_event_id)
 
 
-def _anchor_identity_from_blob(store: GitHubHistoryStore, *, event_id: str, blob_sha: str) -> EventIdentity:
+
+_ANCHOR_CACHE_SCHEMA_VERSION = 1
+
+
+def _persistent_anchor_cache_path() -> Path | None:
+    raw = os.getenv("STEPIK_HISTORY_ANCHOR_CACHE", "").strip()
+    return Path(raw) if raw else None
+
+
+def _load_persistent_anchor_cache(path: Path) -> dict[str, EventIdentity]:
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise DeploymentHistoryError("Persistent history anchor cache повреждён") from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != _ANCHOR_CACHE_SCHEMA_VERSION:
+        raise DeploymentHistoryError("Persistent history anchor cache имеет неподдерживаемую schema")
+    raw_anchors = payload.get("anchors")
+    if not isinstance(raw_anchors, dict):
+        raise DeploymentHistoryError("Persistent history anchor cache не содержит anchors")
+
+    result: dict[str, EventIdentity] = {}
+    for blob_sha, raw_identity in raw_anchors.items():
+        if (
+            not isinstance(blob_sha, str)
+            or len(blob_sha) != 40
+            or any(ch not in "0123456789abcdef" for ch in blob_sha)
+        ):
+            raise DeploymentHistoryError("Persistent history anchor cache содержит неверный blob SHA")
+        identity = _parse_identity(raw_identity)
+        calculated_event_id = stable_event_id(
+            course_id=identity.course_id,
+            object_id=identity.object_id,
+            kind=identity.kind,
+            source_sha=identity.source_sha,
+            desired_fingerprint=identity.desired_fingerprint,
+            baseline_fingerprint=identity.baseline_fingerprint_before,
+            pending_first_sha=identity.pending_first_sha,
+        )
+        if calculated_event_id != identity.event_id:
+            raise DeploymentHistoryError("Persistent history anchor cache содержит неверную event identity")
+        result[blob_sha] = identity
+    return result
+
+
+def _persist_anchor_cache(path: Path, cache: dict[str, EventIdentity]) -> None:
+    payload = {
+        "schema_version": _ANCHOR_CACHE_SCHEMA_VERSION,
+        "anchors": {
+            blob_sha: identity.as_dict()
+            for blob_sha, identity in sorted(cache.items())
+        },
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        tmp.replace(path)
+    except OSError as exc:
+        raise DeploymentHistoryError("Не удалось сохранить persistent history anchor cache") from exc
+
+
+def _anchor_cache_for_store(store: GitHubHistoryStore) -> tuple[dict[str, EventIdentity], Path | None]:
     cache = getattr(store, "_history_anchor_identity_cache", None)
-    if not isinstance(cache, dict):
-        cache = {}
-        setattr(store, "_history_anchor_identity_cache", cache)
+    cache_path = getattr(store, "_history_anchor_identity_cache_path", None)
+    if isinstance(cache, dict):
+        return cache, cache_path if isinstance(cache_path, Path) else None
+
+    path = _persistent_anchor_cache_path()
+    cache = _load_persistent_anchor_cache(path) if path is not None else {}
+    setattr(store, "_history_anchor_identity_cache", cache)
+    setattr(store, "_history_anchor_identity_cache_path", path)
+    return cache, path
+
+
+def _anchor_identity_from_blob(store: GitHubHistoryStore, *, event_id: str, blob_sha: str) -> EventIdentity:
+    cache, cache_path = _anchor_cache_for_store(store)
     cached = cache.get(blob_sha)
     if isinstance(cached, EventIdentity):
         if cached.event_id != event_id:
@@ -238,6 +315,8 @@ def _anchor_identity_from_blob(store: GitHubHistoryStore, *, event_id: str, blob
     if identity.event_id != event_id or calculated_event_id != event_id:
         raise DeploymentHistoryError("History anchor identity не соответствует event directory")
     cache[blob_sha] = identity
+    if cache_path is not None:
+        _persist_anchor_cache(cache_path, cache)
     return identity
 
 
