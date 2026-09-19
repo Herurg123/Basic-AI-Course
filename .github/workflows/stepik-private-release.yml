@@ -28,6 +28,7 @@ permissions:
 
 env:
   STEPIK_SYNC_ISSUE: '54'
+  STEPIK_HISTORY_ANCHOR_CACHE: artifacts/stepik-private-release/history-anchor-cache.json
 
 jobs:
   tests:
