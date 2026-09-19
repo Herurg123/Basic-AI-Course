@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import unittest
 
-from scripts.stepik_uploader.content import CompiledStep
+from scripts.stepik_uploader.step_model import RenderedStep
 from scripts.stepik_uploader.deployment_history import DeploymentRecorder, EventIdentity, MemoryHistoryStore, stable_event_id, summarize_event
 from scripts.stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
 from scripts.stepik_uploader.writer import ContentWriteError, execute_content_sync_one
@@ -11,16 +11,16 @@ from scripts.stepik_uploader.writer import ContentWriteError, execute_content_sy
 TITLE = "M02-L01 — Test"
 SHA = "1" * 40
 OLD_STEPS = [
-    CompiledStep(1, "text", "<p>old-1</p>", {}, ("lesson.md",)),
-    CompiledStep(2, "text", "<p>old-2</p>", {}, ("lesson.md",)),
+    RenderedStep(1, "text", "<p>old-1</p>", {}, ("lesson.md",)),
+    RenderedStep(2, "text", "<p>old-2</p>", {}, ("lesson.md",)),
 ]
 NEW_STEPS = [
-    CompiledStep(1, "text", "<p>new-1</p>", {}, ("lesson.md",)),
-    CompiledStep(2, "text", "<p>new-2</p>", {}, ("lesson.md",)),
+    RenderedStep(1, "text", "<p>new-1</p>", {}, ("lesson.md",)),
+    RenderedStep(2, "text", "<p>new-2</p>", {}, ("lesson.md",)),
 ]
 
 
-def lesson_from(steps: list[CompiledStep]) -> dict:
+def lesson_from(steps: list[RenderedStep]) -> dict:
     return {
         "id": 201,
         "title": TITLE,
@@ -41,7 +41,7 @@ def lesson_from(steps: list[CompiledStep]) -> dict:
     }
 
 
-def snapshot_from(steps: list[CompiledStep]) -> dict:
+def snapshot_from(steps: list[RenderedStep]) -> dict:
     return {
         "course": {"id": 299189, "is_public": False},
         "sections": [
@@ -54,7 +54,7 @@ def snapshot_from(steps: list[CompiledStep]) -> dict:
     }
 
 
-def baseline(steps: list[CompiledStep]) -> dict:
+def baseline(steps: list[RenderedStep]) -> dict:
     return {
         "canonical_id": "M02-L01",
         "stepik_lesson_id": 201,
@@ -104,7 +104,7 @@ def recorder_for(store: MemoryHistoryStore) -> DeploymentRecorder:
 
 
 class FakeClient:
-    def __init__(self, steps: list[CompiledStep], *, fail_update_number: int | None = None, fail_readback_id: int | None = None) -> None:
+    def __init__(self, steps: list[RenderedStep], *, fail_update_number: int | None = None, fail_readback_id: int | None = None) -> None:
         self.snapshot = snapshot_from(steps)
         self.fail_update_number = fail_update_number
         self.fail_readback_id = fail_readback_id

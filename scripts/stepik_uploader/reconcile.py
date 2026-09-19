@@ -55,7 +55,6 @@ def classify_reconcile(
     event_baseline_fingerprint_before: str | None = None,
     event_baseline_known: bool = False,
     committed_history_live_match: bool = False,
-    golden_read_only: bool = False,
     metadata_divergence: bool = False,
     structural_divergence: bool = False,
     conflicting_event: bool = False,
@@ -84,14 +83,6 @@ def classify_reconcile(
             auto=False,
             owner=True,
             reasons=["multiple-plausible-deployment-events"],
-        )
-    if golden_read_only:
-        return _decision(
-            "GOLDEN_OWNER_REQUIRED",
-            "STOP_OWNER_DECISION",
-            auto=False,
-            owner=True,
-            reasons=["golden-read-only"],
         )
     if structural_divergence:
         return _decision(

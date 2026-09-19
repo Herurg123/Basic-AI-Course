@@ -15,7 +15,7 @@ if __package__ in {None, ""}:
     from stepik_uploader.asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from stepik_uploader.attachment_materialization import verify_attachment_capability
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
-    from stepik_uploader.content import ContentCompileError
+    from stepik_uploader.general_content import GeneralContentCompileError, compile_lesson_source
     from stepik_uploader.deployment_history import (
         DeploymentHistoryError,
         DeploymentRecorder,
@@ -23,13 +23,17 @@ if __package__ in {None, ""}:
         event_identity_from_environment,
     )
     from stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
-    from stepik_uploader.general_content import compile_lesson_source
-    from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
+    from stepik_uploader.platform_profile import (
+        PLATFORM_PROFILE_PATH,
+        PlatformProfileError,
+        free_answer_source as platform_free_answer_source,
+        load_platform_profile,
+    )
     from stepik_uploader.history_runtime import find_incomplete_object_events, final_confirmed_record
     from stepik_uploader.initial_upload_writer import execute_initial_upload_one
     from stepik_uploader.planner import plan_dry_run
     from stepik_uploader.reporting import build_report, write_json
-    from stepik_uploader.stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
+    from stepik_uploader.stepik_uploader import count_snapshot, source_sha
     from stepik_uploader.sync_state import (
         SyncStateError,
         asset_binding_for,
@@ -58,7 +62,7 @@ else:
     from .asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from .attachment_materialization import verify_attachment_capability
     from .canonical import CanonicalBuildError, build_structural_manifest
-    from .content import ContentCompileError
+    from .general_content import GeneralContentCompileError, compile_lesson_source
     from .deployment_history import (
         DeploymentHistoryError,
         DeploymentRecorder,
@@ -66,13 +70,17 @@ else:
         event_identity_from_environment,
     )
     from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
-    from .general_content import compile_lesson_source
-    from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
+    from .platform_profile import (
+        PLATFORM_PROFILE_PATH,
+        PlatformProfileError,
+        free_answer_source as platform_free_answer_source,
+        load_platform_profile,
+    )
     from .history_runtime import find_incomplete_object_events, final_confirmed_record
     from .initial_upload_writer import execute_initial_upload_one
     from .planner import plan_dry_run
     from .reporting import build_report, write_json
-    from .stepik_uploader import count_snapshot, mark_golden_profile_result, source_sha
+    from .stepik_uploader import count_snapshot, source_sha
     from .sync_state import (
         SyncStateError,
         asset_binding_for,
@@ -92,9 +100,7 @@ else:
     from .writer import ContentWriteError, PLACEHOLDER_TEXT, _placeholder
 
 
-GOLDEN_PROFILE_PATH = Path("04_course/stepik/automation/golden-profile.v1.json")
 ASSET_POLICY_PATH = Path("04_course/stepik/automation/asset-publication.v1.json")
-GOLDEN_IDS = {"M00-L01", "M00-L02"}
 VISUAL_MODES = {"stepik-image-upload", "rasterize-png-stepik-image"}
 
 
@@ -123,7 +129,7 @@ def _manifest_lesson(manifest: dict[str, Any], target_id: str) -> tuple[dict[str
         for lesson in module.get("lessons", []):
             if lesson.get("canonical_id") == target_id:
                 return module, lesson
-    raise ContentCompileError(f"В manifest отсутствует {target_id}")
+    raise GeneralContentCompileError(f"В manifest отсутствует {target_id}")
 
 
 def _learner_step_count(lesson_manifest: dict[str, Any]) -> int:
@@ -568,17 +574,9 @@ def main() -> int:
     try:
         if args.course_id != 299189:
             raise ContentWriteError("staging-build-one разрешён только для course_id=299189")
-        if target_id in GOLDEN_IDS:
-            raise ContentWriteError(
-                f"{target_id} является READ_ONLY_GOLDEN; staging-build-one не имеет права менять golden content"
-            )
-
         manifest = build_structural_manifest(repo_root, source_sha=sha)
         write_json(report_dir / "build-manifest.structural.json", manifest)
         module, lesson_manifest = _manifest_lesson(manifest, target_id)
-        if lesson_manifest.get("golden_read_only"):
-            raise ContentWriteError(f"{target_id} помечен golden_read_only")
-
         state_path = args.sync_state if args.sync_state.is_absolute() else repo_root / args.sync_state
         state = load_state(state_path, course_id=args.course_id)
         if baseline_for(state, target_id) is not None:
@@ -594,15 +592,12 @@ def main() -> int:
         client = StepikClient(client_id, client_secret, api_host=args.api_host)
         snapshot = client.inspect_course(args.course_id)
         write_json(report_dir / "course-snapshot.before.json", snapshot)
-        profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
-        plan = plan_dry_run(manifest, snapshot, golden_profile=profile)
-        profile_blockers = validate_golden_profile(profile, snapshot, manifest)
-        golden_status = mark_golden_profile_result(plan, profile_blockers)
-        if golden_status != "confirmed" or plan.blockers:
+        plan = plan_dry_run(manifest, snapshot)
+        if plan.blockers:
             raise ContentWriteError(
-                "prewrite live structural/golden guards не пройдены: "
-                + "; ".join(sorted(set(profile_blockers + plan.blockers)))
+                "prewrite live structural guards не пройдены: " + "; ".join(sorted(set(plan.blockers)))
             )
+        platform_profile = load_platform_profile(repo_root / PLATFORM_PROFILE_PATH, course_id=args.course_id)
 
         expected_title = str(lesson_manifest["title"])
         live_lesson = _live_lesson(
@@ -619,9 +614,7 @@ def main() -> int:
         if not incomplete_lessons:
             _require_pristine_skeleton(live_lesson)
 
-        free_answer_source = profile.get("observed_conventions", {}).get("free_answer_source")
-        if not isinstance(free_answer_source, dict):
-            raise ContentCompileError("Golden profile не содержит free_answer_source")
+        free_answer_source = platform_free_answer_source(platform_profile)
         source_steps = compile_lesson_source(repo_root, free_answer_source=free_answer_source, lesson_id=target_id)
 
         inventory = build_asset_inventory(repo_root, manifest)
@@ -672,7 +665,7 @@ def main() -> int:
             report.update(
                 {
                     "verdict": "READY",
-                    "golden_profile_status": golden_status,
+                    "platform_profile_status": "confirmed",
                     "target_stepik_lesson_id": int(live_lesson["id"]),
                     "target_title": expected_title,
                     "target_state": "PRISTINE_SKELETON" if not incomplete_lessons else "RECOVERY_HISTORY_PRESENT",
@@ -850,7 +843,7 @@ def main() -> int:
         )
         report.update(
             {
-                "golden_profile_status": golden_status,
+                "platform_profile_status": "confirmed",
                 "target_lesson": target_id,
                 "stepik_lesson_id": int(current_lesson["id"]),
                 "lesson_status": lesson_status,
@@ -872,8 +865,8 @@ def main() -> int:
         RuntimeError,
         StepikAPIError,
         CanonicalBuildError,
-        ContentCompileError,
-        GoldenProfileError,
+        GeneralContentCompileError,
+        PlatformProfileError,
         ContentWriteError,
         AssetResolutionError,
         DeploymentHistoryError,

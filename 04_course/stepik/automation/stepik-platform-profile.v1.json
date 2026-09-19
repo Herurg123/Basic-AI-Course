@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "status": "confirmed-platform-conventions",
+  "course_id": 299189,
+  "observed_at": "2026-09-17T09:14:30Z",
+  "text_block_source": {},
+  "free_answer_source": {
+    "is_attachments_enabled": false,
+    "is_html_enabled": true,
+    "manual_scoring": false
+  },
+  "transport_conventions": {
+    "plan_row_to_step": "1:1 for current course renderer",
+    "external_links": "Absolute external links are preserved; Stepik may add rel/target attributes on read-back.",
+    "markdown_assets": "Learner-facing Markdown dependencies are rendered into the owning Stepik step.",
+    "binary_assets": "Binary learner assets use confirmed URL or guarded Stepik attachment/image materialization routes."
+  },
+  "scope_note": "Platform rendering conventions only. This file contains no lesson identity, content baseline, write authority or special lesson class. Lesson provenance lives exclusively in machine state/history."
+}

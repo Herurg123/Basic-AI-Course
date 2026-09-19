@@ -402,17 +402,7 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         self.assertEqual(record["event_relationship"]["type"], "RETRY_OR_CONTINUATION_OF_EVENT")
         self.assertEqual(record["event_relationship"]["origin_run_id"], "100")
 
-    def test_golden_and_structural_divergence_never_auto_reconcile(self) -> None:
-        golden = classify_reconcile(
-            source_sha=SHA1,
-            current_main_sha=SHA1,
-            live_fingerprint=OLD,
-            desired_fingerprint=DESIRED,
-            baseline_fingerprint=OLD,
-            event_summary=None,
-            event_source_sha=None,
-            golden_read_only=True,
-        )
+    def test_structural_and_metadata_divergence_never_auto_reconcile(self) -> None:
         structural = classify_reconcile(
             source_sha=SHA1,
             current_main_sha=SHA1,
@@ -423,10 +413,20 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
             event_source_sha=None,
             structural_divergence=True,
         )
-        self.assertFalse(golden.auto_allowed)
+        metadata = classify_reconcile(
+            source_sha=SHA1,
+            current_main_sha=SHA1,
+            live_fingerprint=OLD,
+            desired_fingerprint=DESIRED,
+            baseline_fingerprint=OLD,
+            event_summary=None,
+            event_source_sha=None,
+            metadata_divergence=True,
+        )
         self.assertFalse(structural.auto_allowed)
-        self.assertTrue(golden.owner_approval_required)
+        self.assertFalse(metadata.auto_allowed)
         self.assertTrue(structural.owner_approval_required)
+        self.assertTrue(metadata.owner_approval_required)
 
 
 if __name__ == "__main__":

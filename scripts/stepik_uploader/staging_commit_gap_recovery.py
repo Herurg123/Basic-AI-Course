@@ -13,6 +13,7 @@ if __package__ in {None, ""}:
     from stepik_uploader.asset_inventory import build_asset_inventory
     from stepik_uploader.asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
+    from stepik_uploader.attachment_materialization import AttachmentMaterializationError, verify_attachment_binding
     from stepik_uploader.deployment_history import DeploymentHistoryError, GitHubHistoryStore
     from stepik_uploader.fingerprints import live_lesson_fingerprint
     from stepik_uploader.history_runtime import find_incomplete_object_events, final_confirmed_record
@@ -26,6 +27,7 @@ else:
     from .asset_inventory import build_asset_inventory
     from .asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
     from .canonical import CanonicalBuildError, build_structural_manifest
+    from .attachment_materialization import AttachmentMaterializationError, verify_attachment_binding
     from .deployment_history import DeploymentHistoryError, GitHubHistoryStore
     from .fingerprints import live_lesson_fingerprint
     from .history_runtime import find_incomplete_object_events, final_confirmed_record
@@ -38,7 +40,6 @@ else:
 
 ASSET_POLICY_PATH = Path("04_course/stepik/automation/asset-publication.v1.json")
 VISUAL_MODES = {"stepik-image-upload", "rasterize-png-stepik-image"}
-GOLDEN_IDS = {"M00-L01", "M00-L02"}
 
 
 def _credentials() -> tuple[str, str]:
@@ -106,7 +107,7 @@ def _materialization_rows(asset_report: dict[str, Any], target_id: str) -> list[
         if row.get("lesson") != target_id or row.get("materialization_required_at_write") is not True:
             continue
         source_path = str(row.get("source_path") or "")
-        if not source_path or row.get("mode") not in VISUAL_MODES:
+        if not source_path or row.get("mode") not in (VISUAL_MODES | {"stepik-attachment-upload"}):
             raise AssetResolutionError(f"{target_id}: recovery встретил неподдерживаемую physical dependency")
         rows[source_path] = row
     return [rows[key] for key in sorted(rows)]
@@ -140,8 +141,6 @@ def main() -> int:
             write_json(probe_path, {"applicable": False, "target_lesson": target_id, "reason": "lesson-baseline-absent"})
             return 0
 
-        if target_id in GOLDEN_IDS:
-            raise ContentWriteError("Staging commit-gap recovery не применяется к READ_ONLY_GOLDEN")
         if state.get("pending", {}).get("lessons", {}).get(target_id) is not None:
             raise SyncStateError(
                 f"{target_id}: lesson baseline уже существует, но PENDING не закрыт; state противоречив, owner review required"
@@ -209,14 +208,24 @@ def main() -> int:
             record = asset_binding_for(state, source_path)
             if record is None:
                 raise DeploymentHistoryError(f"{source_path}: lesson baseline committed, но asset baseline отсутствует")
-            verify_visual_binding(
-                client,
-                record,
-                source_path=source_path,
-                expected_source_sha256=str(row["source_sha256"]),
-                expected_mode=str(row["mode"]),
-                stepik_lesson_id=int(live_lesson["id"]),
-            )
+            mode = str(row["mode"])
+            if mode in VISUAL_MODES:
+                verify_visual_binding(
+                    client,
+                    record,
+                    source_path=source_path,
+                    expected_source_sha256=str(row["source_sha256"]),
+                    expected_mode=mode,
+                    stepik_lesson_id=int(live_lesson["id"]),
+                )
+            else:
+                verify_attachment_binding(
+                    client,
+                    record,
+                    source_path=source_path,
+                    expected_source_sha256=str(row["source_sha256"]),
+                    stepik_lesson_id=int(live_lesson["id"]),
+                )
             incomplete_assets = find_incomplete_object_events(store, object_id=f"asset:{source_path}")
             if not incomplete_assets:
                 continue
@@ -297,6 +306,7 @@ def main() -> int:
         DeploymentHistoryError,
         SyncStateError,
         VisualMaterializationError,
+        AttachmentMaterializationError,
     ) as exc:
         write_json(
             probe_path,

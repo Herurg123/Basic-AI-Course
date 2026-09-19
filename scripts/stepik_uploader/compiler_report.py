@@ -13,13 +13,12 @@ if __package__ in {None, ""}:
         GeneralContentCompileError,
         compile_all_lesson_sources,
     )
-    from stepik_uploader.golden import load_golden_profile
+    from stepik_uploader.platform_profile import PLATFORM_PROFILE_PATH, free_answer_source, load_platform_profile
 else:
     from .canonical import build_structural_manifest
     from .general_content import GeneralContentCompileError, compile_all_lesson_sources
-    from .golden import load_golden_profile
+    from .platform_profile import PLATFORM_PROFILE_PATH, free_answer_source, load_platform_profile
 
-GOLDEN_PROFILE_PATH = Path("04_course/stepik/automation/golden-profile.v1.json")
 
 
 def _source_sha(repo_root: Path) -> str:
@@ -36,10 +35,8 @@ def _source_sha(repo_root: Path) -> str:
 def build_report(repo_root: Path) -> dict[str, Any]:
     source_sha = _source_sha(repo_root)
     manifest = build_structural_manifest(repo_root, source_sha=source_sha)
-    profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
-    free_answer_source = profile.get("observed_conventions", {}).get("free_answer_source")
-    if not isinstance(free_answer_source, dict):
-        raise GeneralContentCompileError("Golden profile не содержит free_answer_source")
+    profile = load_platform_profile(repo_root / PLATFORM_PROFILE_PATH)
+    free_answer = free_answer_source(profile)
 
     lesson_ids = [
         str(lesson["canonical_id"])
@@ -48,7 +45,7 @@ def build_report(repo_root: Path) -> dict[str, Any]:
     ]
     compiled = compile_all_lesson_sources(
         repo_root,
-        free_answer_source=free_answer_source,
+        free_answer_source=free_answer,
         lesson_ids=lesson_ids,
     )
 

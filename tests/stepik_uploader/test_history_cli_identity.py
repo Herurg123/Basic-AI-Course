@@ -42,12 +42,12 @@ class HistoryCliIdentityTests(unittest.TestCase):
                 "M00-L01",
             )
 
-    def test_golden_content_history_is_lesson_like_and_uses_immutable_object_id(self) -> None:
+    def test_legacy_lesson_history_kinds_are_read_compatible(self) -> None:
         for kind in ("golden-content-refresh", "golden-content-migration"):
             with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
                 event_file = Path(tmp) / "event.json"
                 event = {
-                    "event_id": "evt-golden",
+                    "event_id": "evt-legacy",
                     "source_sha": "c" * 40,
                     "kind": "lesson",
                     "canonical_id": "WRONG",
@@ -55,7 +55,7 @@ class HistoryCliIdentityTests(unittest.TestCase):
                 }
                 event_file.write_text(json.dumps(event), encoding="utf-8")
                 identity = {
-                    "event_id": "evt-golden",
+                    "event_id": "evt-legacy",
                     "source_sha": "c" * 40,
                     "kind": kind,
                     "object_id": "M00-L02",

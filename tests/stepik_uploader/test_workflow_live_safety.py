@@ -7,170 +7,69 @@ from pathlib import Path
 class WorkflowLiveSafetyTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]
-        self.uploader = (self.repo_root / ".github/workflows/stepik-uploader.yml").read_text(encoding="utf-8")
-        self.bulk = (self.repo_root / ".github/workflows/stepik-bulk-status.yml").read_text(encoding="utf-8")
-        self.hygiene = (self.repo_root / ".github/workflows/stepik-learner-hygiene.yml").read_text(encoding="utf-8")
-        self.staging = (self.repo_root / ".github/workflows/stepik-staging-build.yml").read_text(encoding="utf-8")
+        self.uploader_path = self.repo_root / ".github/workflows/stepik-uploader.yml"
+        self.release_path = self.repo_root / ".github/workflows/stepik-private-release.yml"
+        self.uploader = self.uploader_path.read_text(encoding="utf-8")
+        self.release = self.release_path.read_text(encoding="utf-8")
 
-    def test_all_live_workflows_use_same_course_mutex(self) -> None:
+    def test_only_current_stepik_workflows_remain(self) -> None:
+        workflows = {path.name for path in (self.repo_root / ".github/workflows").glob("stepik-*.yml")}
+        self.assertEqual(workflows, {"stepik-uploader.yml", "stepik-private-release.yml"})
+
+    def test_all_live_stepik_jobs_share_fixed_course_mutex(self) -> None:
         shared = "group: stepik-live-course-299189"
         self.assertEqual(self.uploader.count(shared), 1)
-        self.assertEqual(self.bulk.count(shared), 1)
-        self.assertEqual(self.hygiene.count(shared), 1)
-        self.assertEqual(self.staging.count(shared), 1)
+        self.assertEqual(self.release.count(shared), 1)
+        self.assertNotIn("group: stepik-live-course-${{ inputs.course_id }}", self.uploader)
+        self.assertNotIn("group: stepik-live-course-${{ inputs.course_id }}", self.release)
         self.assertIn("cancel-in-progress: false", self.uploader)
-        self.assertIn("cancel-in-progress: false", self.bulk)
-        self.assertIn("cancel-in-progress: false", self.hygiene)
-        self.assertIn("cancel-in-progress: false", self.staging)
+        self.assertIn("cancel-in-progress: false", self.release)
 
-    def test_mutex_is_not_derived_from_user_supplied_course_id(self) -> None:
-        unsafe = "group: stepik-live-course-${{ inputs.course_id }}"
-        self.assertNotIn(unsafe, self.uploader)
-        self.assertNotIn(unsafe, self.bulk)
-        self.assertNotIn(unsafe, self.hygiene)
-        self.assertNotIn(unsafe, self.staging)
+    def test_uploader_manual_mode_is_read_only(self) -> None:
+        self.assertIn("- dry-run", self.uploader)
+        self.assertIn("- inspect", self.uploader)
+        self.assertNotIn("confirm_write", self.uploader)
+        self.assertNotIn("staging_refresh_runtime.py", self.uploader)
+        self.assertNotIn("staging_build_runtime.py", self.uploader)
+        self.assertNotIn("first_upload_runtime.py", self.uploader)
+        self.assertNotIn("sync_runtime.py", self.uploader)
 
-    def test_old_independent_live_concurrency_groups_are_removed(self) -> None:
-        self.assertNotIn("stepik-uploader-${{ github.event_name }}-${{ github.ref }}", self.uploader)
-        self.assertNotIn("stepik-bulk-status-${{ github.ref }}", self.bulk)
-        self.assertNotIn("stepik-learner-hygiene-${{ github.ref }}", self.hygiene)
+    def test_private_release_is_only_stepik_write_entry_point(self) -> None:
+        self.assertIn("confirm_write", self.release)
+        self.assertIn("staging_refresh_runtime.py", self.release)
+        self.assertIn("staging_build_runtime.py", self.release)
+        self.assertIn("course_page_sync.py", self.release)
+        self.assertNotIn("golden", self.release.lower())
+        self.assertNotIn("learner_hygiene", self.release)
+        self.assertNotIn("section_position_recovery", self.release)
 
-    def test_live_guard_runs_before_every_live_runtime(self) -> None:
-        command = "python scripts/stepik_uploader/live_guard.py"
-        self.assertEqual(self.uploader.count(command), 1)
-        self.assertEqual(self.bulk.count(command), 1)
-        self.assertEqual(self.hygiene.count(command), 1)
-        self.assertEqual(self.staging.count(command), 1)
+    def test_current_main_guard_runs_before_live_api_routes(self) -> None:
+        self.assertIn("python scripts/stepik_uploader/live_guard.py", self.uploader)
+        self.assertIn("python scripts/stepik_uploader/live_guard.py", self.release)
         self.assertIn("GITHUB_TOKEN: ${{ github.token }}", self.uploader)
-        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", self.bulk)
-        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", self.hygiene)
-        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", self.staging)
-        live_index = self.hygiene.index("  live:\n")
-        live_block = self.hygiene[live_index:]
-        self.assertLess(
-            live_block.index("python scripts/stepik_uploader/live_guard.py"),
-            live_block.index("python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py"),
-        )
-        self.assertLess(
-            self.staging.index("python scripts/stepik_uploader/live_guard.py"),
-            self.staging.index("python scripts/stepik_uploader/staging_build_runtime.py"),
-        )
+        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", self.release)
 
-    def test_bulk_offline_tests_are_not_inside_live_mutex_job(self) -> None:
-        tests_index = self.bulk.index("  tests:\n")
-        bulk_index = self.bulk.index("  bulk_status:\n")
-        tests_block = self.bulk[tests_index:bulk_index]
-        self.assertNotIn("stepik-live-course-", tests_block)
-        self.assertNotIn("STEPIC_CLIENT_ID", tests_block)
-        self.assertNotIn("STEPIC_CLIENT_SECRET", tests_block)
+    def test_pending_impact_update_does_not_call_stepik_api(self) -> None:
+        impact_start = self.uploader.index("  impact:")
+        inspect_start = self.uploader.index("  inspect:")
+        impact = self.uploader[impact_start:inspect_start]
+        self.assertNotIn("STEPIC_CLIENT_ID", impact)
+        self.assertNotIn("STEPIC_CLIENT_SECRET", impact)
+        self.assertIn("impact.py", impact)
+        self.assertIn("sync_issue_state.py apply-impact", impact)
 
-    def test_bulk_workflow_changes_trigger_regular_pr_ci(self) -> None:
-        self.assertGreaterEqual(
-            self.uploader.count("'.github/workflows/stepik-bulk-status.yml'"),
-            2,
-        )
-
-    def test_first_upload_is_explicit_owner_mode_with_confirmation(self) -> None:
-        self.assertIn("- first-upload-m04-l01", self.uploader)
-        self.assertIn('[[ "$MODE" == "first-upload-m04-l01" ]]', self.uploader)
-        self.assertIn("python scripts/stepik_uploader/first_upload_runtime.py", self.uploader)
-        self.assertIn("--confirm-write", self.uploader)
-        self.assertIn("inputs.mode == 'first-upload-m04-l01' && success()", self.uploader)
-
-    def test_first_upload_reads_and_race_checks_machine_state(self) -> None:
-        read_condition = (
-            "inputs.mode == 'sync-status' || inputs.mode == 'sync-reconcile' || "
-            "inputs.mode == 'sync-changed' || inputs.mode == 'first-upload-m04-l01'"
-        )
-        self.assertIn(read_condition, self.uploader)
-        first_commit = self.uploader.index("Зафиксировать first upload")
-        first_block = self.uploader[first_commit:]
-        self.assertIn("sync-state.previous.json", first_block)
-        self.assertIn("sync_issue_state.py compare", first_block)
-        self.assertIn("sync_issue_state.py replace", first_block)
-        self.assertIn("asset-deployment-event.json", first_block)
-        self.assertIn("lesson-deployment-event.json", first_block)
-        self.assertGreaterEqual(first_block.count("history_cli.py mark-state-committed"), 2)
-
-    def test_first_upload_cannot_bypass_current_main_guard_or_mutex(self) -> None:
-        live_index = self.uploader.index("  live:\n")
-        live_block = self.uploader[live_index:]
-        self.assertIn("group: stepik-live-course-299189", live_block)
-        self.assertIn("python scripts/stepik_uploader/live_guard.py", live_block)
-        self.assertLess(
-            live_block.index("python scripts/stepik_uploader/live_guard.py"),
-            live_block.index("python scripts/stepik_uploader/first_upload_runtime.py"),
-        )
-
-    def test_hygiene_live_job_is_manual_and_requires_explicit_confirmation(self) -> None:
-        self.assertIn("workflow_dispatch:", self.hygiene)
-        self.assertIn("confirm_write:", self.hygiene)
-        self.assertIn("default: false", self.hygiene)
-        self.assertIn("if: github.event_name == 'workflow_dispatch'", self.hygiene)
-        self.assertIn('"$COURSE_ID" != "299189"', self.hygiene)
-        self.assertIn('if [[ "${CONFIRM_WRITE:-false}" == "true" ]]; then', self.hygiene)
-        self.assertIn(
-            'python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py "${args[@]}" --confirm-write',
-            self.hygiene,
-        )
-        self.assertIn(
-            'python scripts/stepik_uploader/learner_hygiene_preflight.py "${args[@]}"',
-            self.hygiene,
-        )
-        self.assertNotIn(
-            'python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py "${args[@]}"\n',
-            self.hygiene,
-        )
-
-    def test_hygiene_pr_event_runs_tests_but_never_live_job(self) -> None:
-        self.assertIn("pull_request:", self.hygiene)
-        tests_index = self.hygiene.index("  tests:\n")
-        live_index = self.hygiene.index("  live:\n")
-        tests_block = self.hygiene[tests_index:live_index]
-        self.assertNotIn("STEPIC_CLIENT_ID", tests_block)
-        self.assertNotIn("STEPIC_CLIENT_SECRET", tests_block)
-        self.assertIn("if: github.event_name == 'workflow_dispatch'", self.hygiene[live_index:])
-
-    def test_hygiene_machine_state_patch_precedes_history_commit(self) -> None:
-        race_index = self.hygiene.index("Race-check и обновить Issue 54")
-        history_index = self.hygiene.index("Commit durable history только после machine-state boundary")
-        self.assertLess(race_index, history_index)
-        block = self.hygiene[race_index:]
-        self.assertIn("sync_issue_state.py compare", block)
-        self.assertIn("state-update-required.flag", block)
-        self.assertIn("sync_issue_state.py replace", block)
-        self.assertIn("history_cli.py mark-state-committed", block)
-        self.assertIn("sync-state.next.json", block)
-
-    def test_hygiene_never_commits_history_when_runtime_or_state_race_fails(self) -> None:
-        live_index = self.hygiene.index("  live:\n")
-        live_block = self.hygiene[live_index:]
-        runtime_index = live_block.index("python scripts/stepik_uploader/learner_hygiene_recovery_entrypoint.py")
-        state_index = live_block.index("Race-check и обновить Issue 54")
-        history_index = live_block.index("history_cli.py mark-state-committed")
-        self.assertLess(runtime_index, state_index)
-        self.assertLess(state_index, history_index)
-        self.assertNotIn("continue-on-error: true", live_block)
-
-    def test_staging_build_is_manual_private_course_only_and_confirmed(self) -> None:
-        self.assertIn("workflow_dispatch:", self.staging)
-        self.assertIn("target_id:", self.staging)
-        self.assertIn("confirm_write:", self.staging)
-        self.assertIn("default: false", self.staging)
-        self.assertIn('"$COURSE_ID" != "299189"', self.staging)
-        self.assertIn('if [[ "$CONFIRM_WRITE" == "true" ]]; then', self.staging)
-        self.assertIn("args+=(--confirm-write)", self.staging)
-        self.assertIn("python scripts/stepik_uploader/staging_build_runtime.py", self.staging)
-
-    def test_staging_build_machine_state_patch_precedes_history_commit(self) -> None:
-        runtime_index = self.staging.index("python scripts/stepik_uploader/staging_build_runtime.py")
-        patch_index = self.staging.index("sync_issue_state.py compare")
-        history_index = self.staging.index("history_cli.py mark-state-committed")
-        self.assertLess(runtime_index, patch_index)
-        self.assertLess(patch_index, history_index)
-        self.assertIn("sync-state.previous.json", self.staging)
-        self.assertIn("sync-state.next.json", self.staging)
-        self.assertNotIn("continue-on-error: true", self.staging)
+    def test_no_retired_workflow_files_exist(self) -> None:
+        retired = [
+            "stepik-bulk-status.yml",
+            "stepik-golden-title-migration.yml",
+            "stepik-learner-hygiene.yml",
+            "stepik-section-position-recovery.yml",
+            "stepik-staging-batch.yml",
+            "stepik-staging-build.yml",
+        ]
+        for name in retired:
+            with self.subTest(name=name):
+                self.assertFalse((self.repo_root / ".github/workflows" / name).exists())
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import Any
 
 from .api import StepikAPIError, StepikWriteAmbiguousError
-from .content import CompiledStep
+from .step_model import RenderedStep
 from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
 from .sync_state import build_record
 from .transport_equivalence import lesson_transport_equivalent
@@ -20,7 +20,7 @@ from .writer import (
 )
 
 
-def _lesson_after_created_step(lesson: dict[str, Any], expected: CompiledStep) -> dict[str, Any]:
+def _lesson_after_created_step(lesson: dict[str, Any], expected: RenderedStep) -> dict[str, Any]:
     updated = deepcopy(lesson)
     updated.setdefault("steps", []).append(
         {
@@ -38,7 +38,7 @@ def _lesson_after_updated_first_step(
     lesson: dict[str, Any],
     *,
     step_id: int,
-    expected: CompiledStep,
+    expected: RenderedStep,
 ) -> dict[str, Any]:
     updated = deepcopy(lesson)
     matched = False
@@ -90,7 +90,7 @@ def execute_initial_upload_one(
     snapshot: dict[str, Any],
     *,
     canonical_id: str,
-    expected_steps: list[CompiledStep],
+    expected_steps: list[RenderedStep],
     module_position: int,
     lesson_position: int,
     expected_title: str,

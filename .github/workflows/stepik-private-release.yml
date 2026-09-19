@@ -7,19 +7,18 @@ on:
       - 'tests/stepik_uploader/**'
       - '04_course/stepik/automation/**'
       - '04_course/stepik/course-page.md'
-      - '04_course/M00/M00-L01/**'
-      - '04_course/M00/M00-L02/**'
+      - '04_course/M*/**'
       - '05_assets/**'
       - '.github/workflows/stepik-private-release.yml'
   workflow_dispatch:
     inputs:
       course_id:
-        description: 'Только private production-staging course проекта.'
+        description: 'Private production-staging course.'
         required: true
         default: '299189'
         type: string
       confirm_write:
-        description: 'false = full read-only preflight; true = guarded initial/refresh sync всего private course, course page и explicit golden refresh routes.'
+        description: 'false = full read-only preflight; true = guarded sync всех PENDING lessons и course page.'
         required: true
         default: false
         type: boolean
@@ -38,20 +37,16 @@ jobs:
     steps:
       - name: Получить репозиторий
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-
       - name: Python 3.12
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: scripts/stepik_uploader/requirements.txt
-
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
-
       - name: Запустить полный offline test suite
         run: python -m unittest discover -s tests/stepik_uploader -v
-
       - name: Проверить канон без Stepik writes
         run: >-
           python scripts/stepik_uploader/stepik_uploader.py dry-run
@@ -59,7 +54,7 @@ jobs:
           --report-dir artifacts/stepik-private-release-ci
 
   release:
-    name: Build complete private Stepik staging
+    name: Sync complete private Stepik course
     if: github.event_name == 'workflow_dispatch'
     needs: tests
     runs-on: ubuntu-latest
@@ -79,14 +74,12 @@ jobs:
     steps:
       - name: Получить репозиторий
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-
       - name: Python 3.12
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: scripts/stepik_uploader/requirements.txt
-
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
 
@@ -95,12 +88,11 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$COURSE_ID" != "299189" ]]; then
-            echo 'Private release жёстко разрешён только для course_id=299189.' >&2
+            echo 'Private release разрешён только для course_id=299189.' >&2
             exit 2
           fi
           mkdir -p artifacts/stepik-private-release
-          python scripts/stepik_uploader/live_guard.py \
-            --output artifacts/stepik-private-release/live-source-guard.initial.json
+          python scripts/stepik_uploader/live_guard.py             --output artifacts/stepik-private-release/live-source-guard.initial.json
 
       - name: Зафиксировать initial machine scope
         env:
@@ -110,29 +102,16 @@ jobs:
           set -euo pipefail
           base='artifacts/stepik-private-release'
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.initial.md"
-          python scripts/stepik_uploader/sync_issue_state.py extract \
-            --body-file "$base/sync-issue-body.initial.md" \
-            --output "$base/sync-state.initial.json" \
-            --course-id "$COURSE_ID"
-          python scripts/stepik_uploader/staging_batch_plan.py \
-            --repo-root . \
-            --course-id "$COURSE_ID" \
-            --sync-state "$base/sync-state.initial.json" \
-            --output "$base/batch-plan.initial.json"
+          python scripts/stepik_uploader/sync_issue_state.py extract             --body-file "$base/sync-issue-body.initial.md"             --output "$base/sync-state.initial.json" --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/staging_batch_plan.py             --repo-root . --course-id "$COURSE_ID"             --sync-state "$base/sync-state.initial.json"             --output "$base/batch-plan.initial.json"
           python - <<'PY'
           import json
           state = json.load(open('artifacts/stepik-private-release/sync-state.initial.json', encoding='utf-8'))
           pending = state.get('pending', {})
-          lessons = state.get('lessons', {})
-          for target in ('M00-L01', 'M00-L02'):
-              golden_pending = pending.get('lessons', {}).get(target)
-              golden_baseline = lessons.get(target)
-              if golden_pending is None and not isinstance(golden_baseline, dict):
-                  raise SystemExit(f'{target} должен быть либо PENDING, либо иметь confirmed machine baseline')
-              if golden_pending is not None and golden_pending.get('status') != 'PENDING':
-                  raise SystemExit(f'{target} pending state повреждён')
-          course_page = pending.get('course_page')
-          if course_page is not None and course_page.get('status') != 'PENDING':
+          for target, row in pending.get('lessons', {}).items():
+              if row.get('status') != 'PENDING':
+                  raise SystemExit(f'{target}: pending state повреждён')
+          if pending.get('course_page') is not None and pending['course_page'].get('status') != 'PENDING':
               raise SystemExit('course_page pending state повреждён')
           PY
 
@@ -145,76 +124,25 @@ jobs:
           mkdir -p "$dir"
           pending="$(python - <<'PY'
           import json
-          state = json.load(open('artifacts/stepik-private-release/sync-state.initial.json', encoding='utf-8'))
-          print('true' if state.get('pending', {}).get('course_page') is not None else 'false')
+          state=json.load(open('artifacts/stepik-private-release/sync-state.initial.json', encoding='utf-8'))
+          print('true' if state.get('pending',{}).get('course_page') is not None else 'false')
           PY
           )"
           if [[ "$pending" != "true" ]]; then
-            echo 'course_page already closed; preflight skip' > "$dir/already-closed.txt"
+            echo 'course_page already closed' > "$dir/already-closed.txt"
             exit 0
           fi
-          python scripts/stepik_uploader/course_page_commit_gap_recovery.py \
-            --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-            --sync-state "$base/sync-state.initial.json"
+          python scripts/stepik_uploader/course_page_commit_gap_recovery.py             --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"             --sync-state "$base/sync-state.initial.json"
           applicable="$(python - "$dir/course-page-commit-gap-recovery.json" <<'PY'
-          import json, sys
-          data = json.load(open(sys.argv[1], encoding='utf-8'))
-          print('true' if data.get('applicable') is True else 'false')
+          import json,sys
+          print('true' if json.load(open(sys.argv[1],encoding='utf-8')).get('applicable') is True else 'false')
           PY
           )"
           if [[ "$applicable" != "true" ]]; then
-            python scripts/stepik_uploader/course_page_sync.py \
-              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-              --sync-state "$base/sync-state.initial.json"
+            python scripts/stepik_uploader/course_page_sync.py               --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"               --sync-state "$base/sync-state.initial.json"
           fi
 
-      - name: Preflight owner-approved M00-L02 content refresh без записи
-        shell: bash
-        run: |
-          set -euo pipefail
-          base='artifacts/stepik-private-release'
-          dir="$base/preflight/M00-L02"
-          mkdir -p "$dir"
-          pending="$(python - <<'PY'
-          import json
-          state = json.load(open('artifacts/stepik-private-release/sync-state.initial.json', encoding='utf-8'))
-          print('true' if state.get('pending', {}).get('lessons', {}).get('M00-L02') is not None else 'false')
-          PY
-          )"
-          if [[ "$pending" == "true" ]]; then
-            python scripts/stepik_uploader/golden_content_migration.py \
-              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-              --sync-state "$base/sync-state.initial.json"
-          else
-            python scripts/stepik_uploader/golden_commit_gap_recovery.py \
-              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-              --target-id M00-L02 --sync-state "$base/sync-state.initial.json"
-          fi
-
-      - name: Preflight owner-approved M00-L01 6→6 без записи
-        shell: bash
-        run: |
-          set -euo pipefail
-          base='artifacts/stepik-private-release'
-          dir="$base/preflight/M00-L01"
-          mkdir -p "$dir"
-          pending="$(python - <<'PY'
-          import json
-          state = json.load(open('artifacts/stepik-private-release/sync-state.initial.json', encoding='utf-8'))
-          print('true' if state.get('pending', {}).get('lessons', {}).get('M00-L01') is not None else 'false')
-          PY
-          )"
-          if [[ "$pending" == "true" ]]; then
-            python scripts/stepik_uploader/golden_content_refresh_m00_l01_6to6.py \
-              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-              --sync-state "$base/sync-state.initial.json"
-          else
-            python scripts/stepik_uploader/golden_commit_gap_recovery.py \
-              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-              --target-id M00-L01 --sync-state "$base/sync-state.initial.json"
-          fi
-
-      - name: Preflight всех ordinary PENDING lessons без записи
+      - name: Preflight всех PENDING lessons без записи
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -223,55 +151,47 @@ jobs:
           base='artifacts/stepik-private-release'
           mapfile -t targets < <(python - <<'PY'
           import json
-          plan = json.load(open('artifacts/stepik-private-release/batch-plan.initial.json', encoding='utf-8'))
-          for target in plan['target_ids']:
+          for target in json.load(open('artifacts/stepik-private-release/batch-plan.initial.json',encoding='utf-8'))['target_ids']:
               print(target)
           PY
           )
           for target in "${targets[@]}"; do
             echo "=== PREFLIGHT $target ==="
-            dir="$base/preflight/ordinary/$target"
+            dir="$base/preflight/lessons/$target"
             mkdir -p "$dir"
             cp "$base/sync-state.initial.json" "$dir/sync-state.previous.json"
             python scripts/stepik_uploader/live_guard.py --output "$dir/live-source-guard.json"
             mode="$(python - "$target" <<'PY'
-          import json, sys
-          target = sys.argv[1]
-          plan = json.load(open('artifacts/stepik-private-release/batch-plan.initial.json', encoding='utf-8'))
-          if target in plan.get('refresh_target_ids', []): print('refresh')
-          elif target in plan.get('initial_target_ids', []): print('initial')
-          elif target in plan.get('recovery_target_ids', []): print('recovery')
-          else: raise SystemExit('target отсутствует во всех planned modes: ' + target)
+          import json,sys
+          t=sys.argv[1]
+          p=json.load(open('artifacts/stepik-private-release/batch-plan.initial.json',encoding='utf-8'))
+          if t in p.get('refresh_target_ids',[]): print('refresh')
+          elif t in p.get('initial_target_ids',[]): print('initial')
+          elif t in p.get('recovery_target_ids',[]): print('recovery')
+          else: raise SystemExit('unplanned target: '+t)
           PY
             )"
             if [[ "$mode" == "refresh" ]]; then
-              python scripts/stepik_uploader/staging_refresh_runtime.py \
-                --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-                --target-id "$target" --sync-state "$dir/sync-state.previous.json"
+              python scripts/stepik_uploader/staging_refresh_runtime.py                 --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"                 --target-id "$target" --sync-state "$dir/sync-state.previous.json"
             else
-              python scripts/stepik_uploader/staging_commit_gap_recovery.py \
-                --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-                --target-id "$target" --sync-state "$dir/sync-state.previous.json"
+              python scripts/stepik_uploader/staging_commit_gap_recovery.py                 --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"                 --target-id "$target" --sync-state "$dir/sync-state.previous.json"
               applicable="$(python - "$dir/commit-gap-recovery.json" <<'PY'
-          import json, sys
-          data = json.load(open(sys.argv[1], encoding='utf-8'))
-          print('true' if data.get('applicable') is True else 'false')
+          import json,sys
+          print('true' if json.load(open(sys.argv[1],encoding='utf-8')).get('applicable') is True else 'false')
           PY
               )"
               if [[ "$mode" == "recovery" && "$applicable" != "true" ]]; then
-                echo "$target: planned recovery target не прошёл commit-gap probe" >&2
+                echo "$target: planned recovery target не прошёл recovery probe" >&2
                 exit 2
               fi
               if [[ "$applicable" != "true" ]]; then
-                python scripts/stepik_uploader/staging_build_entrypoint.py \
-                  --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-                  --target-id "$target" --sync-state "$dir/sync-state.previous.json"
+                python scripts/stepik_uploader/staging_build_runtime.py                   --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"                   --target-id "$target" --sync-state "$dir/sync-state.previous.json"
               fi
             fi
             echo "$target:$mode" >> "$base/preflight-passed.txt"
           done
 
-      - name: Проверить неизменность source и ordinary scope перед write
+      - name: Проверить неизменность source и scope перед write
         if: inputs.confirm_write == true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -281,27 +201,22 @@ jobs:
           base='artifacts/stepik-private-release'
           python scripts/stepik_uploader/live_guard.py --output "$base/live-source-guard.before-write.json"
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.before-write.md"
-          python scripts/stepik_uploader/sync_issue_state.py extract \
-            --body-file "$base/sync-issue-body.before-write.md" \
-            --output "$base/sync-state.before-write.json" --course-id "$COURSE_ID"
-          python scripts/stepik_uploader/staging_batch_plan.py \
-            --repo-root . --course-id "$COURSE_ID" \
-            --sync-state "$base/sync-state.before-write.json" \
-            --output "$base/batch-plan.before-write.json"
+          python scripts/stepik_uploader/sync_issue_state.py extract             --body-file "$base/sync-issue-body.before-write.md"             --output "$base/sync-state.before-write.json" --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/staging_batch_plan.py             --repo-root . --course-id "$COURSE_ID"             --sync-state "$base/sync-state.before-write.json"             --output "$base/batch-plan.before-write.json"
           python - <<'PY'
           import json
-          initial = json.load(open('artifacts/stepik-private-release/batch-plan.initial.json', encoding='utf-8'))
-          current = json.load(open('artifacts/stepik-private-release/batch-plan.before-write.json', encoding='utf-8'))
-          if initial['source_main_sha'] != current['source_main_sha']:
-              raise SystemExit('source_main_sha изменился между preflight и write')
-          for field in ('initial_target_ids', 'refresh_target_ids', 'recovery_target_ids', 'target_ids'):
-              if initial.get(field, []) != current.get(field, []):
-                  raise SystemExit(field + ' изменился между preflight и write')
-          if current.get('blockers'):
+          a=json.load(open('artifacts/stepik-private-release/batch-plan.initial.json',encoding='utf-8'))
+          b=json.load(open('artifacts/stepik-private-release/batch-plan.before-write.json',encoding='utf-8'))
+          if a['source_main_sha'] != b['source_main_sha']:
+              raise SystemExit('source SHA изменился между preflight и write')
+          for key in ('initial_target_ids','refresh_target_ids','recovery_target_ids','target_ids'):
+              if a.get(key,[]) != b.get(key,[]):
+                  raise SystemExit(key+' изменился между preflight и write')
+          if b.get('blockers'):
               raise SystemExit('Перед write появились batch blockers')
           PY
 
-      - name: Последовательно записать ordinary PENDING lessons
+      - name: Последовательно синхронизировать все PENDING lessons
         if: inputs.confirm_write == true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -311,80 +226,66 @@ jobs:
           base='artifacts/stepik-private-release'
           mapfile -t targets < <(python - <<'PY'
           import json
-          plan = json.load(open('artifacts/stepik-private-release/batch-plan.initial.json', encoding='utf-8'))
-          for target in plan['target_ids']:
+          for target in json.load(open('artifacts/stepik-private-release/batch-plan.initial.json',encoding='utf-8'))['target_ids']:
               print(target)
           PY
           )
           for target in "${targets[@]}"; do
             echo "=== WRITE $target ==="
-            dir="$base/write/ordinary/$target"
+            dir="$base/write/lessons/$target"
             mkdir -p "$dir"
             gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.previous.md"
-            python scripts/stepik_uploader/sync_issue_state.py extract \
-              --body-file "$dir/sync-issue-body.previous.md" --output "$dir/sync-state.previous.json" --course-id "$COURSE_ID"
+            python scripts/stepik_uploader/sync_issue_state.py extract               --body-file "$dir/sync-issue-body.previous.md"               --output "$dir/sync-state.previous.json" --course-id "$COURSE_ID"
             python scripts/stepik_uploader/live_guard.py --output "$dir/live-source-guard.json"
             mode="$(python - "$target" <<'PY'
-          import json, sys
-          target = sys.argv[1]
-          plan = json.load(open('artifacts/stepik-private-release/batch-plan.initial.json', encoding='utf-8'))
-          if target in plan.get('refresh_target_ids', []): print('refresh')
-          elif target in plan.get('initial_target_ids', []): print('initial')
-          elif target in plan.get('recovery_target_ids', []): print('recovery')
-          else: raise SystemExit('target отсутствует во всех planned modes: ' + target)
+          import json,sys
+          t=sys.argv[1]
+          p=json.load(open('artifacts/stepik-private-release/batch-plan.initial.json',encoding='utf-8'))
+          if t in p.get('refresh_target_ids',[]): print('refresh')
+          elif t in p.get('initial_target_ids',[]): print('initial')
+          elif t in p.get('recovery_target_ids',[]): print('recovery')
+          else: raise SystemExit('unplanned target: '+t)
           PY
             )"
             if [[ "$mode" == "refresh" ]]; then
-              python scripts/stepik_uploader/staging_refresh_runtime.py \
-                --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-                --target-id "$target" --sync-state "$dir/sync-state.previous.json" --confirm-write
+              python scripts/stepik_uploader/staging_refresh_runtime.py                 --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"                 --target-id "$target" --sync-state "$dir/sync-state.previous.json" --confirm-write
             else
-              python scripts/stepik_uploader/staging_commit_gap_recovery.py \
-                --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-                --target-id "$target" --sync-state "$dir/sync-state.previous.json"
+              python scripts/stepik_uploader/staging_commit_gap_recovery.py                 --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"                 --target-id "$target" --sync-state "$dir/sync-state.previous.json"
               applicable="$(python - "$dir/commit-gap-recovery.json" <<'PY'
-          import json, sys
-          data = json.load(open(sys.argv[1], encoding='utf-8'))
-          print('true' if data.get('applicable') is True else 'false')
+          import json,sys
+          print('true' if json.load(open(sys.argv[1],encoding='utf-8')).get('applicable') is True else 'false')
           PY
               )"
               if [[ "$mode" == "recovery" && "$applicable" != "true" ]]; then
-                echo "$target: planned recovery target не прошёл commit-gap recovery" >&2
+                echo "$target: planned recovery target не прошёл recovery" >&2
                 exit 2
               fi
               if [[ "$applicable" != "true" ]]; then
-                python scripts/stepik_uploader/staging_build_entrypoint.py \
-                  --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-                  --target-id "$target" --sync-state "$dir/sync-state.previous.json" --confirm-write
+                python scripts/stepik_uploader/staging_build_runtime.py                   --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"                   --target-id "$target" --sync-state "$dir/sync-state.previous.json" --confirm-write
               fi
             fi
             state="$dir/sync-state.next.json"
             journal="$dir/sync-journal.md"
-            lesson_event="$dir/lesson-deployment-event.json"
-            if [[ ! -f "$state" || ! -f "$journal" || ! -f "$lesson_event" ]]; then
-              echo "$target: successful write/recovery обязан сформировать next state, journal и lesson event." >&2
-              exit 2
-            fi
+            event="$dir/lesson-deployment-event.json"
+            for required in "$state" "$journal" "$event"; do
+              test -f "$required" || { echo "$target: missing release artifact $required" >&2; exit 2; }
+            done
             gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.current.md"
-            python scripts/stepik_uploader/sync_issue_state.py extract \
-              --body-file "$dir/sync-issue-body.current.md" --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
-            python scripts/stepik_uploader/sync_issue_state.py compare \
-              --expected-state "$dir/sync-state.previous.json" --current-state "$dir/sync-state.current.json" --course-id "$COURSE_ID"
-            python scripts/stepik_uploader/sync_issue_state.py replace \
-              --body-file "$dir/sync-issue-body.current.md" --state-file "$state" \
-              --output-body "$dir/sync-issue-body.next.md" --output-patch "$dir/sync-issue-patch.json" --course-id "$COURSE_ID"
-            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$dir/sync-issue-patch.json" >/dev/null
+            python scripts/stepik_uploader/sync_issue_state.py extract               --body-file "$dir/sync-issue-body.current.md"               --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
+            python scripts/stepik_uploader/sync_issue_state.py compare               --expected-state "$dir/sync-state.previous.json"               --current-state "$dir/sync-state.current.json" --course-id "$COURSE_ID"
+            python scripts/stepik_uploader/sync_issue_state.py replace               --body-file "$dir/sync-issue-body.current.md" --state-file "$state"               --output-body "$dir/sync-issue-body.next.md"               --output-patch "$dir/sync-issue-patch.json" --course-id "$COURSE_ID"
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE"               --input "$dir/sync-issue-patch.json" >/dev/null
             shopt -s nullglob
             asset_events=("$dir"/asset-deployment-event-*.json)
-            for event in "${asset_events[@]}"; do
-              python scripts/stepik_uploader/history_cli.py mark-state-committed --event-file "$event" --state-file "$state"
+            for asset_event in "${asset_events[@]}"; do
+              python scripts/stepik_uploader/history_cli.py mark-state-committed                 --event-file "$asset_event" --state-file "$state"
             done
-            python scripts/stepik_uploader/history_cli.py mark-state-committed --event-file "$lesson_event" --state-file "$state"
+            python scripts/stepik_uploader/history_cli.py mark-state-committed               --event-file "$event" --state-file "$state"
             gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$journal"
             echo "$target:$mode" >> "$base/write-committed.txt"
           done
 
-      - name: Синхронизировать course page или закрыть доказанный commit-gap
+      - name: Синхронизировать course page
         if: inputs.confirm_write == true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -396,172 +297,38 @@ jobs:
           mkdir -p "$dir"
           python scripts/stepik_uploader/live_guard.py --output "$dir/live-source-guard.json"
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.previous.md"
-          python scripts/stepik_uploader/sync_issue_state.py extract \
-            --body-file "$dir/sync-issue-body.previous.md" --output "$dir/sync-state.previous.json" --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/sync_issue_state.py extract             --body-file "$dir/sync-issue-body.previous.md"             --output "$dir/sync-state.previous.json" --course-id "$COURSE_ID"
           pending="$(python - "$dir/sync-state.previous.json" <<'PY'
-          import json, sys
-          state = json.load(open(sys.argv[1], encoding='utf-8'))
-          print('true' if state.get('pending', {}).get('course_page') is not None else 'false')
+          import json,sys
+          state=json.load(open(sys.argv[1],encoding='utf-8'))
+          print('true' if state.get('pending',{}).get('course_page') is not None else 'false')
           PY
           )"
           if [[ "$pending" != "true" ]]; then
-            echo 'course_page already closed; write skip' > "$dir/already-closed.txt"
+            echo 'course_page already closed' > "$dir/already-closed.txt"
             exit 0
           fi
-          python scripts/stepik_uploader/course_page_commit_gap_recovery.py \
-            --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-            --sync-state "$dir/sync-state.previous.json" --confirm-recovery
+          python scripts/stepik_uploader/course_page_commit_gap_recovery.py             --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"             --sync-state "$dir/sync-state.previous.json" --confirm-recovery
           applicable="$(python - "$dir/course-page-commit-gap-recovery.json" <<'PY'
-          import json, sys
-          data = json.load(open(sys.argv[1], encoding='utf-8'))
-          print('true' if data.get('applicable') is True else 'false')
+          import json,sys
+          print('true' if json.load(open(sys.argv[1],encoding='utf-8')).get('applicable') is True else 'false')
           PY
           )"
           if [[ "$applicable" != "true" ]]; then
-            python scripts/stepik_uploader/course_page_sync.py \
-              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-              --sync-state "$dir/sync-state.previous.json" --confirm-write
+            python scripts/stepik_uploader/course_page_sync.py               --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"               --sync-state "$dir/sync-state.previous.json" --confirm-write
           fi
           for required in sync-state.next.json course-page-deployment-event.json sync-journal.md; do
             test -f "$dir/$required" || { echo "course_page missing $required" >&2; exit 2; }
           done
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.current.md"
-          python scripts/stepik_uploader/sync_issue_state.py extract \
-            --body-file "$dir/sync-issue-body.current.md" --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
-          python scripts/stepik_uploader/sync_issue_state.py compare \
-            --expected-state "$dir/sync-state.previous.json" --current-state "$dir/sync-state.current.json" --course-id "$COURSE_ID"
-          python scripts/stepik_uploader/sync_issue_state.py replace \
-            --body-file "$dir/sync-issue-body.current.md" --state-file "$dir/sync-state.next.json" \
-            --output-body "$dir/sync-issue-body.next.md" --output-patch "$dir/sync-issue-patch.json" --course-id "$COURSE_ID"
-          gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$dir/sync-issue-patch.json" >/dev/null
-          python scripts/stepik_uploader/special_history_commit.py --event-file "$dir/course-page-deployment-event.json"
+          python scripts/stepik_uploader/sync_issue_state.py extract             --body-file "$dir/sync-issue-body.current.md"             --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/sync_issue_state.py compare             --expected-state "$dir/sync-state.previous.json"             --current-state "$dir/sync-state.current.json" --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/sync_issue_state.py replace             --body-file "$dir/sync-issue-body.current.md" --state-file "$dir/sync-state.next.json"             --output-body "$dir/sync-issue-body.next.md" --output-patch "$dir/sync-issue-patch.json"             --course-id "$COURSE_ID"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE"             --input "$dir/sync-issue-patch.json" >/dev/null
+          python scripts/stepik_uploader/special_history_commit.py             --event-file "$dir/course-page-deployment-event.json"
           gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$dir/sync-journal.md"
 
-      - name: Обновить owner-approved M00-L02 перед M00-L01
-        if: inputs.confirm_write == true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          base='artifacts/stepik-private-release'
-          dir="$base/write/M00-L02"
-          mkdir -p "$dir"
-          python scripts/stepik_uploader/live_guard.py --output "$dir/live-source-guard.json"
-          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.previous.md"
-          python scripts/stepik_uploader/sync_issue_state.py extract \
-            --body-file "$dir/sync-issue-body.previous.md" --output "$dir/sync-state.previous.json" --course-id "$COURSE_ID"
-          pending="$(python - "$dir/sync-state.previous.json" <<'PY'
-          import json, sys
-          state = json.load(open(sys.argv[1], encoding='utf-8'))
-          print('true' if state.get('pending', {}).get('lessons', {}).get('M00-L02') is not None else 'false')
-          PY
-          )"
-          if [[ "$pending" != "true" ]]; then
-            python scripts/stepik_uploader/golden_commit_gap_recovery.py \
-              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-              --target-id M00-L02 --sync-state "$dir/sync-state.previous.json"
-            applicable="$(python - "$dir/commit-gap-recovery.json" <<'PY'
-          import json, sys
-          data = json.load(open(sys.argv[1], encoding='utf-8'))
-          print('true' if data.get('applicable') is True else 'false')
-          PY
-            )"
-            if [[ "$applicable" == "true" ]]; then
-              for required in sync-state.next.json lesson-deployment-event.json sync-journal.md; do
-                test -f "$dir/$required" || { echo "M00-L02 recovery missing $required" >&2; exit 2; }
-              done
-              python scripts/stepik_uploader/history_cli.py mark-state-committed \
-                --event-file "$dir/lesson-deployment-event.json" --state-file "$dir/sync-state.next.json"
-              gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$dir/sync-journal.md"
-              echo 'M00-L02 commit-gap recovered without Stepik write' > "$dir/already-closed.txt"
-            else
-              echo 'M00-L02 already closed; no current-source commit gap' > "$dir/already-closed.txt"
-            fi
-            exit 0
-          fi
-          python scripts/stepik_uploader/golden_content_migration.py \
-            --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-            --sync-state "$dir/sync-state.previous.json" --confirm-write
-          for required in sync-state.next.json golden-deployment-event.json sync-journal.md golden-profile.next.json; do
-            test -f "$dir/$required" || { echo "M00-L02 missing $required" >&2; exit 2; }
-          done
-          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.current.md"
-          python scripts/stepik_uploader/sync_issue_state.py extract \
-            --body-file "$dir/sync-issue-body.current.md" --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
-          python scripts/stepik_uploader/sync_issue_state.py compare \
-            --expected-state "$dir/sync-state.previous.json" --current-state "$dir/sync-state.current.json" --course-id "$COURSE_ID"
-          python scripts/stepik_uploader/sync_issue_state.py replace \
-            --body-file "$dir/sync-issue-body.current.md" --state-file "$dir/sync-state.next.json" \
-            --output-body "$dir/sync-issue-body.next.md" --output-patch "$dir/sync-issue-patch.json" --course-id "$COURSE_ID"
-          gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$dir/sync-issue-patch.json" >/dev/null
-          python scripts/stepik_uploader/history_cli.py mark-state-committed \
-            --event-file "$dir/golden-deployment-event.json" --state-file "$dir/sync-state.next.json"
-          gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$dir/sync-journal.md"
-
-      - name: Обновить owner-approved M00-L01 6→6 последним
-        if: inputs.confirm_write == true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          base='artifacts/stepik-private-release'
-          dir="$base/write/M00-L01"
-          mkdir -p "$dir"
-          python scripts/stepik_uploader/live_guard.py --output "$dir/live-source-guard.json"
-          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.previous.md"
-          python scripts/stepik_uploader/sync_issue_state.py extract \
-            --body-file "$dir/sync-issue-body.previous.md" --output "$dir/sync-state.previous.json" --course-id "$COURSE_ID"
-          pending="$(python - "$dir/sync-state.previous.json" <<'PY'
-          import json, sys
-          state = json.load(open(sys.argv[1], encoding='utf-8'))
-          print('true' if state.get('pending', {}).get('lessons', {}).get('M00-L01') is not None else 'false')
-          PY
-          )"
-          if [[ "$pending" != "true" ]]; then
-            python scripts/stepik_uploader/golden_commit_gap_recovery.py \
-              --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-              --target-id M00-L01 --sync-state "$dir/sync-state.previous.json"
-            applicable="$(python - "$dir/commit-gap-recovery.json" <<'PY'
-          import json, sys
-          data = json.load(open(sys.argv[1], encoding='utf-8'))
-          print('true' if data.get('applicable') is True else 'false')
-          PY
-            )"
-            if [[ "$applicable" == "true" ]]; then
-              for required in sync-state.next.json lesson-deployment-event.json sync-journal.md; do
-                test -f "$dir/$required" || { echo "M00-L01 recovery missing $required" >&2; exit 2; }
-              done
-              python scripts/stepik_uploader/history_cli.py mark-state-committed \
-                --event-file "$dir/lesson-deployment-event.json" --state-file "$dir/sync-state.next.json"
-              gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$dir/sync-journal.md"
-              echo 'M00-L01 commit-gap recovered without Stepik write' > "$dir/already-closed.txt"
-            else
-              echo 'M00-L01 already closed; no current-source commit gap' > "$dir/already-closed.txt"
-            fi
-            exit 0
-          fi
-          python scripts/stepik_uploader/golden_content_refresh_m00_l01_6to6.py \
-            --repo-root . --report-dir "$dir" --course-id "$COURSE_ID" \
-            --sync-state "$dir/sync-state.previous.json" --confirm-write
-          for required in sync-state.next.json golden-deployment-event.json sync-journal.md golden-profile.next.json; do
-            test -f "$dir/$required" || { echo "M00-L01 missing $required" >&2; exit 2; }
-          done
-          gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.current.md"
-          python scripts/stepik_uploader/sync_issue_state.py extract \
-            --body-file "$dir/sync-issue-body.current.md" --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
-          python scripts/stepik_uploader/sync_issue_state.py compare \
-            --expected-state "$dir/sync-state.previous.json" --current-state "$dir/sync-state.current.json" --course-id "$COURSE_ID"
-          python scripts/stepik_uploader/sync_issue_state.py replace \
-            --body-file "$dir/sync-issue-body.current.md" --state-file "$dir/sync-state.next.json" \
-            --output-body "$dir/sync-issue-body.next.md" --output-patch "$dir/sync-issue-patch.json" --course-id "$COURSE_ID"
-          gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --input "$dir/sync-issue-patch.json" >/dev/null
-          python scripts/stepik_uploader/history_cli.py mark-state-committed \
-            --event-file "$dir/golden-deployment-event.json" --state-file "$dir/sync-state.next.json"
-          gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$dir/sync-journal.md"
-
-      - name: Проверить финальный machine backlog
+      - name: Проверить финальный zero-PENDING и baselines всех уроков
         if: inputs.confirm_write == true && success()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -570,28 +337,38 @@ jobs:
           set -euo pipefail
           base='artifacts/stepik-private-release'
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$base/sync-issue-body.final.md"
-          python scripts/stepik_uploader/sync_issue_state.py extract \
-            --body-file "$base/sync-issue-body.final.md" --output "$base/sync-state.final.json" --course-id "$COURSE_ID"
+          python scripts/stepik_uploader/sync_issue_state.py extract             --body-file "$base/sync-issue-body.final.md"             --output "$base/sync-state.final.json" --course-id "$COURSE_ID"
           python - <<'PY'
           import json
-          state = json.load(open('artifacts/stepik-private-release/sync-state.final.json', encoding='utf-8'))
-          pending = state.get('pending', {})
-          lessons = pending.get('lessons', {})
-          if lessons:
-              raise SystemExit('После private release остались PENDING lessons: ' + ', '.join(sorted(lessons)))
+          from pathlib import Path
+          from scripts.stepik_uploader.canonical import build_structural_manifest
+
+          state=json.load(open('artifacts/stepik-private-release/sync-state.final.json',encoding='utf-8'))
+          pending=state.get('pending',{})
+          if pending.get('lessons'):
+              raise SystemExit('После release остались PENDING lessons: '+', '.join(sorted(pending['lessons'])))
           if pending.get('course_page') is not None:
-              raise SystemExit('После private release course_page всё ещё PENDING')
-          for target, count in (('M00-L01', 6), ('M00-L02', 8)):
-              baseline = state.get('lessons', {}).get(target)
-              if not isinstance(baseline, dict) or len(baseline.get('step_ids', [])) != count:
-                  raise SystemExit(f'{target} final machine baseline не подтверждает {count} steps')
+              raise SystemExit('После release course_page всё ещё PENDING')
+
+          manifest=build_structural_manifest(Path('.').resolve(), source_sha='final-gate')
+          expected={
+              lesson['canonical_id']
+              for module in manifest['modules']
+              for lesson in module['lessons']
+          }
+          baselines=set(state.get('lessons',{}))
+          missing=sorted(expected-baselines)
+          if missing:
+              raise SystemExit('Нет final machine baseline: '+', '.join(missing))
+          if len(expected) != 21:
+              raise SystemExit(f'Canonical lesson count неожиданно изменился: {len(expected)}')
+          for target in sorted(expected):
+              row=state['lessons'][target]
+              if not isinstance(row.get('stepik_lesson_id'),int):
+                  raise SystemExit(f'{target}: missing Stepik lesson ID')
+              if not row.get('step_ids'):
+                  raise SystemExit(f'{target}: missing confirmed step IDs')
           PY
-          python scripts/stepik_uploader/golden_profile_capture.py \
-            --repo-root . --course-id "$COURSE_ID" \
-            --sync-state "$base/sync-state.final.json" \
-            --output "$base/golden-profile.final.next.json" \
-            --report "$base/golden-profile-final-capture.json"
-          test -f "$base/golden-profile.final.next.json"
 
       - name: Сводка
         if: always()
@@ -606,29 +383,23 @@ jobs:
             if [[ -f "$base/batch-plan.initial.json" ]]; then
               python - <<'PY'
           import json
-          p = json.load(open('artifacts/stepik-private-release/batch-plan.initial.json', encoding='utf-8'))
+          p=json.load(open('artifacts/stepik-private-release/batch-plan.initial.json',encoding='utf-8'))
           print(f"- source SHA: `{p['source_main_sha']}`")
-          print(f"- ordinary initial targets: {len(p.get('initial_target_ids', []))}")
-          print(f"- ordinary refresh targets: {len(p.get('refresh_target_ids', []))}")
-          print(f"- recovery targets: {len(p.get('recovery_target_ids', []))}")
-          print(f"- owner-approved golden pending: {', '.join(p['excluded_golden_pending']) or 'none'}")
+          print(f"- initial targets: {len(p.get('initial_target_ids',[]))}")
+          print(f"- refresh targets: {len(p.get('refresh_target_ids',[]))}")
+          print(f"- recovery targets: {len(p.get('recovery_target_ids',[]))}")
           print(f"- course-page pending: {p['course_page_pending']}")
           PY
             fi
             if [[ -f "$base/write-committed.txt" ]]; then
-              echo "- ordinary committed: $(paste -sd ', ' "$base/write-committed.txt")"
+              echo "- committed lessons: $(paste -sd ', ' "$base/write-committed.txt")"
             fi
-            if [[ -f "$base/write/course-page/already-closed.txt" ]]; then
-              echo '- course page: already closed before this run'
-            elif [[ -f "$base/write/course-page/course-page-deployment-event.json" ]]; then
-              echo '- course page: verified and machine state committed'
-            fi
-            if [[ -f "$base/golden-profile.final.next.json" ]]; then
-              echo '- golden content: final live evidence produced; follow-up fixture PR required before the course is republished'
+            if [[ -f "$base/sync-state.final.json" ]]; then
+              echo '- final machine state: zero-PENDING gate passed'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Сохранить complete release evidence
+      - name: Сохранить release evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

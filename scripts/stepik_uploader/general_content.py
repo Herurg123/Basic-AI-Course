@@ -404,7 +404,7 @@ def compile_lesson_source(
     """Компилирует canonical learner source в Stepik-step source без live write."""
     if free_answer_source != EXPECTED_FREE_ANSWER_SOURCE:
         raise GeneralContentCompileError(
-            "free-answer source не совпадает с подтверждённым golden profile"
+            "free-answer source не совпадает с подтверждённым Stepik platform profile"
         )
 
     repo_root = repo_root.resolve()

@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import unittest
 
-from scripts.stepik_uploader.planner import plan_dry_run, recognize_golden
+from scripts.stepik_uploader.planner import plan_dry_run
 
 
 def manifest() -> dict:
@@ -22,30 +22,7 @@ def manifest() -> dict:
     }
 
 
-def golden_profile() -> dict:
-    return {
-        "golden_lessons": {
-            "M00-L01": {
-                "stepik_lesson_id": 201,
-                "stepik_unit_id": 101,
-                "stepik_section_id": 11,
-                "lesson_title": "Первый",
-                "section_position": 1,
-                "unit_position": 1,
-            },
-            "M00-L02": {
-                "stepik_lesson_id": 202,
-                "stepik_unit_id": 102,
-                "stepik_section_id": 11,
-                "lesson_title": "Второй",
-                "section_position": 1,
-                "unit_position": 2,
-            },
-        }
-    }
-
-
-def snapshot(*, duplicate_third: bool = False, prefixed_titles: bool = False) -> dict:
+def snapshot(*, include_third: bool = False, prefixed_titles: bool = False) -> dict:
     def title(canonical_id: str, text: str) -> str:
         return f"{canonical_id} — {text}" if prefixed_titles else text
 
@@ -53,135 +30,75 @@ def snapshot(*, duplicate_third: bool = False, prefixed_titles: bool = False) ->
         {"id": 101, "position": 1, "lesson": {"id": 201, "title": title("M00-L01", "Первый"), "steps": []}},
         {"id": 102, "position": 2, "lesson": {"id": 202, "title": title("M00-L02", "Второй"), "steps": []}},
     ]
-    if duplicate_third:
-        units.extend(
-            [
-                {"id": 103, "position": 3, "lesson": {"id": 203, "title": "Третий", "steps": []}},
-                {"id": 104, "position": 4, "lesson": {"id": 204, "title": "M00-L03 — Третий", "steps": []}},
-            ]
+    if include_third:
+        units.append(
+            {"id": 103, "position": 3, "lesson": {"id": 203, "title": title("M00-L03", "Третий"), "steps": []}}
         )
     return {"sections": [{"id": 11, "title": "M00", "position": 1, "units": units}]}
 
 
 class PlannerTests(unittest.TestCase):
-    def test_golden_are_read_only_and_missing_lesson_is_only_planned(self) -> None:
+    def test_all_existing_lessons_use_same_skip_class_and_missing_is_planned(self) -> None:
         plan = plan_dry_run(manifest(), snapshot())
         actions = {op["lesson"]: op["action"] for op in plan.operations}
-        self.assertEqual(actions["M00-L01"], "READ_ONLY_GOLDEN")
-        self.assertEqual(actions["M00-L02"], "READ_ONLY_GOLDEN")
+        self.assertEqual(actions["M00-L01"], "SKIP")
+        self.assertEqual(actions["M00-L02"], "SKIP")
         self.assertEqual(actions["M00-L03"], "PLANNED_CREATE")
-        self.assertIn("needs-golden-profile", plan.blockers)
+        self.assertEqual(plan.blockers, [])
 
-    def test_prefixed_stepik_titles_are_recognized_without_planning_duplicates(self) -> None:
-        live = snapshot(prefixed_titles=True)
-        live["sections"][0]["units"].append(
-            {"id": 103, "position": 3, "lesson": {"id": 203, "title": "M00-L03 — Третий", "steps": []}}
-        )
+    def test_prefixed_titles_are_accepted_for_every_lesson(self) -> None:
+        plan = plan_dry_run(manifest(), snapshot(include_third=True, prefixed_titles=True))
+        self.assertEqual({op["action"] for op in plan.operations}, {"SKIP"})
+        self.assertEqual(plan.blockers, [])
+
+    def test_title_difference_at_canonical_position_is_notice_not_special_class(self) -> None:
+        live = snapshot(include_third=True)
+        live["sections"][0]["units"][0]["lesson"]["title"] = "Старый первый заголовок"
+
         plan = plan_dry_run(manifest(), live)
-        actions = {op["lesson"]: op["action"] for op in plan.operations}
-        self.assertEqual(actions["M00-L01"], "READ_ONLY_GOLDEN")
-        self.assertEqual(actions["M00-L02"], "READ_ONLY_GOLDEN")
-        self.assertEqual(actions["M00-L03"], "SKIP")
-        self.assertFalse(any(op["action"] == "PLANNED_CREATE" for op in plan.operations))
 
-    def test_golden_profile_ids_recognize_pre_rewrite_unprefixed_titles(self) -> None:
-        changed = copy.deepcopy(manifest())
-        changed["modules"][0]["lessons"][0]["title"] = "Новый первый"
-        changed["modules"][0]["lessons"][1]["title"] = "Новый второй"
-
-        plan = plan_dry_run(changed, snapshot(), golden_profile=golden_profile())
-
-        actions = {op["lesson"]: op["action"] for op in plan.operations}
-        self.assertEqual(actions["M00-L01"], "READ_ONLY_GOLDEN")
-        self.assertEqual(actions["M00-L02"], "READ_ONLY_GOLDEN")
-        self.assertFalse(any(blocker.startswith("golden:M00-L0") for blocker in plan.blockers))
-        notices = {item["canonical_id"]: item for item in plan.notices}
-        self.assertIn("CANONICAL_GOLDEN_TITLE_DIFFERS_FROM_CONFIRMED_LIVE", notices["M00-L01"]["reason_codes"])
-        self.assertIn("CANONICAL_GOLDEN_TITLE_DIFFERS_FROM_CONFIRMED_LIVE", notices["M00-L02"]["reason_codes"])
-
-    def test_golden_profile_identity_never_falls_back_to_matching_wrong_title(self) -> None:
-        profile = golden_profile()
-        profile["golden_lessons"]["M00-L01"]["stepik_lesson_id"] = 999999
-
-        golden, blockers = recognize_golden(manifest(), snapshot(), profile)
-
-        self.assertNotIn("M00-L01", golden)
-        self.assertTrue(any("golden-profile lesson_id=999999" in blocker for blocker in blockers))
-
-    def test_golden_canonical_drift_is_notice_not_global_blocker(self) -> None:
-        changed = copy.deepcopy(manifest())
-        golden_l02 = changed["modules"][0]["lessons"][1]
-        golden_l02["title"] = "Новый второй"
-        golden_l02["steps"] = [{"position": 1}]
-
-        plan = plan_dry_run(changed, snapshot(prefixed_titles=True))
-        actions = {op["lesson"]: op["action"] for op in plan.operations}
-        self.assertEqual(actions["M00-L02"], "READ_ONLY_GOLDEN")
-        self.assertFalse(any(blocker.startswith("golden:M00-L02") for blocker in plan.blockers))
-        notice = next(item for item in plan.notices if item.get("canonical_id") == "M00-L02")
-        self.assertEqual(notice["classification"], "GOLDEN_OWNER_REQUIRED")
+        first = next(op for op in plan.operations if op["lesson"] == "M00-L01")
+        self.assertEqual(first["action"], "SKIP_STALE_TITLE")
+        notice = next(item for item in plan.notices if item["canonical_id"] == "M00-L01")
+        self.assertEqual(notice["classification"], "TITLE_DIFFERS_AT_CANONICAL_POSITION")
         self.assertFalse(notice["automatic_write_allowed"])
-        self.assertIn("CANONICAL_GOLDEN_TITLE_DIFFERS_FROM_CONFIRMED_LIVE", notice["reason_codes"])
-        self.assertIn("CANONICAL_GOLDEN_STEP_COUNT_DIFFERS_FROM_CONFIRMED_LIVE", notice["reason_codes"])
-        self.assertIn("needs-golden-profile", plan.blockers)
+        self.assertEqual(plan.blockers, [])
 
-    def test_duplicate_existing_lesson_is_blocker_not_guess(self) -> None:
-        plan = plan_dry_run(manifest(), snapshot(duplicate_third=True))
-        self.assertTrue(any(blocker.startswith("duplicate:M00-L03") for blocker in plan.blockers))
-
-    def test_golden_requires_unique_identity_and_exact_position(self) -> None:
-        bad = snapshot(prefixed_titles=True)
-        bad["sections"][0]["units"][1]["position"] = 9
-        golden, blockers = recognize_golden(manifest(), bad)
-        self.assertNotIn("M00-L02", golden)
-        self.assertTrue(blockers)
-
-    def test_stable_id_with_title_drift_is_existing_skeleton_not_create(self) -> None:
-        live = snapshot(prefixed_titles=True)
+    def test_identity_found_outside_canonical_position_blocks(self) -> None:
+        live = snapshot()
         live["sections"][0]["units"].append(
-            {"id": 103, "position": 3, "lesson": {"id": 203, "title": "M00-L03 — Старый заголовок", "steps": []}}
+            {"id": 104, "position": 4, "lesson": {"id": 204, "title": "M00-L03 — Третий", "steps": []}}
         )
-        plan = plan_dry_run(manifest(), live)
-        op = next(op for op in plan.operations if op.get("lesson") == "M00-L03")
-        self.assertEqual(op["action"], "SKIP_STALE_TITLE")
-        self.assertEqual(op["stepik_lesson_id"], 203)
-        self.assertFalse(any(blocker.startswith("title-drift:M00-L03") for blocker in plan.blockers))
-        self.assertFalse(any(op.get("lesson") == "M00-L03" and op["action"] == "PLANNED_CREATE" for op in plan.operations))
 
-    def test_title_drift_wrong_position_is_blocker(self) -> None:
-        live = snapshot(prefixed_titles=True)
+        plan = plan_dry_run(manifest(), live)
+
+        self.assertTrue(any(item.startswith("position-drift:M00-L03") for item in plan.blockers))
+
+    def test_duplicate_position_blocks_instead_of_guessing(self) -> None:
+        live = snapshot(include_third=True)
         live["sections"][0]["units"].append(
-            {"id": 103, "position": 9, "lesson": {"id": 203, "title": "M00-L03 — Старый заголовок", "steps": []}}
+            {"id": 104, "position": 3, "lesson": {"id": 204, "title": "Другой", "steps": []}}
         )
-        plan = plan_dry_run(manifest(), live)
-        self.assertTrue(any(blocker.startswith("ambiguous-title-drift:M00-L03") for blocker in plan.blockers))
 
-    def test_matching_title_plus_drifted_same_id_is_ambiguity_blocker(self) -> None:
-        live = snapshot(prefixed_titles=True)
-        live["sections"][0]["units"].extend(
-            [
-                {"id": 103, "position": 3, "lesson": {"id": 203, "title": "M00-L03 — Третий", "steps": []}},
-                {"id": 104, "position": 4, "lesson": {"id": 204, "title": "M00-L03 — Чужой заголовок", "steps": []}},
-            ]
-        )
         plan = plan_dry_run(manifest(), live)
-        self.assertTrue(any(blocker.startswith("ambiguous-id:M00-L03") for blocker in plan.blockers))
-        self.assertFalse(any(op.get("lesson") == "M00-L03" and op["action"] in {"SKIP", "SKIP_STALE_TITLE", "PLANNED_CREATE"} for op in plan.operations))
 
-    def test_golden_matching_title_plus_drifted_same_id_is_blocker(self) -> None:
-        live = snapshot(prefixed_titles=True)
+        self.assertTrue(any(item.startswith("duplicate-position:M00-L03") for item in plan.blockers))
+
+    def test_identity_collision_outside_position_blocks(self) -> None:
+        live = snapshot(include_third=True)
         live["sections"][0]["units"].append(
-            {"id": 105, "position": 7, "lesson": {"id": 205, "title": "M00-L01 — Чужой заголовок", "steps": []}}
+            {"id": 104, "position": 4, "lesson": {"id": 204, "title": "M00-L03 — Третий", "steps": []}}
         )
-        golden, blockers = recognize_golden(manifest(), live)
-        self.assertNotIn("M00-L01", golden)
-        self.assertTrue(any(blocker.startswith("golden:M00-L01") for blocker in blockers))
 
-    def test_offline_dry_run_has_no_write_action(self) -> None:
+        plan = plan_dry_run(manifest(), live)
+
+        self.assertTrue(any(item.startswith("ambiguous-identity:M00-L03") for item in plan.blockers))
+
+    def test_offline_plan_is_read_only_and_requires_live_inspection(self) -> None:
         plan = plan_dry_run(manifest(), None)
-        self.assertEqual(plan.write_count, 0)
-        self.assertTrue(all(op["action"] != "CREATE" for op in plan.operations))
-        self.assertIn("course-not-inspected", plan.blockers)
+        self.assertEqual(len(plan.operations), 3)
+        self.assertTrue(all(op["action"] == "PLANNED_AFTER_LIVE_GUARDS" for op in plan.operations))
+        self.assertEqual(plan.blockers, ["course-not-inspected"])
 
 
 if __name__ == "__main__":

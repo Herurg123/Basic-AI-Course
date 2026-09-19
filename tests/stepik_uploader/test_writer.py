@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import unittest
 
-from scripts.stepik_uploader.content import CompiledStep
+from scripts.stepik_uploader.step_model import RenderedStep
 from scripts.stepik_uploader.fingerprints import compiled_lesson_fingerprint
 from scripts.stepik_uploader.writer import (
     ContentWriteError,
@@ -15,14 +15,14 @@ from scripts.stepik_uploader.writer import (
 
 TITLE = "M02-L01 — Скажите, что получите и как это оцените"
 EXPECTED = [
-    CompiledStep(
+    RenderedStep(
         1,
         "text",
         '<p>Первый <a href="https://example.org/">линк</a></p>',
         {},
         ("04_course/M02/M02-L01/lesson.md",),
     ),
-    CompiledStep(
+    RenderedStep(
         2,
         "free-answer",
         "<p>Ответ</p>",
@@ -191,7 +191,7 @@ class WriterTests(unittest.TestCase):
             "applied_fingerprint": compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED),
         }
         updated = [
-            CompiledStep(1, "text", "<p>Исправленный текст</p>", {}, EXPECTED[0].source_git_paths),
+            RenderedStep(1, "text", "<p>Исправленный текст</p>", {}, EXPECTED[0].source_git_paths),
             EXPECTED[1],
         ]
         before_updates = client.update_calls
@@ -242,7 +242,7 @@ class WriterTests(unittest.TestCase):
         }
         client.snapshot["course"]["is_public"] = True
         updated = [
-            CompiledStep(1, "text", "<p>Исправление после публикации</p>", {}, EXPECTED[0].source_git_paths),
+            RenderedStep(1, "text", "<p>Исправление после публикации</p>", {}, EXPECTED[0].source_git_paths),
             EXPECTED[1],
         ]
         before_updates = client.update_calls
@@ -324,7 +324,7 @@ class WriterTests(unittest.TestCase):
             "applied_fingerprint": compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=EXPECTED),
         }
         client._steps()[0]["step_source"]["block"]["text"] = "<p>Ручная правка в Stepik</p>"
-        updated = [CompiledStep(1, "text", "<p>Новый канон</p>", {}, EXPECTED[0].source_git_paths), EXPECTED[1]]
+        updated = [RenderedStep(1, "text", "<p>Новый канон</p>", {}, EXPECTED[0].source_git_paths), EXPECTED[1]]
         before_updates = client.update_calls
         with self.assertRaisesRegex(ContentWriteError, "DRIFT_BLOCKED"):
             execute_content_sync_one(

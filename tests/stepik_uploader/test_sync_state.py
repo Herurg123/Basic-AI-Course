@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.stepik_uploader.content import CompiledStep
+from scripts.stepik_uploader.step_model import RenderedStep
 from scripts.stepik_uploader.fingerprints import compiled_lesson_fingerprint
 from scripts.stepik_uploader.sync_state import assess_sync
 
@@ -10,8 +10,8 @@ from scripts.stepik_uploader.sync_state import assess_sync
 FREE = {"is_attachments_enabled": False, "is_html_enabled": True, "manual_scoring": False}
 
 
-def compiled(text: str, *, position: int = 1, block_name: str = "text") -> CompiledStep:
-    return CompiledStep(
+def compiled(text: str, *, position: int = 1, block_name: str = "text") -> RenderedStep:
+    return RenderedStep(
         position=position,
         block_name=block_name,
         text=text,
@@ -20,7 +20,7 @@ def compiled(text: str, *, position: int = 1, block_name: str = "text") -> Compi
     )
 
 
-def live_lesson(steps: list[CompiledStep], *, title: str = "M02-L01 — Lesson", lesson_id: int = 100) -> dict:
+def live_lesson(steps: list[RenderedStep], *, title: str = "M02-L01 — Lesson", lesson_id: int = 100) -> dict:
     return {
         "id": lesson_id,
         "title": title,
@@ -39,7 +39,7 @@ def live_lesson(steps: list[CompiledStep], *, title: str = "M02-L01 — Lesson",
     }
 
 
-def baseline(steps: list[CompiledStep], *, title: str = "M02-L01 — Lesson", lesson_id: int = 100) -> dict:
+def baseline(steps: list[RenderedStep], *, title: str = "M02-L01 — Lesson", lesson_id: int = 100) -> dict:
     return {
         "stepik_lesson_id": lesson_id,
         "applied_fingerprint": compiled_lesson_fingerprint(expected_title=title, expected_steps=steps),

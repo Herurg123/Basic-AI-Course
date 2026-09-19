@@ -383,6 +383,6 @@ def assess_asset_publication(
         "unresolved_sources": unresolved_sources,
         "route_gate_passed": not blockers,
         "stepik_writes": 0,
-        "ready_for_bulk_write": False,
-        "next_gate": "verified-rendering-and-first-upload" if not blockers else "asset-publication-resolution",
+        "ready_for_lesson_sync": not blockers,
+        "next_gate": "verified-rendering-and-guarded-sync" if not blockers else "asset-publication-resolution",
     }

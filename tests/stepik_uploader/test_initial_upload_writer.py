@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import unittest
 
-from scripts.stepik_uploader.content import CompiledStep
+from scripts.stepik_uploader.step_model import RenderedStep
 from scripts.stepik_uploader.deployment_history import (
     DeploymentRecorder,
     EventIdentity,
@@ -18,8 +18,8 @@ from scripts.stepik_uploader.writer import ContentWriteError
 TITLE = "M04-L01 — Получите ответ по безопасному исходнику"
 SOURCE_SHA = "1" * 40
 EXPECTED = [
-    CompiledStep(1, "text", "<p>Первый</p>", {}, ("04_course/M04/M04-L01/lesson.md",)),
-    CompiledStep(
+    RenderedStep(1, "text", "<p>Первый</p>", {}, ("04_course/M04/M04-L01/lesson.md",)),
+    RenderedStep(
         2,
         "free-answer",
         "<p>Проверка</p>",

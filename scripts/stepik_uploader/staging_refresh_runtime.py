@@ -11,9 +11,9 @@ if __package__ in {None, ""}:
     from stepik_uploader.api import StepikAPIError, StepikClient
     from stepik_uploader.asset_inventory import build_asset_inventory
     from stepik_uploader.asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
-    from stepik_uploader.attachment_materialization import verify_attachment_capability
+    from stepik_uploader.attachment_materialization import AttachmentMaterializationError, verify_attachment_binding, verify_attachment_capability
     from stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest
-    from stepik_uploader.content import ContentCompileError
+    from stepik_uploader.general_content import GeneralContentCompileError, compile_lesson_source
     from stepik_uploader.deployment_history import (
         DeploymentHistoryError,
         DeploymentRecorder,
@@ -21,15 +21,17 @@ if __package__ in {None, ""}:
         summarize_event,
     )
     from stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
-    from stepik_uploader.general_content import GeneralContentCompileError, compile_lesson_source
-    from stepik_uploader.golden import GoldenProfileError, load_golden_profile, validate_golden_profile
+    from stepik_uploader.platform_profile import (
+        PLATFORM_PROFILE_PATH,
+        PlatformProfileError,
+        free_answer_source as platform_free_answer_source,
+        load_platform_profile,
+    )
     from stepik_uploader.history_runtime import find_incomplete_object_events, final_confirmed_record
     from stepik_uploader.planner import plan_dry_run
     from stepik_uploader.reporting import write_json
     from stepik_uploader.staging_build_runtime import (
         ASSET_POLICY_PATH,
-        GOLDEN_IDS,
-        GOLDEN_PROFILE_PATH,
         _assert_no_unknown_same_name,
         _assert_target_live,
         _credentials,
@@ -38,13 +40,12 @@ if __package__ in {None, ""}:
         _learner_step_count,
         _live_lesson,
         _manifest_lesson,
-        _materialization_rows,
         _recover_final_state,
         _safe_prewrite_retry,
         _synthetic_preflight_binding,
         _utc_now,
     )
-    from stepik_uploader.stepik_uploader import mark_golden_profile_result, source_sha
+    from stepik_uploader.stepik_uploader import source_sha
     from stepik_uploader.sync_state import (
         SyncStateError,
         asset_binding_for,
@@ -67,9 +68,9 @@ else:
     from .api import StepikAPIError, StepikClient
     from .asset_inventory import build_asset_inventory
     from .asset_resolution import AssetResolutionError, assess_asset_publication, load_asset_publication_policy
-    from .attachment_materialization import verify_attachment_capability
+    from .attachment_materialization import AttachmentMaterializationError, verify_attachment_binding, verify_attachment_capability
     from .canonical import CanonicalBuildError, build_structural_manifest
-    from .content import ContentCompileError
+    from .general_content import GeneralContentCompileError, compile_lesson_source
     from .deployment_history import (
         DeploymentHistoryError,
         DeploymentRecorder,
@@ -77,15 +78,17 @@ else:
         summarize_event,
     )
     from .fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
-    from .general_content import GeneralContentCompileError, compile_lesson_source
-    from .golden import GoldenProfileError, load_golden_profile, validate_golden_profile
+    from .platform_profile import (
+        PLATFORM_PROFILE_PATH,
+        PlatformProfileError,
+        free_answer_source as platform_free_answer_source,
+        load_platform_profile,
+    )
     from .history_runtime import find_incomplete_object_events, final_confirmed_record
     from .planner import plan_dry_run
     from .reporting import write_json
     from .staging_build_runtime import (
         ASSET_POLICY_PATH,
-        GOLDEN_IDS,
-        GOLDEN_PROFILE_PATH,
         _assert_no_unknown_same_name,
         _assert_target_live,
         _credentials,
@@ -94,13 +97,12 @@ else:
         _learner_step_count,
         _live_lesson,
         _manifest_lesson,
-        _materialization_rows,
         _recover_final_state,
         _safe_prewrite_retry,
         _synthetic_preflight_binding,
         _utc_now,
     )
-    from .stepik_uploader import mark_golden_profile_result, source_sha
+    from .stepik_uploader import source_sha
     from .sync_state import (
         SyncStateError,
         asset_binding_for,
@@ -167,6 +169,76 @@ def _version_suffix(source_sha256: str) -> str:
     if len(value) < 12:
         raise VisualMaterializationError("Visual source SHA слишком короткий для versioned filename")
     return value[:12]
+
+
+
+VISUAL_MATERIALIZATION_MODES = {"stepik-image-upload", "rasterize-png-stepik-image"}
+
+
+def _all_materialization_rows(asset_report: dict[str, Any], target_id: str) -> list[dict[str, Any]]:
+    by_source: dict[str, dict[str, Any]] = {}
+    for row in asset_report.get("resolutions", []):
+        if row.get("lesson") != target_id or row.get("materialization_required_at_write") is not True:
+            continue
+        source_path = str(row.get("source_path") or "")
+        if not source_path:
+            raise AssetResolutionError(f"{target_id}: materialization row без source_path")
+        existing = by_source.get(source_path)
+        if existing is not None:
+            comparable = {key: row.get(key) for key in ("source_sha256", "mode", "derived_format")}
+            prior = {key: existing.get(key) for key in ("source_sha256", "mode", "derived_format")}
+            if comparable != prior:
+                raise AssetResolutionError(f"{target_id}: конфликтующие materialization rows для {source_path}")
+            continue
+        by_source[source_path] = row
+    return [by_source[key] for key in sorted(by_source)]
+
+
+def _refresh_asset_inputs(
+    *,
+    client: StepikClient,
+    state: dict[str, Any],
+    asset_report: dict[str, Any],
+    target_id: str,
+    live_lesson_id: int,
+) -> tuple[list[dict[str, Any]], list[AssetBinding], list[dict[str, Any]]]:
+    """Split visual writes from already-confirmed generic attachments.
+
+    Existing non-visual attachments are verified and reused from machine state.
+    A changed/missing generic attachment baseline remains fail-closed; lesson-level
+    refresh never guesses or adopts an attachment by filename alone.
+    """
+    visual_rows: list[dict[str, Any]] = []
+    bindings: list[AssetBinding] = []
+    checks: list[dict[str, Any]] = []
+    for row in _all_materialization_rows(asset_report, target_id):
+        source_path = str(row["source_path"])
+        source_sha = str(row["source_sha256"])
+        mode = str(row["mode"])
+        if mode in VISUAL_MATERIALIZATION_MODES:
+            visual_rows.append(row)
+            continue
+        if mode != "stepik-attachment-upload":
+            raise AssetResolutionError(f"{target_id}: unsupported materialization mode {mode!r} for {source_path}")
+        record = asset_binding_for(state, source_path)
+        if not isinstance(record, dict):
+            raise AttachmentMaterializationError(
+                f"{source_path}: existing lesson attachment требует confirmed machine baseline before refresh"
+            )
+        if record.get("source_sha256") != source_sha:
+            raise AttachmentMaterializationError(
+                f"{source_path}: canonical attachment bytes changed; generic versioned replacement route is not yet proven"
+            )
+        binding = verify_attachment_binding(
+            client,
+            record,
+            source_path=source_path,
+            expected_source_sha256=source_sha,
+            stepik_lesson_id=live_lesson_id,
+        )
+        bindings.append(binding)
+        checks.append({"source_path": source_path, "status": "VERIFIED_ATTACHMENT_BASELINE_REUSE"})
+    return visual_rows, bindings, checks
 
 
 def _refresh_materialization_plan(
@@ -553,15 +625,9 @@ def main() -> int:
     try:
         if args.course_id != COURSE_ID:
             raise ContentWriteError(f"staging-refresh-one разрешён только для course_id={COURSE_ID}")
-        if target_id in GOLDEN_IDS:
-            raise ContentWriteError(f"{target_id}: READ_ONLY_GOLDEN запрещён в ordinary refresh route")
-
         manifest = build_structural_manifest(repo_root, source_sha=sha)
         write_json(report_dir / "build-manifest.structural.json", manifest)
         module, lesson_manifest = _manifest_lesson(manifest, target_id)
-        if lesson_manifest.get("golden_read_only"):
-            raise ContentWriteError(f"{target_id}: golden_read_only запрещён в ordinary refresh route")
-
         state_path = args.sync_state if args.sync_state.is_absolute() else repo_root / args.sync_state
         state = load_state(state_path, course_id=args.course_id)
         baseline = baseline_for(state, target_id)
@@ -576,15 +642,12 @@ def main() -> int:
         client = StepikClient(client_id, client_secret, api_host=args.api_host)
         snapshot = client.inspect_course(args.course_id)
         write_json(report_dir / "course-snapshot.before.json", snapshot)
-        profile = load_golden_profile(repo_root / GOLDEN_PROFILE_PATH)
-        plan = plan_dry_run(manifest, snapshot, golden_profile=profile)
-        profile_blockers = validate_golden_profile(profile, snapshot, manifest)
-        golden_status = mark_golden_profile_result(plan, profile_blockers)
-        if golden_status != "confirmed" or plan.blockers:
+        plan = plan_dry_run(manifest, snapshot)
+        if plan.blockers:
             raise ContentWriteError(
-                "pre-refresh structural/golden guards не пройдены: "
-                + "; ".join(sorted(set(profile_blockers + plan.blockers)))
+                "pre-refresh structural guards не пройдены: " + "; ".join(sorted(set(plan.blockers)))
             )
+        platform_profile = load_platform_profile(repo_root / PLATFORM_PROFILE_PATH, course_id=args.course_id)
 
         expected_title = str(lesson_manifest["title"])
         live_lesson = _live_lesson(
@@ -596,9 +659,7 @@ def main() -> int:
         if int(baseline.get("stepik_lesson_id", -1)) != int(live_lesson.get("id", -2)):
             raise ContentWriteError(f"{target_id}: live lesson ID отличается от machine baseline")
 
-        free_answer_source = profile.get("observed_conventions", {}).get("free_answer_source")
-        if not isinstance(free_answer_source, dict):
-            raise ContentCompileError("Golden profile не содержит free_answer_source")
+        free_answer_source = platform_free_answer_source(platform_profile)
         source_steps = compile_lesson_source(repo_root, free_answer_source=free_answer_source, lesson_id=target_id)
         inventory = build_asset_inventory(repo_root, manifest)
         policy = load_asset_publication_policy(repo_root / ASSET_POLICY_PATH)
@@ -610,7 +671,13 @@ def main() -> int:
         )
         if asset_report.get("route_gate_passed") is not True or asset_report.get("blockers"):
             raise AssetResolutionError("Asset publication gate не пройден")
-        material_rows = _materialization_rows(asset_report, target_id)
+        material_rows, fixed_bindings, fixed_asset_checks = _refresh_asset_inputs(
+            client=client,
+            state=state,
+            asset_report=asset_report,
+            target_id=target_id,
+            live_lesson_id=int(live_lesson["id"]),
+        )
         material_plan = _refresh_materialization_plan(
             repo_root=repo_root,
             report_dir=report_dir,
@@ -620,7 +687,7 @@ def main() -> int:
         write_json(report_dir / "visual-materialization-plan.json", {"target": target_id, "items": material_plan})
         store = _history_store(sha)
 
-        preflight_bindings, asset_checks = _preflight_assets(
+        visual_preflight_bindings, visual_asset_checks = _preflight_assets(
             client=client,
             state=state,
             store=store,
@@ -630,6 +697,8 @@ def main() -> int:
             target_id=target_id,
             sha=sha,
         )
+        preflight_bindings = [*fixed_bindings, *visual_preflight_bindings]
+        asset_checks = [*fixed_asset_checks, *visual_asset_checks]
         preflight_rendering = build_rendering_plan(
             repo_root=repo_root,
             lesson_id=target_id,
@@ -666,7 +735,7 @@ def main() -> int:
             report.update(
                 {
                     "verdict": "READY",
-                    "golden_profile_status": golden_status,
+                    "platform_profile_status": "confirmed",
                     "target_stepik_lesson_id": int(live_lesson["id"]),
                     "baseline_fingerprint": preflight_assessment.baseline_fingerprint,
                     "live_fingerprint": preflight_assessment.live_fingerprint,
@@ -682,7 +751,7 @@ def main() -> int:
             print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0
 
-        bindings, state_after_assets, asset_event_artifacts = _materialize_assets(
+        visual_bindings, state_after_assets, asset_event_artifacts = _materialize_assets(
             client=client,
             state=state,
             store=store,
@@ -695,6 +764,7 @@ def main() -> int:
             repo_root=repo_root,
             report_dir=report_dir,
         )
+        bindings = [*fixed_bindings, *visual_bindings]
         rendering = build_rendering_plan(
             repo_root=repo_root,
             lesson_id=target_id,
@@ -849,7 +919,7 @@ def main() -> int:
         report.update(
             {
                 "verdict": "PASS",
-                "golden_profile_status": golden_status,
+                "platform_profile_status": "confirmed",
                 "lesson_status": lesson_status,
                 "lesson_event_id": lesson_identity.event_id,
                 "stepik_lesson_id": int(lesson_record["stepik_lesson_id"]),
@@ -876,9 +946,8 @@ def main() -> int:
         RuntimeError,
         StepikAPIError,
         CanonicalBuildError,
-        ContentCompileError,
         GeneralContentCompileError,
-        GoldenProfileError,
+        PlatformProfileError,
         ContentWriteError,
         AssetResolutionError,
         DeploymentHistoryError,

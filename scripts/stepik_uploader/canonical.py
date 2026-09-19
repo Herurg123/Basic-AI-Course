@@ -199,7 +199,6 @@ def build_structural_manifest(repo_root: Path, *, source_sha: str = "unknown", s
                     "asset_ids": _lesson_asset_ids(lesson_text, rows),
                     "exercise_ids": sorted(set(EXERCISE_RE.findall(lesson_text + "\n" + plan_text))),
                     "check_ids": sorted(set(CHECK_RE.findall(lesson_text + "\n" + plan_text))),
-                    "golden_read_only": lesson_id in {"M00-L01", "M00-L02"},
                     "independence_sensitive": lesson_id in SENSITIVE_LESSONS,
                     "f1_sensitive": lesson_id == "M07-L02",
                     "write_ready": False,

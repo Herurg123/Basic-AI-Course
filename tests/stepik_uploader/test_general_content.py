@@ -79,7 +79,7 @@ class GeneralContentCompilerTests(unittest.TestCase):
             self.assertNotIn("<!-- Exercise:", compiled, lesson_id)
             self.assertNotIn("<!-- Check:", compiled, lesson_id)
 
-    def test_free_answer_rows_use_only_confirmed_golden_source(self) -> None:
+    def test_free_answer_rows_use_only_confirmed_platform_source(self) -> None:
         free_answer_count = 0
         for lesson_id, steps in self.compiled.items():
             for step in steps:

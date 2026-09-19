@@ -23,8 +23,8 @@ class StagingBatchPlanTests(unittest.TestCase):
             "modules": [
                 {
                     "lessons": [
-                        {"canonical_id": "M00-L01", "golden_read_only": True},
-                        {"canonical_id": "M00-L02", "golden_read_only": True},
+                        {"canonical_id": "M00-L01"},
+                        {"canonical_id": "M00-L02"},
                         {"canonical_id": "M00-L03"},
                     ]
                 },
@@ -98,10 +98,9 @@ class StagingBatchPlanTests(unittest.TestCase):
             "pending": self.pending("M01-L02", "M00-L02", "M01-L01", course_page=True),
         }
         plan = select_targets(self.manifest(), state)
-        self.assertEqual(plan["initial_target_ids"], ["M01-L02"])
+        self.assertEqual(plan["initial_target_ids"], ["M00-L02", "M01-L02"])
         self.assertEqual(plan["refresh_target_ids"], ["M01-L01"])
-        self.assertEqual(plan["target_ids"], ["M01-L01", "M01-L02"])
-        self.assertEqual(plan["excluded_golden_pending"], ["M00-L02"])
+        self.assertEqual(plan["target_ids"], ["M00-L02", "M01-L01", "M01-L02"])
         self.assertTrue(plan["course_page_pending"])
         self.assertEqual(plan["blockers"], [])
         self.assertTrue(plan["write_allowed"])
@@ -128,13 +127,15 @@ class StagingBatchPlanTests(unittest.TestCase):
         self.assertFalse(plan["write_allowed"])
         self.assertIn("M99-L99", plan["blockers"][0])
 
-    def test_no_ordinary_pending_targets_is_valid_noop(self):
-        state = {"lessons": {}, "pending": self.pending("M00-L02")}
+    def test_m00_lessons_use_same_target_rules_as_every_other_lesson(self):
+        state = {
+            "lessons": {"M00-L01": self.committed_baseline("M00-L01")},
+            "pending": self.pending("M00-L01", "M00-L02"),
+        }
         plan = select_targets(self.manifest(), state)
-        self.assertEqual(plan["target_ids"], [])
-        self.assertEqual(plan["target_count"], 0)
-        self.assertEqual(plan["refresh_target_ids"], [])
-        self.assertEqual(plan["excluded_golden_pending"], ["M00-L02"])
+        self.assertEqual(plan["refresh_target_ids"], ["M00-L01"])
+        self.assertEqual(plan["initial_target_ids"], ["M00-L02"])
+        self.assertEqual(plan["target_ids"], ["M00-L01", "M00-L02"])
         self.assertTrue(plan["write_allowed"])
 
     def test_active_refresh_target_is_left_to_refresh_runtime_for_history_recovery(self):

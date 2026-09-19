@@ -22,35 +22,27 @@ else:
     from .sync_state import load_state
 
 
-GOLDEN_IDS = {"M00-L01", "M00-L02"}
-
-
-def _manifest_index(manifest: dict[str, Any]) -> tuple[list[str], set[str]]:
+def _manifest_index(manifest: dict[str, Any]) -> list[str]:
     canonical_order: list[str] = []
-    golden_ids: set[str] = set(GOLDEN_IDS)
     for module in manifest.get("modules", []):
         for lesson in module.get("lessons", []):
             canonical_id = str(lesson.get("canonical_id") or "").strip()
-            if not canonical_id:
-                continue
-            canonical_order.append(canonical_id)
-            if lesson.get("golden_read_only") is True:
-                golden_ids.add(canonical_id)
-    return canonical_order, golden_ids
+            if canonical_id:
+                canonical_order.append(canonical_id)
+    return canonical_order
 
 
 def select_targets(manifest: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
-    """Split PENDING ordinary lessons into initial uploads and guarded refreshes.
+    """Split every PENDING lesson into initial upload or guarded refresh.
 
-    A confirmed machine baseline is not a blocker by itself. It is precisely the
-    evidence required by the refresh runtime to prove that live Stepik has not
-    drifted before any PUT is allowed. Golden lessons remain outside the ordinary
-    route and are handled only by their explicit owner-approved workflows.
+    All 21 lessons use the same machine-state contract. A confirmed baseline routes
+    to refresh; absence of a baseline routes to the generic initial/bootstrap path.
+    There are no protected lesson classes.
     """
     pending = state.get("pending", {})
     pending_lessons = pending.get("lessons", {})
     baselines = state.get("lessons", {})
-    canonical_order, golden_ids = _manifest_index(manifest)
+    canonical_order = _manifest_index(manifest)
     manifest_ids = set(canonical_order)
 
     blockers: list[str] = []
@@ -68,14 +60,9 @@ def select_targets(manifest: dict[str, Any], state: dict[str, Any]) -> dict[str,
 
     initial_targets: list[str] = []
     refresh_targets: list[str] = []
-    excluded_golden_pending: list[str] = []
-
     for canonical_id in canonical_order:
         record = pending_lessons.get(canonical_id)
         if not isinstance(record, dict) or record.get("status") != "PENDING":
-            continue
-        if canonical_id in golden_ids:
-            excluded_golden_pending.append(canonical_id)
             continue
         if canonical_id in baselines:
             refresh_targets.append(canonical_id)
@@ -92,7 +79,6 @@ def select_targets(manifest: dict[str, Any], state: dict[str, Any]) -> dict[str,
         "recovery_target_ids": [],
         "target_ids": target_ids,
         "target_count": len(target_ids),
-        "excluded_golden_pending": excluded_golden_pending,
         "course_page_pending": course_page_pending is not None,
         "blockers": blockers,
         "write_allowed": not blockers,
@@ -108,7 +94,7 @@ def add_history_recovery_targets(
     store: Any,
     course_id: int,
 ) -> dict[str, Any]:
-    canonical_order, golden_ids = _manifest_index(manifest)
+    canonical_order = _manifest_index(manifest)
     active_targets = set(selection.get("initial_target_ids", [])) | set(
         selection.get("refresh_target_ids", [])
     )
@@ -118,9 +104,6 @@ def add_history_recovery_targets(
     recovery_targets: list[str] = []
 
     for canonical_id in canonical_order:
-        if canonical_id in golden_ids:
-            continue
-
         incomplete = find_incomplete_object_events(store, object_id=canonical_id)
 
         # Active initial/refresh targets are re-checked by their own strict runtime.
@@ -227,7 +210,7 @@ def build_plan(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Plan guarded sequential initial/refresh staging for all ordinary PENDING lessons"
+        description="Plan guarded sequential initial/refresh staging for all PENDING lessons"
     )
     parser.add_argument("--course-id", type=int, required=True)
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
