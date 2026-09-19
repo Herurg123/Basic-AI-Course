@@ -48,12 +48,14 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
 
     def test_all_preflights_precede_any_mutating_route(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
-        course_preflight = raw.index("Preflight course page без записи")
         lesson_preflight = raw.index("Preflight всех PENDING lessons без записи")
+        course_preflight = raw.index("Preflight course page без записи")
+        scope_recheck = raw.index("Проверить неизменность source и scope перед write")
         lesson_write = raw.index("Последовательно синхронизировать все PENDING lessons")
         course_write = raw.index("Синхронизировать course page")
-        self.assertLess(course_preflight, lesson_write)
-        self.assertLess(lesson_preflight, lesson_write)
+        self.assertLess(lesson_preflight, course_preflight)
+        self.assertLess(course_preflight, scope_recheck)
+        self.assertLess(scope_recheck, lesson_write)
         self.assertLess(lesson_write, course_write)
 
     def test_lesson_state_patch_precedes_history_commit(self) -> None:
@@ -70,7 +72,7 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
         raw = WORKFLOW.read_text(encoding="utf-8")
         preflight = raw[
             raw.index("Preflight course page без записи"):
-            raw.index("Preflight всех PENDING lessons")
+            raw.index("Проверить неизменность source и scope перед write")
         ]
         write = raw[
             raw.index("Синхронизировать course page"):
