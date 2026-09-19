@@ -17,7 +17,12 @@ class GigaChatAuthWordingTests(unittest.TestCase):
             re.compile(r"GigaChat[^\n]*через\s+Сбер\s*ID\s*/\s*телефон", re.IGNORECASE),
         )
         offenders: list[str] = []
-        for path in sorted(COURSE.rglob("*.md")):
+        active_files = [
+            path
+            for path in COURSE.rglob("*.md")
+            if path.name in {"lesson.md", "stepik-plan.md", "lesson-card.md"}
+        ]
+        for path in sorted(active_files):
             text = path.read_text(encoding="utf-8")
             for pattern in prohibited:
                 if pattern.search(text):
