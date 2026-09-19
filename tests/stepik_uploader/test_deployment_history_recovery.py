@@ -112,6 +112,36 @@ class DeploymentHistoryRecoveryTests(unittest.TestCase):
         self.assertFalse(summary["external_write_started"])
         self.assertIn("FAILED_BEFORE_WRITE", summary["phases"])
 
+    def test_failed_before_write_event_is_terminal_not_incomplete(self) -> None:
+        store = MemoryHistoryStore()
+        recorder = DeploymentRecorder(store, identity())
+        started(recorder)
+        recorder.failure(reason_code="pre-write-guard", before_any_write=True)
+
+        self.assertEqual(find_incomplete_object_events(store, object_id="M02-L01"), [])
+
+    def test_started_event_without_terminal_outcome_remains_incomplete(self) -> None:
+        store = MemoryHistoryStore()
+        recorder = DeploymentRecorder(store, identity())
+        started(recorder)
+
+        incomplete = find_incomplete_object_events(store, object_id="M02-L01")
+
+        self.assertEqual(len(incomplete), 1)
+        self.assertEqual(incomplete[0][0].event_id, identity().event_id)
+
+    def test_failed_after_write_started_remains_incomplete(self) -> None:
+        store = MemoryHistoryStore()
+        recorder = DeploymentRecorder(store, identity())
+        started(recorder)
+        dispatch_one(recorder)
+        recorder.failure(reason_code="post-dispatch-guard", before_any_write=False)
+
+        incomplete = find_incomplete_object_events(store, object_id="M02-L01")
+
+        self.assertEqual(len(incomplete), 1)
+        self.assertTrue(incomplete[0][2]["external_write_started"])
+
     def test_intent_without_dispatch_is_safe_to_retry(self) -> None:
         store = MemoryHistoryStore()
         recorder = DeploymentRecorder(store, identity())
