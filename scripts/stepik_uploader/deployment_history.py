@@ -279,6 +279,27 @@ class GitHubHistoryStore:
             raise DeploymentHistoryError("GitHub history record повреждён") from exc
         return content, data["sha"]
 
+    def _read_blob(self, blob_sha: str) -> str:
+        if not isinstance(blob_sha, str) or not blob_sha:
+            raise DeploymentHistoryError("History listing не содержит immutable blob SHA")
+        response = self._request(
+            "GET",
+            f"/repos/{self.repository}/git/blobs/{blob_sha}",
+        )
+        if response.status_code != 200:
+            raise DeploymentHistoryError(f"Не удалось прочитать immutable history blob: HTTP {response.status_code}")
+        data = response.json()
+        if (
+            not isinstance(data, dict)
+            or data.get("encoding") != "base64"
+            or not isinstance(data.get("content"), str)
+        ):
+            raise DeploymentHistoryError("GitHub history blob имеет неожиданный формат")
+        try:
+            return base64.b64decode(data["content"]).decode("utf-8")
+        except (ValueError, UnicodeDecodeError) as exc:
+            raise DeploymentHistoryError("GitHub history blob повреждён") from exc
+
     def append(self, event_id: str, record_id: str, payload: dict[str, Any]) -> None:
         self.ensure_branch()
         path = self._path(event_id, record_id)
@@ -323,11 +344,15 @@ class GitHubHistoryStore:
         for item in sorted(listing, key=lambda value: str(value.get("name", ""))):
             if not isinstance(item, dict) or not str(item.get("name", "")).endswith(".json"):
                 continue
-            raw = self._read_existing(str(item.get("path")))
-            if raw is None:
-                raise DeploymentHistoryError("History listing изменился во время чтения")
+
+            # The directory listing is our read snapshot. Read each exact immutable blob
+            # from that snapshot instead of resolving the same path again through the
+            # moving history branch. During long releases the branch legitimately grows
+            # after each committed lesson, and GitHub's contents API can briefly expose
+            # a listing/path-read consistency gap across successive branch revisions.
+            raw = self._read_blob(str(item.get("sha") or ""))
             try:
-                payload = json.loads(raw[0])
+                payload = json.loads(raw)
             except json.JSONDecodeError as exc:
                 raise DeploymentHistoryError("History record содержит некорректный JSON") from exc
             if not isinstance(payload, dict):
