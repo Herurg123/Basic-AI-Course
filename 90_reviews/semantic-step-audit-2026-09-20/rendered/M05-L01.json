@@ -1,0 +1,239 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "module_id": "M05",
+  "lesson_id": "M05-L01",
+  "title": "Оценивайте изображение по задаче, а не только по вкусу",
+  "stepik_lesson_id": 2591724,
+  "step_count": 5,
+  "reconstructed_fingerprint": "sha256:f457700694c22a0d16443b7622d57a5fa809ba03661cecfc9b33eb69779e68ae",
+  "recorded_applied_fingerprint": "sha256:f457700694c22a0d16443b7622d57a5fa809ba03661cecfc9b33eb69779e68ae",
+  "matches_applied": true,
+  "recorded_confirmed_live_fingerprint": "sha256:f457700694c22a0d16443b7622d57a5fa809ba03661cecfc9b33eb69779e68ae",
+  "matches_recorded_live": true,
+  "transport_normalized_fingerprint": "sha256:f457700694c22a0d16443b7622d57a5fa809ba03661cecfc9b33eb69779e68ae",
+  "transport_normalized_matches_recorded_live": true,
+  "steps": [
+    {
+      "step_key": "M05-L01-S01",
+      "position": 1,
+      "stepik_step_id": 11291301,
+      "stepik_url": "https://stepik.org/lesson/2591724/step/1",
+      "visible_title_html": "Шаг 1 из 5. Оценивайте изображение по задаче, а не только по вкусу",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 1,
+        "logical_type": "текст",
+        "summary": "Короткий мост от текстовой итерации к визуальной; явно сказать, что авторские версии не дают B7/B8",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        0,
+        1,
+        2
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M05/M05-L01/lesson.md",
+        "04_course/M05/M05-L01/stepik-plan.md"
+      ],
+      "html_sha256": "ea6740429d1b7d32aecc1ec6124f423bd90d583e00cd0f7f96171a28aa4507ca",
+      "html": "<h2>Шаг 1 из 5. Оценивайте изображение по задаче, а не только по вкусу</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>С текстом вы уже работали по знакомой логике: понять, что нужно получить, посмотреть результат, заметить конкретную проблему и сформулировать изменение.</p>\n<p>С изображением происходит то же самое. Но прежде чем переходить к живой генерации, удобно потренироваться на двух готовых картинках, чтобы внимание не уходило на интерфейс сервиса.</p>\n<p>В этом уроке вы <strong>не создаёте и не редактируете изображение сами</strong>. Живая работа будет в следующем уроке.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M05-L01-S02",
+      "position": 2,
+      "stepik_step_id": 11339643,
+      "stepik_url": "https://stepik.org/lesson/2591724/step/2",
+      "visible_title_html": "Шаг 2 из 5. Сначала определите назначение",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 2,
+        "logical_type": "практика",
+        "summary": "По сценарию самому сформулировать назначение и 2–4 существенных признака пригодности",
+        "material_or_action": "`M05-L01-A01.md`",
+        "check": "`M05-L01-E01`",
+        "asset_ids": [
+          "M05-L01-A01"
+        ],
+        "exercise_ids": [
+          "M05-L01-E01"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        3,
+        4,
+        5
+      ],
+      "source_headings": [
+        "Сначала определите назначение"
+      ],
+      "source_git_paths": [
+        "04_course/M05/M05-L01/lesson.md",
+        "04_course/M05/M05-L01/stepik-plan.md",
+        "05_assets/M05/M05-L01/M05-L01-A01.md"
+      ],
+      "html_sha256": "341da8834093d14817948f84225bfb6605282a895ec3c6080a5f9267200b140e",
+      "html": "<h2>Шаг 2 из 5. Сначала определите назначение</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Откройте <strong>ситуацию (материал ниже)</strong>.</p>\n<p>Своими словами запишите:</p>\n<ul>\n<li>для чего нужно изображение;</li>\n<li>2–4 признака, по которым поймёте, что оно подходит этой задаче.</li>\n</ul>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n\n<p><strong>Материал: Картинка для вечера настольных игр</strong></p>\n<p>Городская библиотека проводит бесплатный <strong>вечер настольных игр</strong>.</p>\n<p>Для публикации в ленте сообщества нужна квадратная картинка. Человек должен за несколько секунд понять, что речь о настольных играх и спокойном дружеском событии.</p>\n<p>Дату, адрес и подробности напишут в подписи, поэтому длинный текст на самой картинке не нужен.</p>\n<p>Перед просмотром готовых вариантов сами запишите:</p>\n<ol>\n<li>для чего нужна эта картинка;</li>\n<li>2–4 признака, по которым поймёте, что она подходит.</li>\n</ol>\n<p>Единственного правильного набора признаков нет. Важно, чтобы вы могли объяснить их связь с задачей.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M05-L01-S03",
+      "position": 3,
+      "stepik_step_id": 11339644,
+      "stepik_url": "https://stepik.org/lesson/2591724/step/3",
+      "visible_title_html": "Шаг 3 из 5. Сравните две готовые версии",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 3,
+        "logical_type": "визуальная практика",
+        "summary": "Сравнить две авторские версии со своими критериями, выбрать конкретный недостаток и связанную правку",
+        "material_or_action": "`M05-L01-A02.svg`",
+        "check": "`M05-L01-E02`",
+        "asset_ids": [
+          "M05-L01-A02"
+        ],
+        "exercise_ids": [
+          "M05-L01-E02"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "source_headings": [
+        "Сравните две готовые версии"
+      ],
+      "source_git_paths": [
+        "04_course/M05/M05-L01/lesson.md",
+        "04_course/M05/M05-L01/stepik-plan.md",
+        "05_assets/M05/M05-L01/M05-L01-A02.svg"
+      ],
+      "html_sha256": "d4f7ced36788a9d9de0b3cba071d0e7f78dae3a39172f5aa1107686d91415f0b",
+      "html": "<h2>Шаг 3 из 5. Сравните две готовые версии</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>«Красиво» может быть личным впечатлением, но почти не помогает понять пригодность. Признаки должны быть связаны с тем, где и зачем картинка будет использоваться.</p>\n<p><strong>Сравните две готовые версии</strong></p>\n<p>Откройте <a href=\"https://stepik.org/media/attachments/lesson/2591724/M05-L01-A02-0c8ec04a3591.png\" target=\"_blank\" rel=\"noopener noreferrer\">две подготовленные картинки</a>. Вы их не создавали, поэтому здесь оцениваем только качество решения задачи.</p>\n<p>Сравните обе версии со своими признаками пригодности.</p>\n<p>Выберите одну конкретную проблему, которая действительно мешает назначению изображения, и сформулируйте <strong>одно конкретное изменение</strong>.</p>\n<p>Не ограничивайтесь фразами «сделай красивее», «улучши дизайн» или «сделай профессиональнее». Из вашей правки должно быть понятно, что именно нужно изменить.</p>\n<p>Ответьте:</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M05-L01-S04",
+      "position": 4,
+      "stepik_step_id": 11339645,
+      "stepik_url": "https://stepik.org/lesson/2591724/step/4",
+      "visible_title_html": "Шаг 4 из 5. Как понять, что вы готовы к живой работе",
+      "platform_block_type": "free-answer",
+      "platform_source": {
+        "is_attachments_enabled": false,
+        "is_html_enabled": true,
+        "manual_scoring": false
+      },
+      "plan_row": {
+        "position": 4,
+        "logical_type": "практика/рубрика",
+        "summary": "Назначение + требования + недостаток + правка + причинная связь",
+        "material_or_action": "результат E01/E02",
+        "check": "`M05-L01-C01`",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [
+          "M05-L01-C01"
+        ],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "source_headings": [
+        "Как понять, что вы готовы к живой работе"
+      ],
+      "source_git_paths": [
+        "04_course/M05/M05-L01/lesson.md",
+        "04_course/M05/M05-L01/stepik-plan.md"
+      ],
+      "html_sha256": "159ee42cff9160c18ca815774a9d0c1efaa22dee584e79d213fae39ce138800b",
+      "html": "<h2>Шаг 4 из 5. Как понять, что вы готовы к живой работе</h2>\n<p><strong>Зачем:</strong> Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik, по уже выполненной работе. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p><strong>Почему эта правка связана с выбранным вами требованием к изображению?</strong></p>\n<p><strong>Как понять, что вы готовы к живой работе</strong></p>\n<p>После упражнения у вас должна быть понятная связь:</p>\n<p><strong>назначение → признаки пригодности → конкретный недостаток → конкретная правка.</strong></p>\n<p>Если правка появилась просто потому, что вам что-то субъективно не понравилось, попробуйте связать её с реальным назначением картинки.</p>\n<p>Готовые изображения этого урока не являются вашей генерацией или редактированием. Они нужны только для тренировки оценки.</p>\n<p><strong>Готово, если:</strong> вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M05-L01-S05",
+      "position": 5,
+      "stepik_step_id": 11339647,
+      "stepik_url": "https://stepik.org/lesson/2591724/step/5",
+      "visible_title_html": "Шаг 5 из 5. Что будет дальше",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 5,
+        "logical_type": "текст",
+        "summary": "Перенос цикла на живую работу следующего урока; предупредить, что M05-L02 **до своей E01** даст необязательную техническую пробу на другой нейтральной картинке, поэтому интерфейс заранее знать не требуется",
+        "material_or_action": "`M05-L02-A03.md` в следующем уроке",
+        "check": "—",
+        "asset_ids": [
+          "M05-L02-A03"
+        ],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        17,
+        18,
+        19
+      ],
+      "source_headings": [
+        "Что будет дальше",
+        "Что вы уносите из урока"
+      ],
+      "source_git_paths": [
+        "04_course/M05/M05-L01/lesson.md",
+        "04_course/M05/M05-L01/stepik-plan.md"
+      ],
+      "html_sha256": "568b6f0b344502d42e49d87ce878432f4f51e1cc2752555bd10778f218d62d17",
+      "html": "<h2>Шаг 5 из 5. Что будет дальше</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>В следующем уроке вы сами создадите изображение, а затем измените <strong>существующую</strong> версию под новое назначение.</p>\n<p>До первой самостоятельной генерации будет короткая необязательная техническая проба на другой нейтральной картинке: где запустить создание, как сохранить результат, как снова выбрать существующий файл и получить изменённую версию. Если всё это уже знакомо, пробу можно пропустить.</p>\n<p><strong>Что вы уносите из урока</strong></p>\n<p>Для картинки не нужен особый «магический язык». Работает та же привычка: <strong>понимать назначение, оценивать результат по нему и просить конкретное изменение по конкретной проблеме</strong>.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что сохранить:</strong> сохраните только то, что прямо требуется в задании ниже; дополнительный отчёт не нужен.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    }
+  ]
+}

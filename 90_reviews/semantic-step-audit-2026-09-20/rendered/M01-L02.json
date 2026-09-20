@@ -1,0 +1,285 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "module_id": "M01",
+  "lesson_id": "M01-L02",
+  "title": "Проверьте важное утверждение по исходнику",
+  "stepik_lesson_id": 2591716,
+  "step_count": 6,
+  "reconstructed_fingerprint": "sha256:61213b346c9ed9562fc7952483b2faae2a7d07648502f6407a85f9010e041f36",
+  "recorded_applied_fingerprint": "sha256:61213b346c9ed9562fc7952483b2faae2a7d07648502f6407a85f9010e041f36",
+  "matches_applied": true,
+  "recorded_confirmed_live_fingerprint": "sha256:61213b346c9ed9562fc7952483b2faae2a7d07648502f6407a85f9010e041f36",
+  "matches_recorded_live": true,
+  "transport_normalized_fingerprint": "sha256:61213b346c9ed9562fc7952483b2faae2a7d07648502f6407a85f9010e041f36",
+  "transport_normalized_matches_recorded_live": true,
+  "steps": [
+    {
+      "step_key": "M01-L02-S01",
+      "position": 1,
+      "stepik_step_id": 11291276,
+      "stepik_url": "https://stepik.org/lesson/2591716/step/1",
+      "visible_title_html": "Шаг 1 из 6. Проверьте важное утверждение по исходнику",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 1,
+        "logical_type": "текст",
+        "summary": "Уверенность/ссылка не равны доказательству",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "source_headings": [
+        "Сначала решите, что вообще стоит проверять"
+      ],
+      "source_git_paths": [
+        "04_course/M01/M01-L02/lesson.md",
+        "04_course/M01/M01-L02/stepik-plan.md"
+      ],
+      "html_sha256": "d433dacf3e87b796db833546575a9944adbc285e7063e43e7c635a26477b5550",
+      "html": "<h2>Шаг 1 из 6. Проверьте важное утверждение по исходнику</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>ИИ может написать что-то очень уверенно. Он может даже привести ссылку. Но уверенность текста и наличие ссылки сами по себе ещё не показывают, что важное утверждение верно.</p>\n<p>В этом уроке вы впервые сделаете простую сверку: выберете утверждение, которое влияет на решение, откроете исходный материал и посмотрите, что там написано на самом деле.</p>\n<p><strong>Сначала решите, что вообще стоит проверять</strong></p>\n<p>Проверять каждое слово обычно не нужно. Полезнее спросить:</p>\n<p><strong>Если это утверждение окажется неверным, изменится ли моё действие?</strong></p>\n<p>Если да, оно существенно и его стоит сверить.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M01-L02-S02",
+      "position": 2,
+      "stepik_step_id": 11322106,
+      "stepik_url": "https://stepik.org/lesson/2591716/step/2",
+      "visible_title_html": "Шаг 2 из 6. Выполните практику",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 2,
+        "logical_type": "практика",
+        "summary": "Скопировать короткий текст `A01` в обычное текстовое сообщение ИИ, получить ответ и выбрать важное утверждение; если живая выдача не подходит для тренировки, использовать подготовленный `A02`",
+        "material_or_action": "`M01-L02-A01.md`, при необходимости `M01-L02-A02.md`, текстовый чат",
+        "check": "`M01-L02-E01`",
+        "asset_ids": [
+          "M01-L02-A01",
+          "M01-L02-A02"
+        ],
+        "exercise_ids": [
+          "M01-L02-E01"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M01/M01-L02/lesson.md",
+        "04_course/M01/M01-L02/stepik-plan.md",
+        "05_assets/M01/M01-L02/M01-L02-A01.md",
+        "05_assets/M01/M01-L02/M01-L02-A02.md"
+      ],
+      "html_sha256": "c53410e7d7e3092597eb684282ed53c54038648cd3946180bfc88320460f462f",
+      "html": "<h2>Шаг 2 из 6. Выполните практику</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> в Алисе AI; в браузере или открытом исходном материале. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Откройте <strong>учебный исходник (материал ниже)</strong>. Скопируйте его короткий текст в обычное сообщение в <a href=\"https://alice.yandex.ru/\" target=\"_blank\" rel=\"noopener noreferrer\">Алисе AI</a> и попросите кратко назвать, что участнику важно знать или взять с собой. Загружать файл <code>.md</code> не нужно.</p>\n<p>Из ответа выберите одно утверждение, ошибка в котором могла бы изменить подготовку участника.</p>\n<p>Если случайный ответ ИИ не дал удобного примера для тренировки, откройте <strong>подготовленное запасное утверждение (материал ниже)</strong>. Оно нужно только затем, чтобы упражнение всё равно состоялось.</p>\n<p>Не просите ИИ «проверить себя» и не спрашивайте вторую модель, согласна ли она. Сейчас нам нужен сам исходник.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>\n\n<p><strong>Материал: контролируемый исходник</strong></p>\n<h2>Памятка участнику учебной встречи «Практика»</h2>\n<ul>\n<li>Начало: 18:30.</li>\n<li>Кабинет: 204.</li>\n<li>Продолжительность: 45 минут.</li>\n<li>Для заметок нужны блокнот и ручка.</li>\n<li>Ноутбук не требуется.</li>\n<li>Предварительная запись не нужна.</li>\n</ul>\n<p>Это вымышленный учебный исходник. Он специально создан для тренировки сопоставления утверждения с основанием.</p>\n\n<p><strong>Материал: подготовленное утверждение</strong></p>\n<p>Представьте, что ИИ уверенно написал:</p>\n<blockquote>\n<p>«На учебную встречу „Практика“ обязательно нужно принести ноутбук.»</p>\n</blockquote>\n<p>Сначала решите сами, стоит ли это утверждение сверять: изменится ли подготовка участника, если оно неверно?</p>\n<p>Не определяйте статус по уверенности формулировки. Если решили сверять, откройте предоставленный исходник и найдите относящийся фрагмент.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M01-L02-S03",
+      "position": 3,
+      "stepik_step_id": 11322107,
+      "stepik_url": "https://stepik.org/lesson/2591716/step/3",
+      "visible_title_html": "Шаг 3 из 6. Откройте материал и найдите относящийся фрагмент",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 3,
+        "logical_type": "практика",
+        "summary": "Реально снова открыть источник отдельно от ответа, найти фрагмент и присвоить статус",
+        "material_or_action": "`M01-L02-A01.md` + браузер",
+        "check": "`M01-L02-E02`",
+        "asset_ids": [
+          "M01-L02-A01"
+        ],
+        "exercise_ids": [
+          "M01-L02-E02"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        9
+      ],
+      "source_headings": [
+        "Откройте материал и найдите относящийся фрагмент"
+      ],
+      "source_git_paths": [
+        "04_course/M01/M01-L02/lesson.md",
+        "04_course/M01/M01-L02/stepik-plan.md"
+      ],
+      "html_sha256": "5f5321f5c259f681072741acf46d0ee4c0e198944a117f7380a5431b3b9ba58e",
+      "html": "<h2>Шаг 3 из 6. Откройте материал и найдите относящийся фрагмент</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> в браузере или открытом исходном материале. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Снова откройте учебный исходник <strong>отдельно от ответа ИИ</strong>.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M01-L02-S04",
+      "position": 4,
+      "stepik_step_id": 11322114,
+      "stepik_url": "https://stepik.org/lesson/2591716/step/4",
+      "visible_title_html": "Шаг 4 из 6. Проверьте себя на второй ситуации",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 4,
+        "logical_type": "перенос",
+        "summary": "Вторая ситуация, тот же принцип проверки",
+        "material_or_action": "`M01-L02-A03.md`",
+        "check": "C2 INTRO, без самостоятельного B10",
+        "asset_ids": [
+          "M01-L02-A03"
+        ],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "source_headings": [
+        "Проверьте себя на второй ситуации"
+      ],
+      "source_git_paths": [
+        "04_course/M01/M01-L02/lesson.md",
+        "04_course/M01/M01-L02/stepik-plan.md",
+        "05_assets/M01/M01-L02/M01-L02-A03.md"
+      ],
+      "html_sha256": "8e71319247038aafb0cc004bd25bf4021cb8891b7048528945b2a5c3f2fa29d4",
+      "html": "<h2>Шаг 4 из 6. Проверьте себя на второй ситуации</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> в браузере или открытом исходном материале. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Найдите фрагмент, который относится к выбранному утверждению, и сформулируйте его смысл своими словами.</p>\n<p>После этого решите, что показывает исходник. Для этого используем три простых статуса:</p>\n<ul>\n<li><strong>подтверждено</strong> — исходник прямо поддерживает утверждение;</li>\n<li><strong>не подтверждено</strong> — исходник ему противоречит или показывает другое;</li>\n<li><strong>данных недостаточно</strong> — в исходнике нет информации, достаточной для вывода.</li>\n</ul>\n<p>Статус — не оценка того, нравится ли вам ответ. Это краткое название результата сверки.</p>\n<p>После статуса выберите следующее действие: использовать вывод, исправить его, проверить дальше или пока не применять.</p>\n<p><strong>Проверьте себя на второй ситуации</strong></p>\n<p>Откройте <strong>вторую учебную ситуацию (материал ниже)</strong>.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>\n\n<p><strong>Материал: вторая ситуация для переноса</strong></p>\n<h2>Исходник</h2>\n<p>Мини-сессия «Разбор заметок» проходит в учебной аудитории. Начало в 19:00. Предварительная регистрация не нужна. Участникам предлагают прийти за пять минут до начала. Занятие длится 30 минут.</p>\n<h2>Утверждение для проверки</h2>\n<blockquote>\n<p>«В аудитории ровно 20 мест.»</p>\n</blockquote>\n<p>Перечитайте исходник выше. Найдите, что он действительно сообщает по этому вопросу, присвойте статус и решите, можно ли использовать число 20 как факт.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M01-L02-S05",
+      "position": 5,
+      "stepik_step_id": 11322116,
+      "stepik_url": "https://stepik.org/lesson/2591716/step/5",
+      "visible_title_html": "Шаг 5 из 6. Проверка урока",
+      "platform_block_type": "free-answer",
+      "platform_source": {
+        "is_attachments_enabled": false,
+        "is_html_enabled": true,
+        "manual_scoring": false
+      },
+      "plan_row": {
+        "position": 5,
+        "logical_type": "практика/рубрика",
+        "summary": "Claim → fragment → status → decision",
+        "material_or_action": "открытый source",
+        "check": "`M01-L02-C01`",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [
+          "M01-L02-C01"
+        ],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "source_headings": [
+        "Проверка урока"
+      ],
+      "source_git_paths": [
+        "04_course/M01/M01-L02/lesson.md",
+        "04_course/M01/M01-L02/stepik-plan.md"
+      ],
+      "html_sha256": "5ab2a0a93c2a80cce3448de8d5a528e648bcd9bd115466491d9d2dfcfaa4ce57",
+      "html": "<h2>Шаг 5 из 6. Проверка урока</h2>\n<p><strong>Зачем:</strong> Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом.</p>\n<p><strong>Где и с чем:</strong> в браузере или открытом исходном материале. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Источник снова уже дан. Найдите нужный фрагмент сами, определите статус утверждения и решите, можно ли на него опираться.</p>\n<p>Пока курс предоставляет источник. Самостоятельно искать подходящий внешний источник вы научитесь позже.</p>\n<p><strong>Проверка урока</strong></p>\n<p>Для первой ситуации у вас должна получиться понятная цепочка:</p>\n<p><strong>существенное утверждение → открытый исходник → относящийся фрагмент → статус → решение.</strong></p>\n<p>Коротко объясните:</p>\n<ul>\n<li>почему выбранное утверждение было важно для действия;</li>\n<li>что именно в исходнике определило ваш статус;</li>\n<li>почему уверенный тон ИИ или одна ссылка не заменяют чтение самого материала.</li>\n</ul>\n<p>Если исходник не был открыт, сверки пока не было. Если статус выбран только потому, что ИИ звучит уверенно, вернитесь к материалу.</p>\n<p><strong>Готово, если:</strong> вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M01-L02-S06",
+      "position": 6,
+      "stepik_step_id": 11322117,
+      "stepik_url": "https://stepik.org/lesson/2591716/step/6",
+      "visible_title_html": "Шаг 6 из 6. Если основной маршрут не работает",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 6,
+        "logical_type": "текст",
+        "summary": "BACKUP и граница: полный B10 будет позже",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        23,
+        24,
+        25,
+        26
+      ],
+      "source_headings": [
+        "Если основной маршрут не работает",
+        "Итог"
+      ],
+      "source_git_paths": [
+        "04_course/M01/M01-L02/lesson.md",
+        "04_course/M01/M01-L02/stepik-plan.md"
+      ],
+      "html_sha256": "4ef8102115e4a80f3288bee32f97ee64d3b46479c5128f95392a712cce9b61be",
+      "html": "<h2>Шаг 6 из 6. Если основной маршрут не работает</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> в GigaChat; в браузере или открытом исходном материале. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Используйте <a href=\"https://giga.chat/\" target=\"_blank\" rel=\"noopener noreferrer\">GigaChat</a>. Если сервис попросит войти для этого действия, используйте обычный вход по его правилам. Сам учебный исходник открывается обычным браузером.</p>\n<p>Встроенный поиск ИИ для этого урока не нужен: всё необходимое для первой проверки уже содержится в учебном материале курса.</p>\n<p><strong>Итог</strong></p>\n<p>Теперь важное утверждение становится пригодным для решения не потому, что ИИ сказал его уверенно, а потому что вы <strong>открыли материал и сопоставили содержание</strong>.</p>\n<p>Позже проверка станет самостоятельнее. Здесь мы специально дали и источник, и способ действий, чтобы сначала стало понятно, что именно происходит и зачем.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и завершите этот урок.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    }
+  ]
+}

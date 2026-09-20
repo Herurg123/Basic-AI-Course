@@ -1,0 +1,274 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "module_id": "M03",
+  "lesson_id": "M03-L01",
+  "title": "Исправляйте именно то, что мешает ответу",
+  "stepik_lesson_id": 2591719,
+  "step_count": 6,
+  "reconstructed_fingerprint": "sha256:6fba3072795d5092418aff2fa70a5ccd8896710c64a6ca45c725b5329f7ce65d",
+  "recorded_applied_fingerprint": "sha256:6fba3072795d5092418aff2fa70a5ccd8896710c64a6ca45c725b5329f7ce65d",
+  "matches_applied": true,
+  "recorded_confirmed_live_fingerprint": "sha256:6fba3072795d5092418aff2fa70a5ccd8896710c64a6ca45c725b5329f7ce65d",
+  "matches_recorded_live": true,
+  "transport_normalized_fingerprint": "sha256:6fba3072795d5092418aff2fa70a5ccd8896710c64a6ca45c725b5329f7ce65d",
+  "transport_normalized_matches_recorded_live": true,
+  "steps": [
+    {
+      "step_key": "M03-L01-S01",
+      "position": 1,
+      "stepik_step_id": 11291287,
+      "stepik_url": "https://stepik.org/lesson/2591719/step/1",
+      "visible_title_html": "Шаг 1 из 6. Исправляйте именно то, что мешает ответу",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 1,
+        "logical_type": "текст",
+        "summary": "Короткая рамка: конкретный недостаток должен быть связан со следующим действием",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        0,
+        1
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M03/M03-L01/lesson.md",
+        "04_course/M03/M03-L01/stepik-plan.md"
+      ],
+      "html_sha256": "4cee8fb3eca9232af1c2dedaf8a517d86081468451aa57e7735c027969362d82",
+      "html": "<h2>Шаг 1 из 6. Исправляйте именно то, что мешает ответу</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Вы уже умеете сравнивать результат со своей задачей и писать уточнение. Теперь сделаем следующий шаг: будем выбирать уточнение <strong>из причины проблемы</strong>, а не использовать один любимый приём на все случаи.</p>\n<p>Если ответ слишком длинный, не хватает важного условия или сама задача сформулирована неудачно, следующие действия будут разными. Сначала нужно понять, что именно мешает.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M03-L01-S02",
+      "position": 2,
+      "stepik_step_id": 11339612,
+      "stepik_url": "https://stepik.org/lesson/2591719/step/2",
+      "visible_title_html": "Шаг 2 из 6. Найдите одну конкретную проблему",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 2,
+        "logical_type": "практика",
+        "summary": "Сравнить подготовленный ответ с задачей, назвать один недостаток и выбрать тип следующего действия из ограниченного знакомого набора",
+        "material_or_action": "`M03-L01-A01.md`",
+        "check": "`M03-L01-E01`",
+        "asset_ids": [
+          "M03-L01-A01"
+        ],
+        "exercise_ids": [
+          "M03-L01-E01"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        2,
+        3
+      ],
+      "source_headings": [
+        "Найдите одну конкретную проблему"
+      ],
+      "source_git_paths": [
+        "04_course/M03/M03-L01/lesson.md",
+        "04_course/M03/M03-L01/stepik-plan.md",
+        "05_assets/M03/M03-L01/M03-L01-A01.md"
+      ],
+      "html_sha256": "e6c114d7ecaa37984542ec5a0dfce1f4cec43a242ab1cc81406a01015cfcaa1b",
+      "html": "<h2>Шаг 2 из 6. Найдите одну конкретную проблему</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Откройте <strong>подготовленный ответ (материал ниже)</strong>.</p>\n<p>Сравните его с задачей и назовите <strong>один конкретный недостаток</strong>.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n\n<p><strong>Материал: Сообщение, которое нужно улучшить</strong></p>\n<h2>Ситуация</h2>\n<p>Нужно отправить короткое сообщение в учебный чат.</p>\n<p>Встреча, которая обычно начинается в 17:00, сегодня переносится на 18:30.</p>\n<p>Сообщение должно быть спокойным, коротким и достаточно ясным, чтобы человек сразу понял, во сколько прийти сегодня.</p>\n<h2>Первая версия</h2>\n<blockquote>\n<p>Сегодня встреча начнётся в 18:30. Обычно мы встречаемся в 17:00, но сегодня время изменилось. Поэтому приходить к 17:00 не нужно. Обратите внимание, что сегодня мы начинаем позже. Сегодня начало в 18:30. Пожалуйста, учтите изменение. До встречи!</p>\n</blockquote>\n<p>Сначала сами решите, что в этой версии мешает задаче. Карточка не называет недостаток и не даёт готового уточнения.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M03-L01-S03",
+      "position": 3,
+      "stepik_step_id": 11339613,
+      "stepik_url": "https://stepik.org/lesson/2591719/step/3",
+      "visible_title_html": "Шаг 3 из 6. Разберитесь с текущим шагом",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 3,
+        "logical_type": "текст",
+        "summary": "Коротко объяснить причинную связь; список вариантов — только временная опора, не алгоритм",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M03/M03-L01/lesson.md",
+        "04_course/M03/M03-L01/stepik-plan.md"
+      ],
+      "html_sha256": "244b34b07eddb6dc412f97fb3e100f48e94684d63053c65090754aa6cd7e4189",
+      "html": "<h2>Шаг 3 из 6. Разберитесь с текущим шагом</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Пока используйте знакомый список как опору. Подумайте, что разумнее сделать дальше:</p>\n<ul>\n<li>уточнить требование к результату;</li>\n<li>добавить действительно важное условие;</li>\n<li>попросить ИИ задать необходимые вопросы;</li>\n<li>изменить саму задачу.</li>\n</ul>\n<p>Это не таблица «если X, всегда делайте Y». Список нужен только на этом этапе, чтобы легче было увидеть связь между проблемой и следующим действием.</p>\n<p>Ответьте себе:</p>\n<p><strong>Почему выбранное действие относится именно к найденному недостатку?</strong></p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M03-L01-S04",
+      "position": 4,
+      "stepik_step_id": 11339614,
+      "stepik_url": "https://stepik.org/lesson/2591719/step/4",
+      "visible_title_html": "Шаг 4 из 6. Теперь напишите своё уточнение",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 4,
+        "logical_type": "практика",
+        "summary": "Самостоятельно написать конкретное уточнение, получить новую версию и сравнить её с исходной",
+        "material_or_action": "`M03-L01-A01.md` + текстовый чат",
+        "check": "`M03-L01-E02`",
+        "asset_ids": [
+          "M03-L01-A01"
+        ],
+        "exercise_ids": [
+          "M03-L01-E02"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "source_headings": [
+        "Теперь напишите своё уточнение"
+      ],
+      "source_git_paths": [
+        "04_course/M03/M03-L01/lesson.md",
+        "04_course/M03/M03-L01/stepik-plan.md"
+      ],
+      "html_sha256": "7f1c4b1c53e4f9820726cc91846b282a36d7f5c83e89feae6b6c3f0d5483375f",
+      "html": "<h2>Шаг 4 из 6. Теперь напишите своё уточнение</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> в Алисе AI. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Сформулируйте конкретное сообщение ИИ, которое должно исправить найденную проблему.</p>\n<p>Готового текста здесь нет. Фраза «сделай лучше» тоже не подходит: из неё непонятно, какое изменение вам нужно.</p>\n<p>Откройте <a href=\"https://alice.yandex.ru/\" target=\"_blank\" rel=\"noopener noreferrer\">Алису AI</a> и передайте:</p>\n<ol>\n<li>исходную задачу из карточки;</li>\n<li>подготовленную первую версию;</li>\n<li>ваше собственное уточнение.</li>\n</ol>\n<p>Получите новую версию и сравните её с исходной по тому же требованию задачи.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M03-L01-S05",
+      "position": 5,
+      "stepik_step_id": 11339615,
+      "stepik_url": "https://stepik.org/lesson/2591719/step/5",
+      "visible_title_html": "Шаг 5 из 6. Как понять, что уточнение было осмысленным",
+      "platform_block_type": "free-answer",
+      "platform_source": {
+        "is_attachments_enabled": false,
+        "is_html_enabled": true,
+        "manual_scoring": false
+      },
+      "plan_row": {
+        "position": 5,
+        "logical_type": "практика/рубрика",
+        "summary": "Недостаток → связанный шаг → собственное уточнение → новая версия → объяснение улучшения",
+        "material_or_action": "результат E01/E02",
+        "check": "`M03-L01-C01`",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [
+          "M03-L01-C01"
+        ],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "source_headings": [
+        "Как понять, что уточнение было осмысленным"
+      ],
+      "source_git_paths": [
+        "04_course/M03/M03-L01/lesson.md",
+        "04_course/M03/M03-L01/stepik-plan.md"
+      ],
+      "html_sha256": "b58a9ab807d492b735172104d791f1b581d264b81d00be72bbb423688a4215d7",
+      "html": "<h2>Шаг 5 из 6. Как понять, что уточнение было осмысленным</h2>\n<p><strong>Зачем:</strong> Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik, по уже выполненной работе. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>После работы у вас должна прослеживаться простая связь:</p>\n<p><strong>конкретный недостаток → разумный следующий шаг → ваше уточнение → новая версия → сравнение.</strong></p>\n<p>Коротко покажите:</p>\n<ul>\n<li>какой недостаток заметили;</li>\n<li>что решили сделать и почему;</li>\n<li>какое сообщение отправили ИИ;</li>\n<li>что изменилось в новой версии;</li>\n<li>стала ли она ближе к задаче и почему.</li>\n</ul>\n<p>Если уточнение не связано с найденной проблемой, вернитесь к первому шагу и сформулируйте связь яснее.</p>\n<p>В следующем уроке списка возможных действий перед попыткой уже не будет. Там выбор останется полностью за вами.</p>\n<p><strong>Готово, если:</strong> вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M03-L01-S06",
+      "position": 6,
+      "stepik_step_id": 11339616,
+      "stepik_url": "https://stepik.org/lesson/2591719/step/6",
+      "visible_title_html": "Шаг 6 из 6. Если основной чат не работает",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 6,
+        "logical_type": "текст",
+        "summary": "Граница: C1 здесь INTRO; самостоятельный выбор без списка будет позже; компактный BACKUP",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        20,
+        21,
+        22
+      ],
+      "source_headings": [
+        "Если основной чат не работает",
+        "Что вы уносите из урока"
+      ],
+      "source_git_paths": [
+        "04_course/M03/M03-L01/lesson.md",
+        "04_course/M03/M03-L01/stepik-plan.md"
+      ],
+      "html_sha256": "a12289a3f6985e378861c8bf9588782368de2968ed16882e72c73bff7b714689",
+      "html": "<h2>Шаг 6 из 6. Если основной чат не работает</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> в GigaChat. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Используйте <a href=\"https://giga.chat/\" target=\"_blank\" rel=\"noopener noreferrer\">GigaChat</a>. Если сервис попросит войти для этого действия, используйте обычный вход по его правилам. Подготовленная первая версия остаётся той же, поэтому упражнение не зависит от случайного ответа конкретного сервиса.</p>\n<p><strong>Что вы уносите из урока</strong></p>\n<p>Хорошее уточнение начинается не со слова «лучше», а с понимания причины:</p>\n<p><strong>что мешает → что с этим разумно сделать → какое конкретное изменение попросить.</strong></p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и завершите этот урок.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    }
+  ]
+}

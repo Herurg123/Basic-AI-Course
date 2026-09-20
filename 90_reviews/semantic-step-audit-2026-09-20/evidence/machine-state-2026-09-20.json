@@ -1,0 +1,565 @@
+{
+  "schema_version": 3,
+  "course_id": 299189,
+  "updated_at": "2026-09-20T11:27:35Z",
+  "lessons": {
+    "M02-L01": {
+      "canonical_id": "M02-L01",
+      "stepik_lesson_id": 2591717,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:48:45Z",
+      "applied_fingerprint": "sha256:ad92a5c34c8131c5d4de60e32a260b75bd1e9b969e9fdc0d899d50a98b22763f",
+      "step_ids": [
+        11291282,
+        11297091,
+        11297092,
+        11297093,
+        11297094,
+        11297095
+      ],
+      "source_git_paths": [
+        "04_course/M02/M02-L01/lesson.md",
+        "04_course/M02/M02-L01/stepik-plan.md",
+        "05_assets/M02/M02-L01/M02-L01-A01.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:ad92a5c34c8131c5d4de60e32a260b75bd1e9b969e9fdc0d899d50a98b22763f"
+    },
+    "M04-L01": {
+      "canonical_id": "M04-L01",
+      "stepik_lesson_id": 2591721,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:59:15Z",
+      "applied_fingerprint": "sha256:6865f76514379d9f2aa87d0f1d31df1e63df54be0468e46a89117c92c422ebdb",
+      "step_ids": [
+        11291289,
+        11308577,
+        11308578,
+        11308579,
+        11308580,
+        11308581
+      ],
+      "source_git_paths": [
+        "04_course/M04/M04-L01/lesson.md",
+        "04_course/M04/M04-L01/stepik-plan.md",
+        "05_assets/M04/M04-L01/M04-L01-A01.txt"
+      ],
+      "confirmed_live_fingerprint": "sha256:6865f76514379d9f2aa87d0f1d31df1e63df54be0468e46a89117c92c422ebdb"
+    },
+    "M00-L03": {
+      "canonical_id": "M00-L03",
+      "stepik_lesson_id": 2591711,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:41:07Z",
+      "applied_fingerprint": "sha256:a4d81a9e631067aadfe7f2c2b31e554add575de9a67dea352a9c10b7eaaaf049",
+      "step_ids": [
+        11291261,
+        11319087,
+        11319089,
+        11319090,
+        11319093,
+        11319095
+      ],
+      "source_git_paths": [
+        "04_course/M00/M00-L03/lesson.md",
+        "04_course/M00/M00-L03/stepik-plan.md",
+        "05_assets/M00/M00-L03/M00-L03-A01.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:a4d81a9e631067aadfe7f2c2b31e554add575de9a67dea352a9c10b7eaaaf049"
+    },
+    "M01-L01": {
+      "canonical_id": "M01-L01",
+      "stepik_lesson_id": 2591715,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:43:36Z",
+      "applied_fingerprint": "sha256:8f2dd9144d79d48d336b5842b1202a727aecbb8afba5893fdd1080b84ba72cb9",
+      "step_ids": [
+        11291275,
+        11320381,
+        11320382,
+        11320383,
+        11320384,
+        11320385,
+        11320386
+      ],
+      "source_git_paths": [
+        "04_course/M01/M01-L01/lesson.md",
+        "04_course/M01/M01-L01/stepik-plan.md",
+        "05_assets/M01/M01-L01/M01-L01-A01.md",
+        "05_assets/M01/M01-L01/M01-L01-A02.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:8f2dd9144d79d48d336b5842b1202a727aecbb8afba5893fdd1080b84ba72cb9"
+    },
+    "M01-L02": {
+      "canonical_id": "M01-L02",
+      "stepik_lesson_id": 2591716,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:45:56Z",
+      "applied_fingerprint": "sha256:61213b346c9ed9562fc7952483b2faae2a7d07648502f6407a85f9010e041f36",
+      "step_ids": [
+        11291276,
+        11322106,
+        11322107,
+        11322114,
+        11322116,
+        11322117
+      ],
+      "source_git_paths": [
+        "04_course/M01/M01-L02/lesson.md",
+        "04_course/M01/M01-L02/stepik-plan.md",
+        "05_assets/M01/M01-L02/M01-L02-A01.md",
+        "05_assets/M01/M01-L02/M01-L02-A02.md",
+        "05_assets/M01/M01-L02/M01-L02-A03.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:61213b346c9ed9562fc7952483b2faae2a7d07648502f6407a85f9010e041f36"
+    },
+    "M02-L02": {
+      "canonical_id": "M02-L02",
+      "stepik_lesson_id": 2591718,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:51:22Z",
+      "applied_fingerprint": "sha256:dfafbd4281167f05b5452a1462fd1c54b84bec63114da859776916e113dd92d8",
+      "step_ids": [
+        11291286,
+        11323847,
+        11323860,
+        11323876,
+        11323895,
+        11323910,
+        11323927
+      ],
+      "source_git_paths": [
+        "04_course/M02/M02-L02/lesson.md",
+        "04_course/M02/M02-L02/stepik-plan.md",
+        "05_assets/M02/M02-L02/M02-L02-A01.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:dfafbd4281167f05b5452a1462fd1c54b84bec63114da859776916e113dd92d8"
+    },
+    "M03-L01": {
+      "canonical_id": "M03-L01",
+      "stepik_lesson_id": 2591719,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:53:43Z",
+      "applied_fingerprint": "sha256:6fba3072795d5092418aff2fa70a5ccd8896710c64a6ca45c725b5329f7ce65d",
+      "step_ids": [
+        11291287,
+        11339612,
+        11339613,
+        11339614,
+        11339615,
+        11339616
+      ],
+      "source_git_paths": [
+        "04_course/M03/M03-L01/lesson.md",
+        "04_course/M03/M03-L01/stepik-plan.md",
+        "05_assets/M03/M03-L01/M03-L01-A01.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:6fba3072795d5092418aff2fa70a5ccd8896710c64a6ca45c725b5329f7ce65d"
+    },
+    "M03-L02": {
+      "canonical_id": "M03-L02",
+      "stepik_lesson_id": 2591720,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:56:39Z",
+      "applied_fingerprint": "sha256:ee6c797ff1d7c1c8125ea170b64b0f3abfd34e1039c4a45ccd7fcd714fd91e14",
+      "step_ids": [
+        11291288,
+        11339618,
+        11339619,
+        11339620,
+        11339621,
+        11339622,
+        11339623,
+        11339624,
+        11339626
+      ],
+      "source_git_paths": [
+        "04_course/M03/M03-L02/lesson.md",
+        "04_course/M03/M03-L02/stepik-plan.md",
+        "05_assets/M03/M03-L02/M03-L02-A01.md",
+        "05_assets/M03/M03-L02/M03-L02-A02.md",
+        "05_assets/M03/M03-L02/M03-L02-A03-alice.png",
+        "05_assets/M03/M03-L02/M03-L02-A03.png"
+      ],
+      "confirmed_live_fingerprint": "sha256:ee6c797ff1d7c1c8125ea170b64b0f3abfd34e1039c4a45ccd7fcd714fd91e14"
+    },
+    "M04-L02": {
+      "canonical_id": "M04-L02",
+      "stepik_lesson_id": 2591722,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:01:55Z",
+      "applied_fingerprint": "sha256:850743d76cf6cc9c2135a707d5d9a8db84ba49a23c7900c202d10d959f8b92c9",
+      "step_ids": [
+        11291290,
+        11339630,
+        11339631,
+        11339632,
+        11339633,
+        11339634,
+        11339635
+      ],
+      "source_git_paths": [
+        "04_course/M04/M04-L02/lesson.md",
+        "04_course/M04/M04-L02/stepik-plan.md",
+        "05_assets/M04/M04-L02/M04-L02-A01.md",
+        "05_assets/M04/M04-L02/M04-L02-A02.svg"
+      ],
+      "confirmed_live_fingerprint": "sha256:850743d76cf6cc9c2135a707d5d9a8db84ba49a23c7900c202d10d959f8b92c9"
+    },
+    "M04-L03": {
+      "canonical_id": "M04-L03",
+      "stepik_lesson_id": 2591723,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:04:31Z",
+      "applied_fingerprint": "sha256:0568eddf56ac57982ea00a6021b99f233a8e120f764300ad5f95a6d009ea8aef",
+      "step_ids": [
+        11291297,
+        11339636,
+        11339637,
+        11339638,
+        11339639,
+        11339640
+      ],
+      "source_git_paths": [
+        "04_course/M04/M04-L03/lesson.md",
+        "04_course/M04/M04-L03/stepik-plan.md",
+        "05_assets/M04/M04-L03/M04-L03-A01.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:0568eddf56ac57982ea00a6021b99f233a8e120f764300ad5f95a6d009ea8aef"
+    },
+    "M05-L01": {
+      "canonical_id": "M05-L01",
+      "stepik_lesson_id": 2591724,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:06:47Z",
+      "applied_fingerprint": "sha256:f457700694c22a0d16443b7622d57a5fa809ba03661cecfc9b33eb69779e68ae",
+      "step_ids": [
+        11291301,
+        11339643,
+        11339644,
+        11339645,
+        11339647
+      ],
+      "source_git_paths": [
+        "04_course/M05/M05-L01/lesson.md",
+        "04_course/M05/M05-L01/stepik-plan.md",
+        "05_assets/M05/M05-L01/M05-L01-A01.md",
+        "05_assets/M05/M05-L01/M05-L01-A02.svg"
+      ],
+      "confirmed_live_fingerprint": "sha256:f457700694c22a0d16443b7622d57a5fa809ba03661cecfc9b33eb69779e68ae"
+    },
+    "M05-L02": {
+      "canonical_id": "M05-L02",
+      "stepik_lesson_id": 2591725,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:09:55Z",
+      "applied_fingerprint": "sha256:e99b97b51ffd46d6fc81666b93525f2c50e5b5c516033be6ac6a1a5a24eea23a",
+      "step_ids": [
+        11291310,
+        11339649,
+        11339650,
+        11339651,
+        11339653,
+        11339654,
+        11339655,
+        11339656,
+        11339657,
+        11339658,
+        11339660,
+        11339662
+      ],
+      "source_git_paths": [
+        "04_course/M05/M05-L02/lesson.md",
+        "04_course/M05/M05-L02/stepik-plan.md",
+        "05_assets/M05/M05-L02/M05-L02-A01-part1.md",
+        "05_assets/M05/M05-L02/M05-L02-A01-part2.md",
+        "05_assets/M05/M05-L02/M05-L02-A02.md",
+        "05_assets/M05/M05-L02/M05-L02-A03.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:e99b97b51ffd46d6fc81666b93525f2c50e5b5c516033be6ac6a1a5a24eea23a"
+    },
+    "M06-L01": {
+      "canonical_id": "M06-L01",
+      "stepik_lesson_id": 2591726,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:12:30Z",
+      "applied_fingerprint": "sha256:6ca3bc567f5b5ee488f593d85e0050c78d9ab0be80cbebcf8ed9b0db29617d66",
+      "step_ids": [
+        11291311,
+        11339666,
+        11339667,
+        11339668,
+        11339669,
+        11339671,
+        11339672,
+        11339673
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L01/lesson.md",
+        "04_course/M06/M06-L01/stepik-plan.md",
+        "05_assets/M06/M06-L01/M06-L01-A01.md",
+        "05_assets/M06/M06-L01/M06-L01-A02.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:6ca3bc567f5b5ee488f593d85e0050c78d9ab0be80cbebcf8ed9b0db29617d66"
+    },
+    "M06-L02": {
+      "canonical_id": "M06-L02",
+      "stepik_lesson_id": 2591727,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:14:50Z",
+      "applied_fingerprint": "sha256:ec0ff2b9aa7c35994b4366acd0814cba28d07c185301f11ba2e99a44b40f207f",
+      "step_ids": [
+        11291312,
+        11339675,
+        11346550,
+        11346584,
+        11346614,
+        11346633
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L02/lesson.md",
+        "04_course/M06/M06-L02/stepik-plan.md",
+        "05_assets/M06/M06-L02/M06-L02-A01.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:ec0ff2b9aa7c35994b4366acd0814cba28d07c185301f11ba2e99a44b40f207f"
+    },
+    "M06-L03": {
+      "canonical_id": "M06-L03",
+      "stepik_lesson_id": 2591728,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:17:11Z",
+      "applied_fingerprint": "sha256:4c71ba165607d0c43bb526f62fb622bf904f09b2f5ee3c3a2334317209625446",
+      "step_ids": [
+        11291313,
+        11346777,
+        11346787,
+        11346792,
+        11346799,
+        11346809
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L03/lesson.md",
+        "04_course/M06/M06-L03/stepik-plan.md",
+        "05_assets/M06/M06-L03/M06-L03-A01.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:4c71ba165607d0c43bb526f62fb622bf904f09b2f5ee3c3a2334317209625446"
+    },
+    "M06-L04": {
+      "canonical_id": "M06-L04",
+      "stepik_lesson_id": 2591729,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:19:56Z",
+      "applied_fingerprint": "sha256:ce1f073cb37ad868cd8a8aabb59f22e437c19a4475d0b185602854437bb60b59",
+      "step_ids": [
+        11291316,
+        11346941,
+        11346949,
+        11346957,
+        11346967,
+        11346977,
+        11346980,
+        11346993,
+        11347013,
+        11347029
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L04/lesson.md",
+        "04_course/M06/M06-L04/stepik-plan.md",
+        "04_course/stepik/how-to-save-practice.md",
+        "05_assets/M06/M06-L04/M06-L04-A01.md",
+        "05_assets/M06/M06-L04/M06-L04-A02.md",
+        "05_assets/M06/M06-L04/M06-L04-A03.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:bf95cd39d31b10bf680f0ee8c0e17c39ed6549969073f9dc36b80ec185c26240"
+    },
+    "M07-L01": {
+      "canonical_id": "M07-L01",
+      "stepik_lesson_id": 2591731,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:22:43Z",
+      "applied_fingerprint": "sha256:f48c7caf9ef0e925ffe73efb2dd4acc5e50763e2f7aafc2fda36d81d512e75da",
+      "step_ids": [
+        11291321,
+        11347227,
+        11347246,
+        11347267,
+        11347283,
+        11347303,
+        11347318
+      ],
+      "source_git_paths": [
+        "04_course/M07/M07-L01/lesson.md",
+        "04_course/M07/M07-L01/stepik-plan.md",
+        "05_assets/M07/M07-L01/M07-L01-A01-part1.md",
+        "05_assets/M07/M07-L01/M07-L01-A01-part2.md",
+        "05_assets/M07/M07-L01/M07-L01-A02.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:f48c7caf9ef0e925ffe73efb2dd4acc5e50763e2f7aafc2fda36d81d512e75da"
+    },
+    "M07-L02": {
+      "canonical_id": "M07-L02",
+      "stepik_lesson_id": 2591732,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:25:20Z",
+      "applied_fingerprint": "sha256:3c55b1b8f5bff69cc3dc71363d0ce747258ee705af8b8b491e1fb44828dd9991",
+      "step_ids": [
+        11291327,
+        11347539,
+        11347554,
+        11347565,
+        11347580,
+        11347597,
+        11347611,
+        11347614
+      ],
+      "source_git_paths": [
+        "04_course/M07/M07-L02/lesson.md",
+        "04_course/M07/M07-L02/stepik-plan.md",
+        "05_assets/M07/M07-L02/M07-L02-A01.md",
+        "05_assets/M07/M07-L02/M07-L02-A03.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:3c55b1b8f5bff69cc3dc71363d0ce747258ee705af8b8b491e1fb44828dd9991"
+    },
+    "M08-L01": {
+      "canonical_id": "M08-L01",
+      "stepik_lesson_id": 2591734,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T11:27:34Z",
+      "applied_fingerprint": "sha256:ad8fb5060508592e69dd5b26eb8b219135777a2155f8b4b32b6958435768dc6e",
+      "step_ids": [
+        11291336,
+        11347780,
+        11347783,
+        11347786,
+        11347800,
+        11347811
+      ],
+      "source_git_paths": [
+        "04_course/M08/M08-L01/lesson.md",
+        "04_course/M08/M08-L01/stepik-plan.md",
+        "05_assets/M08/M08-L01/M08-L01-A01.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:ad8fb5060508592e69dd5b26eb8b219135777a2155f8b4b32b6958435768dc6e"
+    },
+    "M00-L02": {
+      "canonical_id": "M00-L02",
+      "stepik_lesson_id": 2591710,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:38:53Z",
+      "applied_fingerprint": "sha256:289cbdee5ba40dffc0ab8190661c7470ab5f00b8b3e92751ebf857b3538851ce",
+      "step_ids": [
+        11291260,
+        11293302,
+        11293335,
+        11293339,
+        11293356,
+        11293656,
+        11293666,
+        11348000
+      ],
+      "source_git_paths": [
+        "04_course/M00/M00-L02/lesson.md",
+        "04_course/M00/M00-L02/stepik-plan.md",
+        "05_assets/M00/M00-L02/M00-L02-A01.docx",
+        "05_assets/M00/M00-L02/M00-L02-A01.md",
+        "05_assets/M00/M00-L02/M00-L02-A02.png",
+        "05_assets/M00/M00-L02/M00-L02-A03.md",
+        "05_assets/M00/M00-L03/M00-L03-A02.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:289cbdee5ba40dffc0ab8190661c7470ab5f00b8b3e92751ebf857b3538851ce"
+    },
+    "M00-L01": {
+      "canonical_id": "M00-L01",
+      "stepik_lesson_id": 2591708,
+      "applied_source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+      "applied_at": "2026-09-20T10:36:27Z",
+      "applied_fingerprint": "sha256:888db9716cd61448c9d4a47978eada3b185b8781e68b7ead54c58e964dc0f124",
+      "step_ids": [
+        11291255,
+        11292030,
+        11292062,
+        11292064,
+        11292076,
+        11292091
+      ],
+      "source_git_paths": [
+        "04_course/M00/M00-L01/lesson.md",
+        "04_course/M00/M00-L01/stepik-plan.md",
+        "05_assets/M00/M00-L01/M00-L01-A01.md"
+      ],
+      "confirmed_live_fingerprint": "sha256:888db9716cd61448c9d4a47978eada3b185b8781e68b7ead54c58e964dc0f124"
+    }
+  },
+  "pending": {
+    "lessons": {},
+    "course_page": null
+  },
+  "assets": {
+    "05_assets/M04/M04-L01/M04-L01-A01.txt": {
+      "source_path": "05_assets/M04/M04-L01/M04-L01-A01.txt",
+      "source_sha256": "sha256:21675505c4b0c766541671daa260ccc1f020ff5d7034b3df45526d2923770ba0",
+      "url": "https://stepik.org/media/attachments/lesson/2591721/M04-L01-A01.txt",
+      "storage": "stepik-attachment",
+      "stepik_attachment_id": 239272,
+      "stepik_lesson_id": 2591721,
+      "filename": "M04-L01-A01.txt",
+      "size": 1952,
+      "materialized_at": "2026-09-15T12:29:03Z"
+    },
+    "05_assets/M03/M03-L02/M03-L02-A03-alice.png": {
+      "source_path": "05_assets/M03/M03-L02/M03-L02-A03-alice.png",
+      "source_sha256": "sha256:f5a6b53c2772ef04da39412cd413b9800a8b3cce50b4f718b23fcb1788c6f8db",
+      "url": "https://stepik.org/media/attachments/lesson/2591720/M03-L02-A03-alice.png",
+      "storage": "stepik-lesson-attachment-image",
+      "stepik_attachment_id": 239617,
+      "stepik_lesson_id": 2591720,
+      "filename": "M03-L02-A03-alice.png",
+      "size": 7834,
+      "materialized_at": "2026-09-17T03:41:24Z",
+      "materialization_mode": "stepik-image-upload",
+      "materialized_sha256": "sha256:f5a6b53c2772ef04da39412cd413b9800a8b3cce50b4f718b23fcb1788c6f8db",
+      "materialization_fingerprint": "sha256:e1e5c727b990bc36e469206425ebc79c39da2f3888aadf4f7c9fefb032616cec"
+    },
+    "05_assets/M03/M03-L02/M03-L02-A03.png": {
+      "source_path": "05_assets/M03/M03-L02/M03-L02-A03.png",
+      "source_sha256": "sha256:3b94934314c909691346f711a455c37477b3758ca6157413386cd11337a9ce95",
+      "url": "https://stepik.org/media/attachments/lesson/2591720/M03-L02-A03.png",
+      "storage": "stepik-lesson-attachment-image",
+      "stepik_attachment_id": 239618,
+      "stepik_lesson_id": 2591720,
+      "filename": "M03-L02-A03.png",
+      "size": 163245,
+      "materialized_at": "2026-09-17T03:41:37Z",
+      "materialization_mode": "stepik-image-upload",
+      "materialized_sha256": "sha256:3b94934314c909691346f711a455c37477b3758ca6157413386cd11337a9ce95",
+      "materialization_fingerprint": "sha256:a563d07f7dcb91d4ada4f7c6c5460e474277b7fddf4d486437a47f60c632c909"
+    },
+    "05_assets/M04/M04-L02/M04-L02-A02.svg": {
+      "source_path": "05_assets/M04/M04-L02/M04-L02-A02.svg",
+      "source_sha256": "sha256:a989965b01f8d38a90fb148dc8b01db5aa5c2cea73a7d4e352baf61b0a96bf08",
+      "url": "https://stepik.org/media/attachments/lesson/2591722/M04-L02-A02.png",
+      "storage": "stepik-lesson-attachment-image",
+      "stepik_attachment_id": 239619,
+      "stepik_lesson_id": 2591722,
+      "filename": "M04-L02-A02.png",
+      "size": 55116,
+      "materialized_at": "2026-09-17T03:44:26Z",
+      "materialization_mode": "rasterize-png-stepik-image",
+      "materialized_sha256": "sha256:1a55a3bc357554f9e8929a7f9c149465887214f950eb0b6f8e0ac51e57505e0c",
+      "materialization_fingerprint": "sha256:64bf925f1eeb2e0177c6ca47aff9f7f4db8c7713c21725de2f93f8db77bac434"
+    },
+    "05_assets/M05/M05-L01/M05-L01-A02.svg": {
+      "source_path": "05_assets/M05/M05-L01/M05-L01-A02.svg",
+      "source_sha256": "sha256:0c8ec04a35917a93eae72a2b391e0b70ffd9b57fce1be3f04eaae4a72c4ff499",
+      "url": "https://stepik.org/media/attachments/lesson/2591724/M05-L01-A02-0c8ec04a3591.png",
+      "storage": "stepik-lesson-attachment-image",
+      "stepik_attachment_id": 240448,
+      "stepik_lesson_id": 2591724,
+      "filename": "M05-L01-A02-0c8ec04a3591.png",
+      "size": 66091,
+      "materialized_at": "2026-09-19T09:40:52Z",
+      "materialization_mode": "rasterize-png-stepik-image",
+      "materialized_sha256": "sha256:d40534b91bad61730428ad9fe062ac03099c7634b9b8f948fa9cb3e533fd1431",
+      "materialization_fingerprint": "sha256:a0c8fee4156daf163d49d74a024dd824469c0081b0bc10c512ea94cf49890b6c"
+    }
+  }
+}

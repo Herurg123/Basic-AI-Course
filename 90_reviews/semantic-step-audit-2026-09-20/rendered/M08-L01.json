@@ -1,0 +1,271 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "module_id": "M08",
+  "lesson_id": "M08-L01",
+  "title": "Что делать после базового курса",
+  "stepik_lesson_id": 2591734,
+  "step_count": 6,
+  "reconstructed_fingerprint": "sha256:ad8fb5060508592e69dd5b26eb8b219135777a2155f8b4b32b6958435768dc6e",
+  "recorded_applied_fingerprint": "sha256:ad8fb5060508592e69dd5b26eb8b219135777a2155f8b4b32b6958435768dc6e",
+  "matches_applied": true,
+  "recorded_confirmed_live_fingerprint": "sha256:ad8fb5060508592e69dd5b26eb8b219135777a2155f8b4b32b6958435768dc6e",
+  "matches_recorded_live": true,
+  "transport_normalized_fingerprint": "sha256:ad8fb5060508592e69dd5b26eb8b219135777a2155f8b4b32b6958435768dc6e",
+  "transport_normalized_matches_recorded_live": true,
+  "steps": [
+    {
+      "step_key": "M08-L01-S01",
+      "position": 1,
+      "stepik_step_id": 11291336,
+      "stepik_url": "https://stepik.org/lesson/2591734/step/1",
+      "visible_title_html": "Шаг 1 из 6. Что делать после базового курса",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 1,
+        "logical_type": "completion frame",
+        "summary": "Явно сообщить: база уже завершена; M08 не доказывает F1 заново",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        0
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M08/M08-L01/lesson.md",
+        "04_course/M08/M08-L01/stepik-plan.md"
+      ],
+      "html_sha256": "866521d5dc46cacdb0d9400306ec2b9add9ffd68cc2d400378a77199e3ec2b7b",
+      "html": "<h2>Шаг 1 из 6. Что делать после базового курса</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Финальная самостоятельная задача уже завершена. <strong>Базовый курс закончен.</strong></p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M08-L01-S02",
+      "position": 2,
+      "stepik_step_id": 11347780,
+      "stepik_url": "https://stepik.org/lesson/2591734/step/2",
+      "visible_title_html": "Шаг 2 из 6. Выберите следующую свою задачу",
+      "platform_block_type": "free-answer",
+      "platform_source": {
+        "is_attachments_enabled": false,
+        "is_html_enabled": true,
+        "manual_scoring": false
+      },
+      "plan_row": {
+        "position": 2,
+        "logical_type": "reflection practice",
+        "summary": "Ученик сам называет следующую реальную задачу",
+        "material_or_action": "—",
+        "check": "`M08-L01-E01`",
+        "asset_ids": [],
+        "exercise_ids": [
+          "M08-L01-E01"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        1,
+        2,
+        3
+      ],
+      "source_headings": [
+        "Выберите следующую свою задачу"
+      ],
+      "source_git_paths": [
+        "04_course/M08/M08-L01/lesson.md",
+        "04_course/M08/M08-L01/stepik-plan.md"
+      ],
+      "html_sha256": "1a532bebae89fa838943194c49f579ec7fd50bfb3b9adea431f08f14d86f5c1b",
+      "html": "<h2>Шаг 2 из 6. Выберите следующую свою задачу</h2>\n<p><strong>Зачем:</strong> Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik, по уже выполненной работе. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Этот урок не второй экзамен. Он нужен, чтобы выбрать разумный следующий шаг: продолжать практиковать базу или признать, что новая задача уже требует большего.</p>\n<p><strong>Выберите следующую свою задачу</strong></p>\n<p>Назовите одну реальную задачу, которую вам хотелось бы решить после курса.</p>\n<p>Не нужно подбирать «правильный ответ». Вполне нормальный вариант — продолжать тренироваться на новых небольших задачах без нового курса и новых сервисов.</p>\n<p><strong>Готово, если:</strong> вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M08-L01-S03",
+      "position": 3,
+      "stepik_step_id": 11347783,
+      "stepik_url": "https://stepik.org/lesson/2591734/step/3",
+      "visible_title_html": "Шаг 3 из 6. Разберитесь с текущим шагом",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 3,
+        "logical_type": "transfer card",
+        "summary": "Карточка различения «простая практика базы ↔ существенное усложнение»",
+        "material_or_action": "`M08-L01-A01.md`",
+        "check": "—",
+        "asset_ids": [
+          "M08-L01-A01"
+        ],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        4
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M08/M08-L01/lesson.md",
+        "04_course/M08/M08-L01/stepik-plan.md",
+        "05_assets/M08/M08-L01/M08-L01-A01.md"
+      ],
+      "html_sha256": "fae5402543126cdbd6bf51bbe5fd9dc428d923f12a8c65adc246393119ae6e21",
+      "html": "<h2>Шаг 3 из 6. Разберитесь с текущим шагом</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Откройте <strong>карточку следующей задачи (материал ниже)</strong> и отметьте, какой знакомый способ из курса пригодится вам здесь.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n\n<p><strong>Материал: Карточка следующей задачи</strong></p>\n<p>Используйте её как рамку размышления, а не как тест.</p>\n<h2>Ваша следующая задача</h2>\n<p>Назовите задачу своими словами.</p>\n<h2>Что из базы переносится</h2>\n<p>Какие уже знакомые действия действительно пригодятся именно здесь? Не перечисляйте весь курс ради полноты.</p>\n<h2>Это всё ещё простая практика базы?</h2>\n<p>Обычно да, если задача небольшая, укладывается в одну понятную рабочую сессию, не требует многих источников, документов или этапов, не требует программирования, API или сложной автоматизации и не требует профессиональной экспертизы с серьёзными последствиями.</p>\n<h2>Признаки существенного усложнения</h2>\n<p>Граница может сдвигаться, когда заметно растут:</p>\n<ul>\n<li>масштаб;</li>\n<li>длительность;</li>\n<li>требования к качеству;</li>\n<li>количество этапов или инструментов;</li>\n<li>объём данных или материалов;</li>\n<li>техническая глубина;</li>\n<li>профессиональная специализация;</li>\n<li>ответственность и риски.</li>\n</ul>\n<p>Новый бренд, новая модель, другая кнопка или платная подписка сами по себе <strong>не создают новый уровень</strong>.</p>\n<p>Полноценный вывод: «для этой задачи мне пока достаточно практиковать базу».</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M08-L01-S04",
+      "position": 4,
+      "stepik_step_id": 11347786,
+      "stepik_url": "https://stepik.org/lesson/2591734/step/4",
+      "visible_title_html": "Шаг 4 из 6. База или уже более сложная работа?",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 4,
+        "logical_type": "boundary practice",
+        "summary": "Ученик связывает следующую задачу со знакомым способом и границей сложности",
+        "material_or_action": "A01",
+        "check": "`M08-L01-E02`",
+        "asset_ids": [],
+        "exercise_ids": [
+          "M08-L01-E02"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "source_headings": [
+        "База или уже более сложная работа?"
+      ],
+      "source_git_paths": [
+        "04_course/M08/M08-L01/lesson.md",
+        "04_course/M08/M08-L01/stepik-plan.md"
+      ],
+      "html_sha256": "9d89687e9013f2ce21b11e3eaf3c1ef99dffc81994789c06c0cbd45c7a01a6e7",
+      "html": "<h2>Шаг 4 из 6. База или уже более сложная работа?</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Посмотрите не на название модели и не на количество кнопок, а на сложность самой задачи.</p>\n<p>Она заметно растёт, если появляется большой масштаб, много этапов и инструментов, высокая ответственность, профессиональная специализация, длительная работа или требования к качеству, которых базовых навыков уже недостаточно обеспечить.</p>\n<p>Выберите один вывод:</p>\n<ul>\n<li><strong>практика базы</strong> — задача остаётся небольшой, и знакомых действий достаточно;</li>\n<li><strong>существенное усложнение</strong> — понадобятся новые знания, опыт, более сложный процесс или профессиональная проверка.</li>\n</ul>\n<p>Не нужно искусственно выбирать второй вариант.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M08-L01-S05",
+      "position": 5,
+      "stepik_step_id": 11347800,
+      "stepik_url": "https://stepik.org/lesson/2591734/step/5",
+      "visible_title_html": "Шаг 5 из 6. Короткая проверка переноса",
+      "platform_block_type": "free-answer",
+      "platform_source": {
+        "is_attachments_enabled": false,
+        "is_html_enabled": true,
+        "manual_scoring": false
+      },
+      "plan_row": {
+        "position": 5,
+        "logical_type": "short reflection",
+        "summary": "Задача + переносимый способ + граница + связь с опытом финала",
+        "material_or_action": "собственный текст",
+        "check": "`M08-L01-C01`",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [
+          "M08-L01-C01"
+        ],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        10,
+        11,
+        12
+      ],
+      "source_headings": [
+        "Короткая проверка переноса"
+      ],
+      "source_git_paths": [
+        "04_course/M08/M08-L01/lesson.md",
+        "04_course/M08/M08-L01/stepik-plan.md"
+      ],
+      "html_sha256": "27756e1de8acbf4e620ff8f994aa2f3da5723889072885383bb0d080bfa22f55",
+      "html": "<h2>Шаг 5 из 6. Короткая проверка переноса</h2>\n<p><strong>Зачем:</strong> Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik, по уже выполненной работе. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Запишите:</p>\n<ul>\n<li>следующую свою задачу;</li>\n<li>какой знакомый способ или несколько способов из курса вы перенесёте;</li>\n<li>почему задача остаётся в пределах базы или уже выходит за них;</li>\n<li>как этот вывод связан с опытом вашей финальной реальной задачи.</li>\n</ul>\n<p>Новой проверки самостоятельности здесь нет. Вы только осмысляете, как использовать уже освоенное дальше.</p>\n<p><strong>Готово, если:</strong> вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M08-L01-S06",
+      "position": 6,
+      "stepik_step_id": 11347811,
+      "stepik_url": "https://stepik.org/lesson/2591734/step/6",
+      "visible_title_html": "Шаг 6 из 6. Важная граница",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 6,
+        "logical_type": "close",
+        "summary": "Разрешить итог «мне достаточно практиковать базу»; никаких покупок или регистраций",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "source_headings": [
+        "Важная граница",
+        "Итог"
+      ],
+      "source_git_paths": [
+        "04_course/M08/M08-L01/lesson.md",
+        "04_course/M08/M08-L01/stepik-plan.md"
+      ],
+      "html_sha256": "c922b939d5af9432b1021a98a9f79dc86e5458e40b2e26f320398164f3105259",
+      "html": "<h2>Шаг 6 из 6. Важная граница</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>После курса вы уже умеете безопасно давать контекст и работать со своими материалами, улучшать ответы, создавать и изменять изображения, проверять существенные утверждения по реальному основанию, замечать нехватку данных и доводить простую задачу до применения.</p>\n<p>Не нужно покупать «следующий уровень», чтобы получить эти базовые навыки: они уже входят в завершённый курс.</p>\n<p><strong>Итог</strong></p>\n<p>Нормальный следующий шаг может звучать очень просто:</p>\n<p><strong>«Мне пока достаточно практиковать базу на новых небольших задачах».</strong></p>\n<p>Если задача действительно стала сложнее, ищите знания или помощь под её новую сложность, а не просто более модную модель.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    }
+  ]
+}

@@ -1,0 +1,277 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "module_id": "M06",
+  "lesson_id": "M06-L03",
+  "title": "Признайте, когда данных не хватает",
+  "stepik_lesson_id": 2591728,
+  "step_count": 6,
+  "reconstructed_fingerprint": "sha256:4c71ba165607d0c43bb526f62fb622bf904f09b2f5ee3c3a2334317209625446",
+  "recorded_applied_fingerprint": "sha256:4c71ba165607d0c43bb526f62fb622bf904f09b2f5ee3c3a2334317209625446",
+  "matches_applied": true,
+  "recorded_confirmed_live_fingerprint": "sha256:4c71ba165607d0c43bb526f62fb622bf904f09b2f5ee3c3a2334317209625446",
+  "matches_recorded_live": true,
+  "transport_normalized_fingerprint": "sha256:4c71ba165607d0c43bb526f62fb622bf904f09b2f5ee3c3a2334317209625446",
+  "transport_normalized_matches_recorded_live": true,
+  "steps": [
+    {
+      "step_key": "M06-L03-S01",
+      "position": 1,
+      "stepik_step_id": 11291313,
+      "stepik_url": "https://stepik.org/lesson/2591728/step/1",
+      "visible_title_html": "Шаг 1 из 6. Признайте, когда данных не хватает",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 1,
+        "logical_type": "текст / safety",
+        "summary": "Минимальная рамка: качество основания соотносится с последствиями; реальные high-stakes решения исключены",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "source_headings": [
+        "Что делать, если уверенности нет"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L03/lesson.md",
+        "04_course/M06/M06-L03/stepik-plan.md"
+      ],
+      "html_sha256": "3226fb5693a2216bd784fa63a2e24a8ff219c7dd4ac2ea848fc705bda5a04f24",
+      "html": "<h2>Шаг 1 из 6. Признайте, когда данных не хватает</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Иногда лучший результат проверки — не «верно» и не «неверно», а <strong>«данных недостаточно»</strong>.</p>\n<p>Это не слабость и не отказ думать. Это способ не выдавать догадку за знание.</p>\n<p>Все ситуации в уроке вымышлены. Реальных медицинских, юридических, финансовых или других решений с серьёзными последствиями здесь нет.</p>\n<p><strong>Что делать, если уверенности нет</strong></p>\n<p>Смотрите на две вещи:</p>\n<ul>\n<li>насколько надёжно основание;</li>\n<li>что произойдёт, если вы ошибётесь.</li>\n</ul>\n<p>Если цена ошибки мала, можно продолжить поиск. Если последствия заметны, а надёжного основания нет, разумно не применять вывод, проверить дальше, остановиться или обратиться к человеку, который отвечает за такую ситуацию профессионально.</p>\n<p>Вы уже знаете четыре статуса: <strong>подтверждено / частично подтверждено / не подтверждено / данных недостаточно</strong>.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L03-S02",
+      "position": 2,
+      "stepik_step_id": 11346777,
+      "stepik_url": "https://stepik.org/lesson/2591728/step/2",
+      "visible_title_html": "Шаг 2 из 6. Первая ситуация",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 2,
+        "logical_type": "практика",
+        "summary": "Разобрать вымышленную ситуацию с уверенным ответом без надёжного основания",
+        "material_or_action": "`M06-L03-A01.md`, карточка 1",
+        "check": "`M06-L03-E01`",
+        "asset_ids": [
+          "M06-L03-A01"
+        ],
+        "exercise_ids": [
+          "M06-L03-E01"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        7
+      ],
+      "source_headings": [
+        "Первая ситуация"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L03/lesson.md",
+        "04_course/M06/M06-L03/stepik-plan.md",
+        "05_assets/M06/M06-L03/M06-L03-A01.md"
+      ],
+      "html_sha256": "327ac794b7ef14e7963acd686c783f4b29417b4515592dea6452b21fad4d223a",
+      "html": "<h2>Шаг 2 из 6. Первая ситуация</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Откройте <strong>учебную карточку (материал ниже)</strong> и разберите первую ситуацию.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n\n<p><strong>Материал: Когда основания не хватает</strong></p>\n<p>Все организации и ситуации ниже вымышлены. Они нужны только для учебной практики.</p>\n<h2>Карточка 1 — правило, которого вы не видели</h2>\n<p>Вы помогаете подготовить сообщение для участников вымышленного книжного клуба «Маяк».</p>\n<p>ИИ пишет:</p>\n<blockquote>\n<p>«Встреча точно может продолжаться до 21:30: в этом клубе зал обычно открыт допоздна. Можно сразу написать участникам, что двери будут открыты до 21:30».</p>\n</blockquote>\n<p>У вас нет опубликованного расписания клуба, правил площадки или сообщения организатора. В условии не дано другого надёжного источника.</p>\n<p>Нужно решить, можно ли включить время <code>21:30</code> в сообщение как подтверждённый факт.</p>\n\n<h2>Карточка 2 — цена ошибки выше уверенности текста</h2>\n<p>В вымышленной школьной мастерской «Куб» ученик замечает необычный оранжевый индикатор на учебном оборудовании. В доступной карточке оборудования нет объяснения этого сигнала.</p>\n<p>ИИ отвечает:</p>\n<blockquote>\n<p>«Оранжевый индикатор обычно не означает ничего серьёзного. Можно продолжать работу».</p>\n</blockquote>\n<p>Это учебная ситуация. <strong>Не нужно диагностировать оборудование, искать способ ремонта или выполнять какие-либо технические действия.</strong></p>\n<p>Нужно решить, достаточно ли основания для продолжения работы и какой следующий шаг безопаснее.</p>\n\n<p>Для каждой карточки используйте только четыре статуса курса:</p>\n<p><code>подтверждено / частично подтверждено / не подтверждено / данных недостаточно</code>.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L03-S03",
+      "position": 3,
+      "stepik_step_id": 11346787,
+      "stepik_url": "https://stepik.org/lesson/2591728/step/3",
+      "visible_title_html": "Шаг 3 из 6. Разберитесь с текущим шагом",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 3,
+        "logical_type": "короткое объяснение",
+        "summary": "`не опровергнуто` ≠ `подтверждено`; `данных недостаточно` является допустимым статусом",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        8,
+        9,
+        10
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M06/M06-L03/lesson.md",
+        "04_course/M06/M06-L03/stepik-plan.md"
+      ],
+      "html_sha256": "3d18d982a3807523a8f9c4b5dcec27d56d3d6cecfa83e012d0d292cc05a942ac",
+      "html": "<h2>Шаг 3 из 6. Разберитесь с текущим шагом</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>ИИ там звучит уверенно. Не оценивайте тон. Самостоятельно решите:</p>\n<ul>\n<li>какое утверждение важно;</li>\n<li>есть ли для него надёжное основание;</li>\n<li>какой статус подходит;</li>\n<li>что делать дальше.</li>\n</ul>\n<p>Помните: <strong>«я не нашёл доказательства ошибки» не означает «подтверждено»</strong>.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L03-S04",
+      "position": 4,
+      "stepik_step_id": 11346792,
+      "stepik_url": "https://stepik.org/lesson/2591728/step/4",
+      "visible_title_html": "Шаг 4 из 6. Вторая ситуация",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 4,
+        "logical_type": "практика",
+        "summary": "Новая вымышленная ситуация с более заметными последствиями; выбрать безопасный следующий шаг",
+        "material_or_action": "`M06-L03-A01.md`, карточка 2",
+        "check": "`M06-L03-E02`",
+        "asset_ids": [
+          "M06-L03-A01"
+        ],
+        "exercise_ids": [
+          "M06-L03-E02"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        11,
+        12
+      ],
+      "source_headings": [
+        "Вторая ситуация"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L03/lesson.md",
+        "04_course/M06/M06-L03/stepik-plan.md"
+      ],
+      "html_sha256": "a394876871ae6c6aa6de8eb35a80a0541ffa98bcaabb2aa24e46052ec1806871",
+      "html": "<h2>Шаг 4 из 6. Вторая ситуация</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Разберите вторую ситуацию в той же карточке.</p>\n<p>Здесь последствия ошибки заметнее. Не пытайтесь изображать специалиста или угадывать «правильный ответ». Решите, достаточно ли оснований, чтобы действовать. Если нет, выберите безопасный следующий шаг.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L03-S05",
+      "position": 5,
+      "stepik_step_id": 11346799,
+      "stepik_url": "https://stepik.org/lesson/2591728/step/5",
+      "visible_title_html": "Шаг 5 из 6. Проверьте свои решения",
+      "platform_block_type": "free-answer",
+      "platform_source": {
+        "is_attachments_enabled": false,
+        "is_html_enabled": true,
+        "manual_scoring": false
+      },
+      "plan_row": {
+        "position": 5,
+        "logical_type": "рубрика",
+        "summary": "Статус + нехватка основания + действие + причинное объяснение",
+        "material_or_action": "evidence ученика",
+        "check": "`M06-L03-C01`",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [
+          "M06-L03-C01"
+        ],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        13,
+        14,
+        15
+      ],
+      "source_headings": [
+        "Проверьте свои решения"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L03/lesson.md",
+        "04_course/M06/M06-L03/stepik-plan.md"
+      ],
+      "html_sha256": "0ee8ff70ea0c675e56a673422461cb4d16944becc940be5464c49e6a01b556cc",
+      "html": "<h2>Шаг 5 из 6. Проверьте свои решения</h2>\n<p><strong>Зачем:</strong> Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом.</p>\n<p><strong>Где и с чем:</strong> в браузере или открытом исходном материале. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>По обеим ситуациям у вас должно быть видно:</p>\n<ul>\n<li>какое утверждение вы считали существенным;</li>\n<li>что реально известно и чего не хватает;</li>\n<li>выбранный статус;</li>\n<li>следующее действие;</li>\n<li>почему качество основания и последствия ошибки привели именно к такому решению.</li>\n</ul>\n<p>Уверенность ИИ, согласие второй модели и выдуманный источник не добавляют доказательств. При статусе <strong>«данных недостаточно»</strong> существенный вывод нельзя применять как подтверждённый.</p>\n<p><strong>Готово, если:</strong> вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L03-S06",
+      "position": 6,
+      "stepik_step_id": 11346809,
+      "stepik_url": "https://stepik.org/lesson/2591728/step/6",
+      "visible_title_html": "Шаг 6 из 6. Если новые данные появятся позже",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 6,
+        "logical_type": "текст",
+        "summary": "Граница: не требовать профессионального заключения, не использовать вторую модель как основание",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "source_headings": [
+        "Если новые данные появятся позже",
+        "Если нужен рабочий чат",
+        "Итог"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L03/lesson.md",
+        "04_course/M06/M06-L03/stepik-plan.md"
+      ],
+      "html_sha256": "7885225ecd93422320e3dad351218c99b71fd550761eced99ba8c8a742fe86d9",
+      "html": "<h2>Шаг 6 из 6. Если новые данные появятся позже</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> в Алисе AI. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Статус можно пересмотреть. Новый официальный документ, исходные данные или ответ ответственного специалиста могут изменить решение.</p>\n<p>Но повторение одной и той же догадки не превращает её в факт.</p>\n<p><strong>Если нужен рабочий чат</strong></p>\n<p>Для этих карточек ИИ не нужен как «судья». Если вам удобен чат, используйте <a href=\"https://alice.yandex.ru/\" target=\"_blank\" rel=\"noopener noreferrer\">Алису AI</a>, а при временной недоступности — <a href=\"https://giga.chat/\" target=\"_blank\" rel=\"noopener noreferrer\">GigaChat</a>.</p>\n<p>Вторая модель не является запасным доказательством.</p>\n<p><strong>Итог</strong></p>\n<p>Иногда полноценный результат выглядит так:</p>\n<p><strong>данных недостаточно → не применять / проверить дальше / остановиться / обратиться к ответственному специалисту</strong>.</p>\n<p>Цель не в том, чтобы любой ценой получить уверенный ответ. Цель — не превращать нехватку оснований в выдуманную уверенность.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и завершите этот урок.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    }
+  ]
+}
