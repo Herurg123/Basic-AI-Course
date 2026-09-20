@@ -5,10 +5,13 @@ import hashlib
 import json
 import os
 import re
+import sys
+import time
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Iterable
+from pathlib import Path
+from typing import Any, Callable, Iterable
 
 import requests
 
@@ -196,6 +199,7 @@ class GitHubHistoryStore:
         branch: str = HISTORY_BRANCH,
         api_url: str = "https://api.github.com",
         session: requests.Session | None = None,
+        sleep: Callable[[float], None] | None = None,
     ) -> None:
         if not repository or "/" not in repository:
             raise DeploymentHistoryError("GITHUB_REPOSITORY должен иметь вид owner/repo")
@@ -209,6 +213,7 @@ class GitHubHistoryStore:
         self.branch = branch
         self.api_url = api_url.rstrip("/")
         self.session = session or requests.Session()
+        self.sleep = sleep or time.sleep
         self._branch_ready = False
 
     @property
@@ -279,26 +284,147 @@ class GitHubHistoryStore:
             raise DeploymentHistoryError("GitHub history record повреждён") from exc
         return content, data["sha"]
 
+    @staticmethod
+    def _git_blob_sha(raw: bytes) -> str:
+        header = f"blob {len(raw)}\\0".encode("ascii")
+        return hashlib.sha1(header + raw).hexdigest()
+
+    def _blob_cache_path(self, blob_sha: str) -> Path | None:
+        raw_dir = os.getenv("STEPIK_HISTORY_BLOB_CACHE_DIR", "").strip()
+        if not raw_dir:
+            return None
+        if not SHA_RE.fullmatch(blob_sha):
+            raise DeploymentHistoryError("History listing содержит некорректный immutable blob SHA")
+        return Path(raw_dir) / f"{blob_sha}.blob"
+
+    def _read_cached_blob(self, blob_sha: str) -> str | None:
+        cache_path = self._blob_cache_path(blob_sha)
+        if cache_path is None or not cache_path.exists():
+            return None
+        try:
+            raw = cache_path.read_bytes()
+        except OSError as exc:
+            raise DeploymentHistoryError("Не удалось прочитать persistent immutable history blob cache") from exc
+        if self._git_blob_sha(raw) != blob_sha:
+            raise DeploymentHistoryError("Persistent immutable history blob cache повреждён")
+        try:
+            return raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise DeploymentHistoryError("Persistent immutable history blob cache не является UTF-8") from exc
+
+    def _persist_cached_blob(self, blob_sha: str, raw: bytes) -> None:
+        cache_path = self._blob_cache_path(blob_sha)
+        if cache_path is None:
+            return
+        if self._git_blob_sha(raw) != blob_sha:
+            raise DeploymentHistoryError("GitHub history blob не совпадает с запрошенным immutable SHA")
+        try:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = cache_path.with_name(cache_path.name + ".tmp")
+            tmp.write_bytes(raw)
+            tmp.replace(cache_path)
+        except OSError as exc:
+            raise DeploymentHistoryError("Не удалось сохранить persistent immutable history blob cache") from exc
+
+    @staticmethod
+    def _response_message(response: requests.Response) -> str:
+        try:
+            payload = response.json()
+        except (ValueError, requests.RequestException):
+            return ""
+        if not isinstance(payload, dict) or not isinstance(payload.get("message"), str):
+            return ""
+        return " ".join(payload["message"].split())[:240]
+
+    def _response_diagnostics(self, response: requests.Response) -> str:
+        headers = getattr(response, "headers", {}) or {}
+        parts = [f"HTTP {response.status_code}"]
+        message = self._response_message(response)
+        if message:
+            parts.append(f"message={message!r}")
+        for header in (
+            "Retry-After",
+            "X-RateLimit-Remaining",
+            "X-RateLimit-Reset",
+            "X-RateLimit-Resource",
+        ):
+            value = headers.get(header)
+            if value is not None:
+                parts.append(f"{header}={str(value)[:80]!r}")
+        return "; ".join(parts)
+
+    def _rate_limit_retry_delay(self, response: requests.Response, retry_index: int) -> float | None:
+        if response.status_code not in {403, 429}:
+            return None
+        headers = getattr(response, "headers", {}) or {}
+        message = self._response_message(response).lower()
+        retry_after = headers.get("Retry-After")
+        remaining = headers.get("X-RateLimit-Remaining")
+        reset = headers.get("X-RateLimit-Reset")
+        explicitly_limited = (
+            response.status_code == 429
+            or retry_after is not None
+            or str(remaining) == "0"
+            or "rate limit" in message
+        )
+        if not explicitly_limited:
+            return None
+
+        if retry_after is not None:
+            try:
+                return min(60.0, max(1.0, float(retry_after)))
+            except (TypeError, ValueError):
+                pass
+        if str(remaining) == "0" and reset is not None:
+            try:
+                return min(60.0, max(1.0, float(reset) - time.time() + 1.0))
+            except (TypeError, ValueError):
+                pass
+        return 30.0 if retry_index == 0 else 60.0
+
     def _read_blob(self, blob_sha: str) -> str:
         if not isinstance(blob_sha, str) or not blob_sha:
             raise DeploymentHistoryError("History listing не содержит immutable blob SHA")
-        response = self._request(
-            "GET",
-            f"/repos/{self.repository}/git/blobs/{blob_sha}",
-        )
-        if response.status_code != 200:
-            raise DeploymentHistoryError(f"Не удалось прочитать immutable history blob: HTTP {response.status_code}")
-        data = response.json()
-        if (
-            not isinstance(data, dict)
-            or data.get("encoding") != "base64"
-            or not isinstance(data.get("content"), str)
-        ):
-            raise DeploymentHistoryError("GitHub history blob имеет неожиданный формат")
-        try:
-            return base64.b64decode(data["content"]).decode("utf-8")
-        except (ValueError, UnicodeDecodeError) as exc:
-            raise DeploymentHistoryError("GitHub history blob повреждён") from exc
+
+        cached = self._read_cached_blob(blob_sha)
+        if cached is not None:
+            return cached
+
+        for attempt in range(3):
+            response = self._request(
+                "GET",
+                f"/repos/{self.repository}/git/blobs/{blob_sha}",
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if (
+                    not isinstance(data, dict)
+                    or data.get("encoding") != "base64"
+                    or not isinstance(data.get("content"), str)
+                ):
+                    raise DeploymentHistoryError("GitHub history blob имеет неожиданный формат")
+                try:
+                    raw = base64.b64decode(data["content"])
+                    content = raw.decode("utf-8")
+                except (ValueError, UnicodeDecodeError) as exc:
+                    raise DeploymentHistoryError("GitHub history blob повреждён") from exc
+                self._persist_cached_blob(blob_sha, raw)
+                return content
+
+            delay = self._rate_limit_retry_delay(response, attempt)
+            if delay is None or attempt == 2:
+                raise DeploymentHistoryError(
+                    "Не удалось прочитать immutable history blob: "
+                    + self._response_diagnostics(response)
+                )
+            print(
+                "GitHub history blob read ограничен rate limit; "
+                f"повтор через {delay:g} с. {self._response_diagnostics(response)}",
+                file=sys.stderr,
+            )
+            self.sleep(delay)
+
+        raise DeploymentHistoryError("Не удалось прочитать immutable history blob после bounded retry")
 
     def append(self, event_id: str, record_id: str, payload: dict[str, Any]) -> None:
         self.ensure_branch()
