@@ -1,4 +1,4 @@
-name: Stepik: приватное обновление курса
+name: "Stepik: приватное обновление курса"
 
 on:
   pull_request:
