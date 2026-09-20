@@ -97,7 +97,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   impact:
-    name: Обновить машинное состояние PENDING Stepik после merge
+    name: Обновить машинное состояние PENDING Stepik после слияния
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: tests
     runs-on: ubuntu-latest
@@ -167,7 +167,7 @@ jobs:
             echo "- **SHA изменения:** `$GITHUB_SHA`"
             echo '- **Запись в Stepik:** не выполнялась.'
             if [[ "$HAS_IMPACT" == "true" ]]; then
-              echo '- **Влияние на содержимое Stepik:** обнаружено; machine-readable состояние PENDING в Issue #54 должно быть обновлено.'
+              echo '- **Влияние на содержимое Stepik:** обнаружено; машинно-читаемое состояние PENDING в Issue #54 должно быть обновлено.'
             else
               echo '- **Влияние на содержимое Stepik:** не обнаружено.'
             fi
@@ -306,7 +306,7 @@ jobs:
           if target in plan.get('refresh_target_ids',[]): print('refresh')
           elif target in plan.get('initial_target_ids',[]): print('initial')
           elif target in plan.get('recovery_target_ids',[]): print('recovery')
-          else: raise SystemExit(target+' не является текущим PENDING target')
+          else: raise SystemExit(target+' не является текущей PENDING-целью')
           PY
           )"
           dir="$base/lessons/$TARGET_ID"
@@ -358,7 +358,7 @@ jobs:
             if [[ -n "$TARGET_ID" ]]; then
               echo "- **Цель:** `$TARGET_ID`"
             fi
-            echo '- **Запись в Stepik:** запрещена этим workflow.'
+            echo '- **Запись в Stepik:** запрещена этим рабочим процессом.'
             python - <<'PY'
           import json
           from pathlib import Path
