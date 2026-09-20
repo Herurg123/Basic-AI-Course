@@ -408,26 +408,14 @@ def _fallback_step_title(row: dict[str, Any]) -> str:
 
 def _purpose_for_step(row: dict[str, Any], *, block_name: str) -> str:
     logical = str(row.get("logical_type") or "").lower()
-    summary = str(row.get("summary") or "").strip().rstrip(".")
-    internal_markers = re.compile(
-        r"\\b(?:B\\d+|C\\d+|F1|PRACTICE|INTRO|INDEPENDENT|PRIMARY|BACKUP|level|"
-        r"post-action|learner|rubric|evidence|staged|Asset\\s*ID|live-output|"
-        r"natural\\s+trace|screenshot|recovery)\\b",
-        re.IGNORECASE,
-    )
-    allowed_latin = summary
-    for allowed in ("Stepik", "GigaChat", "AI", "ИИ", "PNG", "DOCX", "Word"):
-        allowed_latin = allowed_latin.replace(allowed, "")
-    has_internal_id = bool(re.search(r"\\bM\\d{2}-L\\d{2}|\\b[ACEB]\\d{2}\\b", summary)) or chr(96) in summary
-    has_unapproved_latin = bool(re.search(r"[A-Za-z]", allowed_latin))
-    if summary and not internal_markers.search(summary) and not has_internal_id and not has_unapproved_latin:
-        return summary + "."
     if block_name == "free-answer":
         return "Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом."
     if "recovery" in logical or "повтор" in logical:
         return "Получите новую самостоятельную попытку, если предыдущая стала тренировочной."
     if "резерв" in logical or "backup" in logical:
         return "Сохраните возможность продолжить урок, если основной маршрут временно недоступен."
+    if any(word in logical for word in ("применение", "внешнее действие", "application")):
+        return "Доведите уже полученный результат до небольшого реального применения."
     if row.get("exercise_ids"):
         return "Выполните следующий учебный шаг и получите результат, с которым можно продолжить."
     return "Разберитесь, что важно учесть перед следующим действием."
