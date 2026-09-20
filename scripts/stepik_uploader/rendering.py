@@ -6,7 +6,8 @@ from typing import Any
 
 import mistune
 
-ASSET_LINK_RE = re.compile(r"\]\(([^)]*?(M\d{2}-L\d{2}-A\d{2})(?:-[^/)]+)?\.[A-Za-z0-9]+)\)")\nABSOLUTE_LINK_RE = re.compile(r'<a href="(https?://[^"]+)"(?![^>]*\\btarget=)')
+ASSET_LINK_RE = re.compile(r"\]\(([^)]*?(M\d{2}-L\d{2}-A\d{2})(?:-[^/)]+)?\.[A-Za-z0-9]+)\)")
+ABSOLUTE_LINK_RE = re.compile(r'<a href="(https?://[^"]+)"(?![^>]*\\btarget=)')
 
 
 class UnresolvedAssetError(RuntimeError):
@@ -42,10 +43,23 @@ def resolve_asset_links(markdown_text: str, asset_url_map: dict[str, Any]) -> st
     return ASSET_LINK_RE.sub(replace, markdown_text)
 
 
+def _open_absolute_links_in_new_tab(html: str) -> str:
+    """Не даёт внешней навигации увести ученика из текущего шага Stepik.
+
+    Все абсолютные HTTP(S)-ссылки открываются отдельно. Это относится и к ссылкам
+    на другие Stepik-шаги: ученик сохраняет текущую точку прохождения и может
+    закрыть справочную вкладку после использования.
+    """
+    return ABSOLUTE_LINK_RE.sub(
+        r'<a href="\1" target="_blank" rel="noopener noreferrer"',
+        html,
+    )
+
+
 def markdown_to_html(markdown_text: str) -> str:
     """Render Markdown that has already passed dependency/link resolution."""
     renderer = mistune.create_markdown(escape=False, plugins=["table", "strikethrough"])
-    return renderer(markdown_text)
+    return _open_absolute_links_in_new_tab(renderer(markdown_text))
 
 
 def render_markdown(markdown_text: str, *, asset_url_map: dict[str, Any] | None = None) -> str:
