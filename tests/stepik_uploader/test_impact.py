@@ -93,6 +93,37 @@ class ImpactTests(unittest.TestCase):
         self.assertFalse(result["stepik_content_impact"])
         self.assertFalse(result["blockers"])
 
+    def test_global_learner_renderer_change_marks_all_canonical_lessons(self) -> None:
+        with self._roots() as (base, head):
+            for lesson_id in ("M00-L01", "M01-L01", "M07-L02"):
+                self._lesson(base, lesson_id, "body")
+                self._lesson(head, lesson_id, "body")
+            result = assess_changes(
+                [Change(
+                    "M",
+                    "scripts/stepik_uploader/general_content.py",
+                    "scripts/stepik_uploader/general_content.py",
+                )],
+                repo_root=head,
+                base_repo_root=base,
+            )
+        self.assertEqual(result["affected_lessons"], ["M00-L01", "M01-L01", "M07-L02"])
+        for lesson_id in result["affected_lessons"]:
+            self.assertIn("global-learner-renderer", result["reasons_by_lesson"][lesson_id])
+        self.assertTrue(result["stepik_content_impact"])
+
+    def test_non_render_tooling_change_still_does_not_create_pending(self) -> None:
+        with self._roots() as (base, head):
+            for lesson_id in ("M00-L01", "M01-L01"):
+                self._lesson(base, lesson_id, "body")
+                self._lesson(head, lesson_id, "body")
+            result = assess_changes(
+                [Change("M", "scripts/stepik_uploader/writer.py", "scripts/stepik_uploader/writer.py")],
+                repo_root=head,
+                base_repo_root=base,
+            )
+        self.assertFalse(result["stepik_content_impact"])
+
     def test_tooling_only_change_does_not_create_pending(self) -> None:
         with self._roots() as (base, head):
             result = assess_changes(
