@@ -45,13 +45,13 @@ class AssetResolutionTests(unittest.TestCase):
         self.assertEqual(report["decision"], "D-2026-09-15-STEPIK-ATTACHMENTS")
         self.assertEqual(
             report["topology"]["fingerprint"],
-            "sha256:ecbb9f9b8426c5bd4bba9f07816ab0e647022c13c0f38b4c29d9debd6096c20d",
+            "sha256:9ccf09d66eab66df82d4212fb9195f997ada5ba02b860b0a14cbe593c090dcf9",
         )
         self.assertEqual(
             report["summary"],
             {
-                "learner_link_occurrences": 49,
-                "resolved_occurrences": 49,
+                "learner_link_occurrences": 43,
+                "resolved_occurrences": 43,
                 "unresolved_occurrences": 0,
                 "unique_source_files": 43,
                 "resolved_unique_source_files": 43,
@@ -59,7 +59,7 @@ class AssetResolutionTests(unittest.TestCase):
                 "materialization_required_unique_files": 5,
                 "modes_by_occurrence": {
                     "confirmed-url": 2,
-                    "inline-source": 42,
+                    "inline-source": 36,
                     "rasterize-png-stepik-image": 2,
                     "stepik-attachment-upload": 1,
                     "stepik-image-upload": 2,
@@ -76,11 +76,11 @@ class AssetResolutionTests(unittest.TestCase):
             row for row in rows
             if row["source_path"] == "04_course/stepik/how-to-save-practice.md"
         ]
-        self.assertEqual(len(help_rows), 3)
+        self.assertEqual(len(help_rows), 1)
         self.assertTrue(all(row["asset_id"] is None for row in help_rows))
         self.assertEqual(
             {row["lesson"] for row in help_rows},
-            {"M06-L04", "M07-L01", "M07-L02"},
+            {"M06-L04"},
         )
 
         nested = [
@@ -117,7 +117,7 @@ class AssetResolutionTests(unittest.TestCase):
             for link in lesson["learner_links"]
         )
         self.assertEqual(compiler_links, inventory_direct)
-        self.assertEqual(sum(compiler_links.values()), 48)
+        self.assertEqual(sum(compiler_links.values()), 42)
 
     def test_existing_urls_are_bound_to_exact_source_hashes(self) -> None:
         report = self._assess()
