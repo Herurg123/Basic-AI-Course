@@ -14,8 +14,8 @@ WORKFLOWS = (
 )
 
 CYRILLIC_RE = re.compile(r"[А-Яа-яЁё]")
-DESCRIPTION_RE = re.compile(r"^\\s*description:\\s*['\\\"]?(.*?)['\\\"]?\\s*$")
-TOP_NAME_RE = re.compile(r"^name:\\s*(.+?)\\s*$", re.MULTILINE)
+DESCRIPTION_RE = re.compile(r"^\s*description:\s*['\"]?(.*?)['\"]?\s*$")
+TOP_NAME_RE = re.compile(r"^name:\s*(.+?)\s*$", re.MULTILINE)
 
 BANNED_OWNER_FACING_PHRASES = (
     "Stepik private course release",
@@ -35,9 +35,9 @@ BANNED_OWNER_FACING_PHRASES = (
 )
 
 CONTROLLED_ERROR_PATTERNS = (
-    re.compile(r"echo\\s+(['\\\"])(.+?)\\1\\s+>&2"),
-    re.compile(r"raise SystemExit\\((?:f)?(['\\\"])(.+?)\\1\\)"),
-    re.compile(r"core\\.setFailed\\((?:`|['\\\"])(.+?)(?:`|['\\\"])\\)"),
+    re.compile(r"echo\s+(['\"])(.+?)\1\s+>&2"),
+    re.compile(r"raise SystemExit\((?:f)?(['\"])(.+?)\1\)"),
+    re.compile(r"core\.setFailed\((?:\`|['\"])(.+?)(?:\`|['\"])\)"),
 )
 
 
@@ -61,7 +61,7 @@ class RussianActionsOutputContractTests(unittest.TestCase):
                 self.assertRegex(description, CYRILLIC_RE, f"{path}: {description}")
 
     def test_old_english_owner_facing_labels_do_not_return(self) -> None:
-        combined = "\\n".join(path.read_text(encoding="utf-8") for path in WORKFLOWS)
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in WORKFLOWS)
         for phrase in BANNED_OWNER_FACING_PHRASES:
             self.assertNotIn(phrase, combined, phrase)
 
