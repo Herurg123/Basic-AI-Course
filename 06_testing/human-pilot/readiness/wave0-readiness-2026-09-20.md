@@ -60,7 +60,8 @@
 - baselines присутствуют для всех 21 canonical lessons;
 - у всех 21 baseline есть Stepik lesson ID и confirmed step IDs;
 - deployment history для реальных writes содержит intent → dispatch → completed → operation read-back → final read-back → machine-state committed;
-- для `M06-L04` подтверждён корректный no-op без лишней внешней записи.
+- для `M06-L04` подтверждён корректный no-op без лишней внешней записи;
+- machine state хранит 5 materialized physical assets с Stepik URL/attachment ID/source hash, включая обе M03-L02 PNG branches, M04-L01 TXT и две SVG→PNG materialization routes (M04-L02, M05-L01).
 
 ### HUMAN VISUAL PASS всё ещё не доказан
 
