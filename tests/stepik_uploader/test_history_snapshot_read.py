@@ -44,7 +44,7 @@ class SequenceSession:
 
 
 def git_blob_sha(raw: bytes) -> str:
-    return hashlib.sha1(f"blob {len(raw)}\\0".encode("ascii") + raw).hexdigest()
+    return hashlib.sha1(f"blob {len(raw)}\0".encode("ascii") + raw).hexdigest()
 
 
 def blob_response(raw: bytes) -> FakeResponse:
@@ -186,7 +186,7 @@ class DeploymentHistorySnapshotReadTests(unittest.TestCase):
                 FakeResponse(
                     403,
                     {"message": "You have exceeded a secondary rate limit."},
-                    headers={"Retry-After": "0"},
+                    headers={"X-RateLimit-Remaining": "4999"},
                 ),
                 blob_response(raw),
             ]
@@ -202,7 +202,7 @@ class DeploymentHistorySnapshotReadTests(unittest.TestCase):
                 )
                 self.assertEqual(store._read_blob(blob_sha), raw.decode("utf-8"))
         self.assertEqual(session.calls, 2)
-        self.assertEqual(delays, [1.0])
+        self.assertEqual(delays, [60.0])
 
     def test_permission_403_is_not_retried_and_reports_sanitized_details(self) -> None:
         raw = b'{"history_schema_version":1}\n'
