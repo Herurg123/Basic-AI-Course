@@ -12,8 +12,18 @@ class RenderingTests(unittest.TestCase):
             source,
             asset_url_map={"M00-L01-A01": {"url": "https://example.org/assets/a01"}},
         )
-        self.assertIn('href="https://alice.yandex.ru/"', html)
-        self.assertIn('href="https://example.org/assets/a01"', html)
+        self.assertIn('href="https://alice.yandex.ru/" target="_blank" rel="noopener noreferrer"', html)
+        self.assertIn('href="https://example.org/assets/a01" target="_blank" rel="noopener noreferrer"', html)
+
+    def test_stepik_navigation_link_opens_in_new_tab(self) -> None:
+        html = render_markdown(
+            "[памятка](https://stepik.org/lesson/2591710/step/2)",
+            asset_url_map={},
+        )
+        self.assertIn(
+            'href="https://stepik.org/lesson/2591710/step/2" target="_blank" rel="noopener noreferrer"',
+            html,
+        )
 
     def test_same_asset_id_can_resolve_distinct_physical_files(self) -> None:
         source = "[часть 1](../../../05_assets/M05/M05-L02/M05-L02-A01-part1.md) [часть 2](../../../05_assets/M05/M05-L02/M05-L02-A01-part2.md)"
