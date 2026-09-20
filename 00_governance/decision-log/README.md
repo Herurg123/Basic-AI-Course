@@ -12,3 +12,4 @@
 - [D-2026-09-12-STEPIK-FLOW — ограничения Stepik и рекомендательное управление поведением](2026-09-12-stepik-advisory-sequencing.md).
 - [D-2026-09-13-LEARNER-UX — понятный ученический язык, прямые ссылки и нейтральный след самостоятельной работы](2026-09-13-learner-ux-evidence.md).
 - [D-2026-09-13-RATIONALE-BEFORE-ACTION — ученик понимает «зачем» до осмысленного действия](2026-09-13-rationale-before-action.md).
+- [D-2026-09-20-STEPIK-STEP-CARD — единая ориентация ученика внутри каждого Stepik-шага](2026-09-20-stepik-step-card-orientation.md).
