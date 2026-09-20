@@ -7,7 +7,7 @@ from typing import Any
 import mistune
 
 ASSET_LINK_RE = re.compile(r"\]\(([^)]*?(M\d{2}-L\d{2}-A\d{2})(?:-[^/)]+)?\.[A-Za-z0-9]+)\)")
-ABSOLUTE_LINK_RE = re.compile(r'<a href="(https?://[^"]+)"(?![^>]*\\btarget=)')
+ABSOLUTE_LINK_RE = re.compile(r'<a href="(https?://[^"]+)"')
 
 
 class UnresolvedAssetError(RuntimeError):
