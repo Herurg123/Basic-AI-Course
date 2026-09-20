@@ -410,11 +410,17 @@ def _purpose_for_step(row: dict[str, Any], *, block_name: str) -> str:
     logical = str(row.get("logical_type") or "").lower()
     summary = str(row.get("summary") or "").strip().rstrip(".")
     internal_markers = re.compile(
-        r"\b(?:B\d+|C\d+|F1|PRACTICE|INTRO|INDEPENDENT|PRIMARY|BACKUP|level|"
-        r"post-action|learner|rubric|evidence|staged|Asset\s*ID)\b",
+        r"\\b(?:B\\d+|C\\d+|F1|PRACTICE|INTRO|INDEPENDENT|PRIMARY|BACKUP|level|"
+        r"post-action|learner|rubric|evidence|staged|Asset\\s*ID|live-output|"
+        r"natural\\s+trace|screenshot|recovery)\\b",
         re.IGNORECASE,
     )
-    if summary and not internal_markers.search(summary):
+    allowed_latin = summary
+    for allowed in ("Stepik", "GigaChat", "AI", "ИИ", "PNG", "DOCX", "Word"):
+        allowed_latin = allowed_latin.replace(allowed, "")
+    has_internal_id = bool(re.search(r"\\bM\\d{2}-L\\d{2}|\\b[ACEB]\\d{2}\\b", summary)) or chr(96) in summary
+    has_unapproved_latin = bool(re.search(r"[A-Za-z]", allowed_latin))
+    if summary and not internal_markers.search(summary) and not has_internal_id and not has_unapproved_latin:
         return summary + "."
     if block_name == "free-answer":
         return "Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом."
