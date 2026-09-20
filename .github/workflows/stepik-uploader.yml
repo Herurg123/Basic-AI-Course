@@ -1,4 +1,4 @@
-name: Stepik Uploader
+name: Stepik: проверка и состояние курса
 
 on:
   pull_request:
@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Только read-only Stepik inspection/target preflight.'
+        description: 'Только чтение: локальная проверка, чтение состояния Stepik или предварительная проверка одной цели.'
         required: true
         default: 'dry-run'
         type: choice
@@ -29,12 +29,12 @@ on:
           - inspect
           - target-preflight
       target_id:
-        description: 'Один PENDING target для target-preflight: Mxx-Lxx или course-page.'
+        description: 'Одна PENDING-цель для предварительной проверки: Mxx-Lxx или course-page.'
         required: false
         default: ''
         type: string
       course_id:
-        description: 'Stepik course_id для inspect.'
+        description: 'Stepik course_id для режима чтения состояния.'
         required: false
         default: '299189'
         type: string
@@ -47,7 +47,7 @@ env:
 
 jobs:
   tests:
-    name: Тесты и structural dry-run
+    name: Проверить канон и автоматику Stepik
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -61,16 +61,43 @@ jobs:
           cache-dependency-path: scripts/stepik_uploader/requirements.txt
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
-      - name: Запустить unit tests
+      - name: Запустить модульные тесты
         run: python -m unittest discover -s tests/stepik_uploader -v
-      - name: Проверить реальный канон без Stepik writes
+      - name: Проверить реальный канон без записи в Stepik
         run: >-
           python scripts/stepik_uploader/stepik_uploader.py dry-run
           --repo-root .
           --report-dir artifacts/stepik-uploader-ci
 
+
+      - name: Сформировать русскую сводку проверки
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$JOB_STATUS" in
+            success) result='УСПЕХ' ;;
+            failure) result='ОШИБКА' ;;
+            cancelled) result='ОТМЕНЕНО' ;;
+            *) result="$JOB_STATUS" ;;
+          esac
+          {
+            echo '## Stepik: проверка канона и автоматики'
+            echo
+            echo "- **Итог:** $result"
+            echo '- **Запись в Stepik:** не выполнялась.'
+            echo '- **Что проверялось:** модульные тесты и структурная сборка канонического курса.'
+            if [[ "$JOB_STATUS" != "success" ]]; then
+              echo
+              echo '### Что делать при ошибке'
+              echo 'Откройте первый красный шаг выше. Русское сообщение проекта объясняет причину, а техническая трассировка ниже используется только как дополнительная диагностика.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   impact:
-    name: Обновить machine-readable Stepik pending после merge
+    name: Обновить машинное состояние PENDING Stepik после merge
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: tests
     runs-on: ubuntu-latest
@@ -83,7 +110,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
-      - name: Определить dependency-aware production impact
+      - name: Определить влияние изменений на Stepik с учётом зависимостей
         id: impact
         env:
           BEFORE_SHA: ${{ github.event.before }}
@@ -102,7 +129,7 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as out:
               out.write('has_impact='+('true' if data['stepik_content_impact'] else 'false')+'\n')
           PY
-      - name: Обновить PENDING backlog в Issue 54
+      - name: Обновить список PENDING в Issue #54
         if: steps.impact.outputs.has_impact == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -119,7 +146,55 @@ jobs:
           python scripts/stepik_uploader/sync_issue_state.py replace             --body-file "$base/issue-body.current.md" --state-file "$base/state.next.json"             --output-body "$base/issue-body.next.md" --output-patch "$base/issue-patch.json" --course-id 299189
           gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE"             --input "$base/issue-patch.json" >/dev/null
           gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$base/impact.md"
-      - name: Сохранить impact-отчёт
+      - name: Сформировать русскую сводку изменения PENDING
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          HAS_IMPACT: ${{ steps.impact.outputs.has_impact }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$JOB_STATUS" in
+            success) result='УСПЕХ' ;;
+            failure) result='ОШИБКА' ;;
+            cancelled) result='ОТМЕНЕНО' ;;
+            *) result="$JOB_STATUS" ;;
+          esac
+          {
+            echo '## Stepik: влияние изменений main'
+            echo
+            echo "- **Итог:** $result"
+            echo "- **SHA изменения:** `$GITHUB_SHA`"
+            echo '- **Запись в Stepik:** не выполнялась.'
+            if [[ "$HAS_IMPACT" == "true" ]]; then
+              echo '- **Влияние на содержимое Stepik:** обнаружено; machine-readable состояние PENDING в Issue #54 должно быть обновлено.'
+            else
+              echo '- **Влияние на содержимое Stepik:** не обнаружено.'
+            fi
+            if [[ -f artifacts/stepik-impact/impact.json ]]; then
+              python - <<'PY'
+          import json
+          p=json.load(open('artifacts/stepik-impact/impact.json',encoding='utf-8'))
+          lessons=p.get('affected_lessons') or []
+          print(f"- **Уроков, затронутых изменением:** {len(lessons)}")
+          if lessons:
+              print("- **Затронутые уроки:** " + ", ".join(f"`{x}`" for x in lessons))
+          print(f"- **Страница курса затронута:** {'да' if p.get('course_page_changed') else 'нет'}")
+          blockers=p.get('blockers') or []
+          if blockers:
+              print("- **Блокирующие причины:**")
+              for item in blockers:
+                  print(f"  - `{item}`")
+          PY
+            fi
+            if [[ "$JOB_STATUS" != "success" ]]; then
+              echo
+              echo '### Что делать при ошибке'
+              echo 'Машинное состояние не следует считать успешно обновлённым. Сначала разберите первый красный шаг и подтвердите состояние Issue #54.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Сохранить отчёт о влиянии изменений
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -129,7 +204,7 @@ jobs:
           retention-days: 90
 
   inspect:
-    name: "Read-only Stepik ${{ inputs.mode }}"
+    name: "Stepik: режим только чтения ${{ inputs.mode }}"
     if: github.event_name == 'workflow_dispatch'
     needs: tests
     runs-on: ubuntu-latest
@@ -158,12 +233,12 @@ jobs:
           cache-dependency-path: scripts/stepik_uploader/requirements.txt
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
-      - name: Проверить current main перед live inspect
+      - name: Проверить текущую main перед чтением Stepik
         if: inputs.mode != 'dry-run'
         run: >-
           python scripts/stepik_uploader/live_guard.py
           --output artifacts/stepik-uploader-live/live-source-guard.json
-      - name: Выполнить read-only automation
+      - name: Выполнить автоматику только для чтения
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -180,15 +255,15 @@ jobs:
           fi
 
           if [[ "$MODE" != "target-preflight" ]]; then
-            echo "Неизвестный read-only mode: $MODE" >&2
+            echo "Неизвестный режим только для чтения: $MODE" >&2
             exit 2
           fi
           if [[ "$COURSE_ID" != "299189" ]]; then
-            echo 'target-preflight разрешён только для course_id=299189.' >&2
+            echo 'Предварительная проверка одной цели (target-preflight) разрешена только для course_id=299189.' >&2
             exit 2
           fi
           if [[ -z "$TARGET_ID" ]]; then
-            echo 'target-preflight требует target_id.' >&2
+            echo 'Предварительная проверка одной цели (target-preflight) требует параметр target_id.' >&2
             exit 2
           fi
 
@@ -207,7 +282,7 @@ jobs:
           PY
             )"
             if [[ "$pending" != "true" ]]; then
-              echo 'course-page уже не PENDING.'
+              echo 'Страница курса уже не имеет статуса PENDING.'
               exit 0
             fi
             dir="$base/course-page"
@@ -248,14 +323,71 @@ jobs:
           PY
             )"
             if [[ "$mode" == "recovery" && "$applicable" != "true" ]]; then
-              echo "$TARGET_ID: planned recovery target не прошёл recovery probe" >&2
+              echo "$TARGET_ID: запланированная цель восстановления не прошла проверку восстановления (recovery)" >&2
               exit 2
             fi
             if [[ "$applicable" != "true" ]]; then
               python scripts/stepik_uploader/staging_build_runtime.py                 --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"                 --target-id "$TARGET_ID" --sync-state "$dir/sync-state.previous.json"
             fi
           fi
-      - name: Сохранить технический отчёт
+      - name: Сформировать русскую сводку режима только чтения
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$JOB_STATUS" in
+            success) result='УСПЕХ' ;;
+            failure) result='ОШИБКА' ;;
+            cancelled) result='ОТМЕНЕНО' ;;
+            *) result="$JOB_STATUS" ;;
+          esac
+          case "$MODE" in
+            dry-run) mode_ru='локальная проверка без обращения к записи Stepik (dry-run)' ;;
+            inspect) mode_ru='чтение состояния курса Stepik (inspect)' ;;
+            target-preflight) mode_ru='предварительная проверка одной цели (target-preflight)' ;;
+            *) mode_ru="$MODE" ;;
+          esac
+          {
+            echo '## Stepik: режим только чтения'
+            echo
+            echo "- **Итог:** $result"
+            echo "- **Режим:** $mode_ru"
+            echo "- **Курс:** `$COURSE_ID`"
+            if [[ -n "$TARGET_ID" ]]; then
+              echo "- **Цель:** `$TARGET_ID`"
+            fi
+            echo '- **Запись в Stepik:** запрещена этим workflow.'
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('artifacts/stepik-uploader-live')
+          found=[]
+          if root.exists():
+              for path in sorted(root.rglob('*.json')):
+                  try:
+                      data=json.loads(path.read_text(encoding='utf-8'))
+                  except Exception:
+                      continue
+                  if not isinstance(data,dict):
+                      continue
+                  for item in data.get('blockers') or []:
+                      if isinstance(item,str) and item not in found:
+                          found.append(item)
+          if found:
+              print("- **Блокирующие причины:**")
+              for item in found[:8]:
+                  print(f"  - `{item}`")
+          PY
+            if [[ "$JOB_STATUS" != "success" ]]; then
+              echo
+              echo '### Что делать при ошибке'
+              echo 'Никакой записи в Stepik не выполнялось. Разберите первый красный шаг; после исправления запускайте новую проверку, а не используйте старый результат как актуальный.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Сохранить технические артефакты
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
