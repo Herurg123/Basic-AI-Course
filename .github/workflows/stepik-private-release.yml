@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       course_id:
-        description: 'ID приватного production-staging курса Stepik.'
+        description: 'ID приватного рабочего staging-курса Stepik (тестовой сборки перед публикацией).'
         required: true
         default: '299189'
         type: string
@@ -71,7 +71,7 @@ jobs:
             echo '## Проверка автоматики приватного обновления Stepik'
             echo
             echo "- **Итог:** $result"
-            echo '- **Запись во внешний Stepik:** не выполнялась; этот job содержит только тесты и локальную проверку канона.'
+            echo '- **Запись во внешний Stepik:** не выполнялась; это задание CI содержит только тесты и локальную проверку канона.'
             if [[ "$JOB_STATUS" != "success" ]]; then
               echo
               echo '### Что делать при ошибке'
@@ -346,7 +346,7 @@ jobs:
             python scripts/stepik_uploader/course_page_sync.py               --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"               --sync-state "$dir/sync-state.previous.json" --confirm-write
           fi
           for required in sync-state.next.json course-page-deployment-event.json sync-journal.md; do
-            test -f "$dir/$required" || { echo "course_page missing $required" >&2; exit 2; }
+            test -f "$dir/$required" || { echo "для страницы курса отсутствует обязательный артефакт $required" >&2; exit 2; }
           done
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.current.md"
           python scripts/stepik_uploader/sync_issue_state.py extract             --body-file "$dir/sync-issue-body.current.md"             --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
@@ -491,7 +491,7 @@ jobs:
               print("- Автоматически извлечь более точную причину из артефактов не удалось. Откройте первый красный шаг выше: там находится исходная диагностика.")
           PY
               echo
-              echo 'Запуск остановлен безопасно. Не используйте автоматический повтор старого run, пока не подтверждена причина и актуальность текущего `main`/машинного состояния.'
+              echo 'Запуск остановлен безопасно. Не используйте автоматический повтор старого запуска, пока не подтверждена причина и актуальность текущего `main`/машинного состояния.'
             else
               echo
               echo '### Следующее действие'
