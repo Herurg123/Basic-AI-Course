@@ -408,6 +408,14 @@ def _fallback_step_title(row: dict[str, Any]) -> str:
 
 def _purpose_for_step(row: dict[str, Any], *, block_name: str) -> str:
     logical = str(row.get("logical_type") or "").lower()
+    summary = str(row.get("summary") or "").strip().rstrip(".")
+    internal_markers = re.compile(
+        r"\b(?:B\d+|C\d+|F1|PRACTICE|INTRO|INDEPENDENT|PRIMARY|BACKUP|level|"
+        r"post-action|learner|rubric|evidence|staged|Asset\s*ID)\b",
+        re.IGNORECASE,
+    )
+    if summary and not internal_markers.search(summary):
+        return summary + "."
     if block_name == "free-answer":
         return "Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом."
     if "recovery" in logical or "повтор" in logical:
@@ -419,8 +427,9 @@ def _purpose_for_step(row: dict[str, Any], *, block_name: str) -> str:
     return "Разберитесь, что важно учесть перед следующим действием."
 
 
-def _place_for_step(source_markdown: str, *, block_name: str) -> tuple[str, bool]:
-    lower = source_markdown.lower()
+def _place_for_step(source_markdown: str, row: dict[str, Any], *, block_name: str) -> tuple[str, bool]:
+    material = str(row.get("material_or_action") or "")
+    lower = (source_markdown + "\n" + material).lower()
     places: list[str] = []
     outside_stepik = False
 
@@ -433,6 +442,10 @@ def _place_for_step(source_markdown: str, *, block_name: str) -> tuple[str, bool
 
     if "giga.chat" in lower and "alice.yandex.ru" not in lower:
         places.append("в GigaChat")
+        outside_stepik = True
+
+    if ("чат" in material.lower() or "ai" in material.lower()) and not places:
+        places.append("в ИИ-чате")
         outside_stepik = True
 
     if "калькулятор" in lower:
@@ -489,7 +502,7 @@ def _frame_step_card(
 ) -> str:
     base_title = lesson_title if position == 1 else (headings[0] if headings else _fallback_step_title(row))
     body = _strip_leading_source_heading(source_markdown, headings[0] if headings else None)
-    place, outside_stepik = _place_for_step(source_markdown, block_name=block_name)
+    place, outside_stepik = _place_for_step(source_markdown, row, block_name=block_name)
 
     parts = [
         f"## Шаг {position} из {total}. {base_title}",
