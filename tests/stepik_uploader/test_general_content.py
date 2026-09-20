@@ -93,6 +93,23 @@ class GeneralContentCompilerTests(unittest.TestCase):
                 self.assertIn("**Что сделать**", step.markdown, lesson_id)
                 self.assertIn("**Готово, если:**", step.markdown, lesson_id)
 
+    def test_orientation_header_does_not_leak_internal_production_markers(self) -> None:
+        forbidden = (
+            "PRIMARY",
+            "BACKUP",
+            "PRACTICE",
+            "INDEPENDENT",
+            "natural trace",
+            "post-action",
+            "live-output",
+            "Asset ID",
+        )
+        for lesson_id, steps in self.compiled.items():
+            for step in steps:
+                header = step.markdown.split("**Что сделать**", 1)[0]
+                for marker in forbidden:
+                    self.assertNotIn(marker, header, f"{lesson_id} step {step.position}: {marker}")
+
     def test_first_step_uses_lesson_title_as_orientation_title(self) -> None:
         self.assertTrue(
             self.compiled["M01-L01"][0].markdown.startswith(
