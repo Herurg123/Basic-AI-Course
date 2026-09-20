@@ -70,6 +70,7 @@ jobs:
       STEPIC_CLIENT_SECRET: ${{ secrets.STEPIC_CLIENT_SECRET }}
       GITHUB_TOKEN: ${{ github.token }}
       STEPIK_HISTORY_ANCHOR_CACHE: artifacts/stepik-private-release/history-anchor-cache.json
+      STEPIK_HISTORY_BLOB_CACHE_DIR: /tmp/stepik-history-blobs
       COURSE_ID: ${{ inputs.course_id }}
       CONFIRM_WRITE: ${{ inputs.confirm_write }}
     steps:

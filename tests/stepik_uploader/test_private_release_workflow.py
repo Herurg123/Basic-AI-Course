@@ -33,6 +33,14 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
             raw,
         )
 
+    def test_private_release_reuses_verified_immutable_blob_cache(self) -> None:
+        raw = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn(
+            "STEPIK_HISTORY_BLOB_CACHE_DIR: /tmp/stepik-history-blobs",
+            raw,
+        )
+        self.assertNotIn("STEPIK_HISTORY_BLOB_CACHE_DIR: artifacts/", raw)
+
     def test_every_lesson_uses_one_preflight_and_write_loop(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("Preflight всех PENDING lessons без записи", raw)

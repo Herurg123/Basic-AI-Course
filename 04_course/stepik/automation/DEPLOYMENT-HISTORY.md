@@ -23,6 +23,8 @@ Deployment history хранит доказательства внешних Step
 ## Правила
 
 - immutable records не переписываются;
+- exact Git blob, уже прочитанный в одном release job, может повторно использоваться из временного runner-cache только по своему immutable SHA; перед использованием cached bytes заново проверяются по Git blob hash;
+- повтор GET immutable blob после HTTP 403/429 разрешён только при явном сигнале GitHub rate limit и остаётся ограниченным по числу попыток; обычный permission-403 остаётся fail-closed;
 - новый workflow run может продолжить тот же stable event, если semantic identity совпадает;
 - conflicting identity/history = STOP;
 - machine baseline считается committed только после Issue PATCH;

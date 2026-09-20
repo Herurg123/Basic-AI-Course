@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import json
 import os
 from pathlib import Path
@@ -285,16 +284,9 @@ def _anchor_identity_from_blob(store: GitHubHistoryStore, *, event_id: str, blob
             raise DeploymentHistoryError("History anchor cache конфликтует с event directory")
         return cached
 
-    response = store._request("GET", f"/repos/{store.repository}/git/blobs/{blob_sha}")
-    if response.status_code != 200:
-        raise DeploymentHistoryError(f"Не удалось прочитать history anchor blob: HTTP {response.status_code}")
-    data = response.json()
-    if not isinstance(data, dict) or data.get("encoding") != "base64" or not isinstance(data.get("content"), str):
-        raise DeploymentHistoryError("History anchor blob имеет неожиданный формат")
     try:
-        raw = base64.b64decode(data["content"]).decode("utf-8")
-        record = json.loads(raw)
-    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        record = json.loads(store._read_blob(blob_sha))
+    except json.JSONDecodeError as exc:
         raise DeploymentHistoryError("History anchor blob повреждён") from exc
     if not isinstance(record, dict):
         raise DeploymentHistoryError("History anchor должен быть JSON object")
