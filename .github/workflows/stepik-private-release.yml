@@ -313,7 +313,7 @@ jobs:
             echo "$target:$mode" >> "$base/write-committed.txt"
           done
 
-      - name: Синхронизировать course page
+      - name: Синхронизировать страницу курса
         if: inputs.confirm_write == true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -356,7 +356,7 @@ jobs:
           python scripts/stepik_uploader/special_history_commit.py             --event-file "$dir/course-page-deployment-event.json"
           gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$dir/sync-journal.md"
 
-      - name: Проверить отсутствие PENDING и контрольные baselines всех уроков
+      - name: Проверить отсутствие PENDING и контрольные состояния всех уроков (baselines)
         if: inputs.confirm_write == true && success()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -503,7 +503,7 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Сохранить release evidence
+      - name: Сохранить артефакты подтверждения выпуска
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
