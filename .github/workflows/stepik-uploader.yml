@@ -1,4 +1,4 @@
-name: Stepik: проверка и состояние курса
+name: "Stepik: проверка и состояние курса"
 
 on:
   pull_request:
