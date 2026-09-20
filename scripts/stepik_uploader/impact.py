@@ -16,6 +16,12 @@ CANONICAL_SOURCE_RE = LESSON_FILE_RE
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 COURSE_PAGE = "04_course/stepik/course-page.md"
 SHARED_PREFIX = "04_course/stepik/"
+GLOBAL_LEARNER_RENDER_PATHS = {
+    "scripts/stepik_uploader/canonical.py",
+    "scripts/stepik_uploader/general_content.py",
+    "scripts/stepik_uploader/rendering.py",
+    "scripts/stepik_uploader/verified_rendering.py",
+}
 
 
 class ImpactError(RuntimeError):
@@ -103,6 +109,15 @@ def _is_shared_learner_candidate(path: str) -> bool:
     return path.startswith(SHARED_PREFIX) and path != COURSE_PAGE and not path.startswith("04_course/stepik/automation/") and path.endswith(".md")
 
 
+def _canonical_lesson_ids(repo_root: Path) -> list[str]:
+    root = repo_root.resolve() / "04_course"
+    return sorted(
+        path.parent.name
+        for path in root.glob("M??/M??-L??/lesson.md")
+        if re.fullmatch(r"M\d{2}-L\d{2}", path.parent.name)
+    )
+
+
 def _add_reason(affected: set[str], paths: dict[str, set[str]], reasons: dict[str, set[str]], *, lesson_id: str, changed_path: str, reason: str) -> None:
     affected.add(lesson_id)
     paths.setdefault(lesson_id, set()).add(changed_path)
@@ -125,6 +140,22 @@ def assess_changes(changes: Iterable[Change], *, repo_root: Path, base_repo_root
             sides.append((change.old_path, base_graph, "before"))
         if change.new_path:
             sides.append((change.new_path, head_graph, "after"))
+
+        global_render_paths = [path for path in change.paths if path in GLOBAL_LEARNER_RENDER_PATHS]
+        if global_render_paths:
+            lesson_ids = sorted(set(_canonical_lesson_ids(repo_root)) | set(_canonical_lesson_ids(base_repo_root)))
+            if not lesson_ids:
+                blockers.append("global-learner-renderer-changed:no-canonical-lessons-found")
+            for lesson_id in lesson_ids:
+                for changed_path in global_render_paths:
+                    _add_reason(
+                        affected,
+                        paths_by_lesson,
+                        reasons_by_lesson,
+                        lesson_id=lesson_id,
+                        changed_path=changed_path,
+                        reason="global-learner-renderer",
+                    )
 
         shared_paths = [path for path in change.paths if _is_shared_learner_candidate(path)]
         shared_consumers: set[str] = set()
