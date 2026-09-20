@@ -286,7 +286,7 @@ class GitHubHistoryStore:
 
     @staticmethod
     def _git_blob_sha(raw: bytes) -> str:
-        header = f"blob {len(raw)}\\0".encode("ascii")
+        header = f"blob {len(raw)}\0".encode("ascii")
         return hashlib.sha1(header + raw).hexdigest()
 
     def _blob_cache_path(self, blob_sha: str) -> Path | None:
@@ -372,15 +372,17 @@ class GitHubHistoryStore:
 
         if retry_after is not None:
             try:
-                return min(60.0, max(1.0, float(retry_after)))
+                delay = max(1.0, float(retry_after))
+                return delay if delay <= 300.0 else None
             except (TypeError, ValueError):
                 pass
         if str(remaining) == "0" and reset is not None:
             try:
-                return min(60.0, max(1.0, float(reset) - time.time() + 1.0))
+                delay = max(1.0, float(reset) - time.time() + 1.0)
+                return delay if delay <= 300.0 else None
             except (TypeError, ValueError):
                 pass
-        return 30.0 if retry_index == 0 else 60.0
+        return 60.0 * (2 ** retry_index)
 
     def _read_blob(self, blob_sha: str) -> str:
         if not isinstance(blob_sha, str) or not blob_sha:
