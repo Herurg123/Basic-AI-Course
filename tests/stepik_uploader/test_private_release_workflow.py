@@ -36,7 +36,7 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
     def test_private_release_reuses_verified_immutable_blob_cache(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn(
-            "STEPIK_HISTORY_BLOB_CACHE_DIR: ${{ runner.temp }}/stepik-history-blobs",
+            "STEPIK_HISTORY_BLOB_CACHE_DIR: /tmp/stepik-history-blobs",
             raw,
         )
         self.assertNotIn("STEPIK_HISTORY_BLOB_CACHE_DIR: artifacts/", raw)
