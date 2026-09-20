@@ -201,9 +201,9 @@ def render_markdown(payload: dict, *, source_sha: str) -> str:
     lines = [
         "### PENDING: изменения `main`, потенциально требующие синхронизации Stepik",
         "",
-        f"Source SHA: `{source_sha}`",
+        f"SHA исходника: `{source_sha}`",
         "",
-        "Machine-readable backlog в body issue обновлён. Эта запись остаётся append-only следом операции и не является источником содержания курса.",
+        "Машинно-читаемый список PENDING в описании issue обновлён. Эта запись остаётся неизменяемым журналом операции и не является источником содержания курса.",
     ]
     lessons = payload.get("affected_lessons", [])
     if lessons:
@@ -212,8 +212,8 @@ def render_markdown(payload: dict, *, source_sha: str) -> str:
             paths = ", ".join(f"`{p}`" for p in payload.get("paths_by_lesson", {}).get(lesson_id, []))
             lines.append(f"- `{lesson_id}`: {paths}")
     if payload.get("course_page_changed"):
-        lines.extend(["", "Также изменена Stepik course page: `04_course/stepik/course-page.md`."])
-    lines.extend(["", "Повторный merge того же объекта обновляет его `latest_pending_*` и объединяет source paths; отдельная логическая очередь не создаётся.", "Перед записью manual sync обязан сравнить live Stepik с последним подтверждённым baseline. Drift = STOP."])
+        lines.extend(["", "Также изменена страница курса Stepik: `04_course/stepik/course-page.md`."])
+    lines.extend(["", "Повторное слияние изменения того же объекта обновляет его `latest_pending_*` и объединяет пути исходников; отдельная логическая очередь не создаётся.", "Перед записью ручная синхронизация обязана сравнить текущее состояние Stepik с последним подтверждённым базовым состоянием (`baseline`). Обнаруженное расхождение означает остановку без записи."])
     return "\n".join(lines) + "\n"
 
 
@@ -242,7 +242,7 @@ def main() -> int:
         print(json.dumps(payload, ensure_ascii=False))
         return 2 if payload["blockers"] else 0
     except (ImpactError, OSError, ValueError) as exc:
-        print(f"STOP: {exc}", file=sys.stderr)
+        print(f"ОСТАНОВЛЕНО: {exc}", file=sys.stderr)
         return 2
 
 
