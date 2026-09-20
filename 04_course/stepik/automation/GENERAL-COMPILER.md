@@ -37,3 +37,31 @@ Repo-relative ссылка на локальный `.md` в learner-facing те�
 
 Regression-test обязан блокировать повторные repo-relative ссылки на один и тот же `.md` source в learner graph.
 
+
+
+## Единая Stepik-карточка шага
+
+Действует [D-2026-09-20-STEPIK-STEP-CARD](../../../00_governance/decision-log/2026-09-20-stepik-step-card-orientation.md).
+
+General compiler формирует для каждого learner-facing шага единый ориентационный каркас:
+
+1. `Шаг N из M. <простое название>`;
+2. `Зачем`;
+3. `Где и с чем`;
+4. `Что сделать`;
+5. `Готово, если`;
+6. `Что сохранить` — только при необходимости;
+7. `Если не получается` — если такой маршрут предусмотрен source;
+8. `Что дальше` — когда после внешнего действия нужен явный возврат в Stepik.
+
+Каркас не заменяет canonical `lesson.md`: содержательное learner-facing тело шага остаётся source-of-truth и сохраняется отдельно в compiler model как `source_markdown`.
+
+Для independence-sensitive уроков framing обязан оставаться операционным: он не угадывает и не выводит правильный содержательный следующий ход.
+
+## Ссылки и сохранение позиции ученика
+
+После Markdown-rendering все абсолютные HTTP(S)-ссылки получают `target="_blank" rel="noopener noreferrer"`.
+
+Это относится и к ссылкам на другие Stepik-шаги. Переход к памятке/справке не должен заменять текущую страницу курса.
+
+Repo-relative Markdown по-прежнему обрабатывается отдельным inline-source contract до финального HTML-rendering.

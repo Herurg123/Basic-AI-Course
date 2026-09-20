@@ -74,10 +74,52 @@ class GeneralContentCompilerTests(unittest.TestCase):
             lesson_path = self.repo_root / "04_course" / module_id / lesson_id / "lesson.md"
             source_chunks = split_source_chunks(lesson_path.read_text(encoding="utf-8"))
             source = "\n\n".join(chunk.markdown for chunk in source_chunks)
+            compiled_source = "\n\n".join(step.source_markdown for step in steps)
+            self.assertEqual(compiled_source, source, lesson_id)
             compiled = "\n\n".join(step.markdown for step in steps)
-            self.assertEqual(compiled, source, lesson_id)
             self.assertNotIn("<!-- Exercise:", compiled, lesson_id)
             self.assertNotIn("<!-- Check:", compiled, lesson_id)
+
+    def test_every_learner_step_has_orientation_card(self) -> None:
+        for lesson_id, steps in self.compiled.items():
+            total = len(steps)
+            for step in steps:
+                self.assertTrue(
+                    step.markdown.startswith(f"## Шаг {step.position} из {total}. "),
+                    f"{lesson_id} step {step.position}",
+                )
+                self.assertIn("**Зачем:**", step.markdown, lesson_id)
+                self.assertIn("**Где и с чем:**", step.markdown, lesson_id)
+                self.assertIn("**Что сделать**", step.markdown, lesson_id)
+                self.assertIn("**Готово, если:**", step.markdown, lesson_id)
+
+    def test_orientation_header_does_not_leak_internal_production_markers(self) -> None:
+        forbidden = (
+            "PRIMARY",
+            "BACKUP",
+            "PRACTICE",
+            "INDEPENDENT",
+            "natural trace",
+            "post-action",
+            "live-output",
+            "Asset ID",
+        )
+        for lesson_id, steps in self.compiled.items():
+            for step in steps:
+                header = step.markdown.split("**Что сделать**", 1)[0]
+                for marker in forbidden:
+                    self.assertNotIn(marker, header, f"{lesson_id} step {step.position}: {marker}")
+
+    def test_first_step_uses_lesson_title_as_orientation_title(self) -> None:
+        self.assertTrue(
+            self.compiled["M01-L01"][0].markdown.startswith(
+                "## Шаг 1 из 7. Превратите первый ответ в полезный результат"
+            )
+        )
+
+    def test_outside_stepik_step_explicitly_sends_learner_back(self) -> None:
+        step = self.compiled["M01-L01"][1]
+        self.assertIn("**Что дальше:** после выполнения вернитесь в Stepik", step.markdown)
 
     def test_free_answer_rows_use_only_confirmed_platform_source(self) -> None:
         free_answer_count = 0
