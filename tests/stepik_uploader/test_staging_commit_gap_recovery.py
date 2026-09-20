@@ -13,8 +13,8 @@ class StagingCommitGapWorkflowTests(unittest.TestCase):
 
     def test_commit_gap_probe_precedes_initial_runtime_in_unified_loop(self) -> None:
         block = self.workflow[
-            self.workflow.index("Preflight всех PENDING lessons без записи"):
-            self.workflow.index("Проверить неизменность source и scope перед write")
+            self.workflow.index("Предварительно проверить все PENDING-уроки без записи"):
+            self.workflow.index("Проверить неизменность исходника и охвата перед записью")
         ]
         recovery = "python scripts/stepik_uploader/staging_commit_gap_recovery.py"
         initial = "python scripts/stepik_uploader/staging_build_runtime.py"
@@ -24,8 +24,8 @@ class StagingCommitGapWorkflowTests(unittest.TestCase):
 
     def test_machine_state_patch_precedes_history_commit(self) -> None:
         block = self.workflow[
-            self.workflow.index("Последовательно синхронизировать все PENDING lessons"):
-            self.workflow.index("Синхронизировать course page")
+            self.workflow.index("Последовательно синхронизировать все PENDING-уроки"):
+            self.workflow.index("Синхронизировать страницу курса")
         ]
         self.assertIn("sync_issue_state.py compare", block)
         self.assertIn("gh api --method PATCH", block)

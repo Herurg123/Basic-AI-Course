@@ -1,4 +1,4 @@
-name: Repository Janitor
+name: Очистка веток репозитория
 
 on:
   schedule:
@@ -23,6 +23,7 @@ jobs:
 
     steps:
       - name: Проверить ветки и выполнить безопасную уборку
+        id: cleanup
         # actions/github-script v9.0.0 pinned to an immutable, verified commit SHA.
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
@@ -109,7 +110,7 @@ jobs:
               });
 
               if (currentBranch.data.protected) {
-                return { ok: false, reason: 'ветка стала protected до удаления' };
+                return { ok: false, reason: 'ветка стала защищённой до удаления' };
               }
 
               const currentRef = await github.rest.git.getRef({
@@ -156,12 +157,12 @@ jobs:
 
             async function deleteOrDryRun(branchName, sha, reason) {
               if (dryRun) {
-                record(branchName, sha, 'КАНДИДАТ (DRY-RUN)', `${reason}; удаление заблокировано защитным dry-run`);
+                record(branchName, sha, 'КАНДИДАТ (DRY-RUN, без удаления)', `${reason}; удаление заблокировано защитным dry-run`);
                 return;
               }
 
               if (!Number.isFinite(maxDeletionsPerRun) || maxDeletionsPerRun < 1) {
-                record(branchName, sha, 'СОХРАНЕНА', 'некорректный MAX_DELETIONS_PER_RUN: fail-safe запрет удаления');
+                record(branchName, sha, 'СОХРАНЕНА', 'некорректный MAX_DELETIONS_PER_RUN: защитный запрет удаления');
                 return;
               }
 
@@ -198,7 +199,7 @@ jobs:
               // Проектная инструкция жёстко определяет main как каноническую ветку.
               // Любое расхождение считается инфраструктурной ошибкой, а не поводом выбирать другой base автоматически.
               if (defaultBranch !== 'main') {
-                throw new Error(`default branch = ${defaultBranch}; ожидался main. Удаление полностью заблокировано.`);
+                throw new Error(`ветка по умолчанию = ${defaultBranch}; ожидалась main. Удаление полностью заблокировано.`);
               }
 
               const keepBranches = new Set(['main', defaultBranch, ...configuredKeepBranches]);
@@ -240,7 +241,7 @@ jobs:
                   }
 
                   if (branch.protected) {
-                    record(branchName, sha, 'СОХРАНЕНА', 'protected branch');
+                    record(branchName, sha, 'СОХРАНЕНА', 'защищённая ветка');
                     continue;
                   }
 
@@ -274,7 +275,7 @@ jobs:
                         branchName,
                         sha,
                         'СОХРАНЕНА',
-                        `после merge PR #${mergedPr.number} SHA ветки изменился; merged head ${shortSha(mergedPr.head.sha)}, текущий ${shortSha(sha)}`,
+                        `после слияния PR #${mergedPr.number} SHA ветки изменился; SHA слитого head ${shortSha(mergedPr.head.sha)}, текущий ${shortSha(sha)}`,
                       );
                       continue;
                     }
@@ -285,7 +286,7 @@ jobs:
                         branchName,
                         sha,
                         'СОХРАНЕНА',
-                        `PR #${mergedPr.number} смёржен в main, но не прошёл карантин ${mergedGraceHours} ч`,
+                        `PR #${mergedPr.number} слит в main, но не прошёл карантин ${mergedGraceHours} ч`,
                       );
                       continue;
                     }
@@ -293,7 +294,7 @@ jobs:
                     await deleteOrDryRun(
                       branchName,
                       sha,
-                      `неизменённый head смёрженного PR #${mergedPr.number} в main; карантин ${mergedGraceHours} ч пройден`,
+                      `неизменённый head слитого PR #${mergedPr.number} в main; карантин ${mergedGraceHours} ч пройден`,
                     );
                     continue;
                   }
@@ -308,7 +309,7 @@ jobs:
                   const aheadBy = Number(comparison.data.ahead_by);
                   if (!Number.isFinite(aheadBy) || aheadBy !== 0) {
                     const suffix = Number.isFinite(aheadBy) ? `ahead_by=${aheadBy}` : 'ahead_by неизвестен';
-                    record(branchName, sha, 'СОХРАНЕНА', `нет подходящего merged PR в main; ${suffix}`);
+                    record(branchName, sha, 'СОХРАНЕНА', `нет подходящего слитого PR в main; ${suffix}`);
                     continue;
                   }
 
@@ -332,7 +333,7 @@ jobs:
                       branchName,
                       sha,
                       'СОХРАНЕНА',
-                      `ahead_by=0, но не прошёл карантин ${noPrGraceDays} дн. для веток без подходящего merged PR`,
+                      `ahead_by=0, но не прошёл карантин ${noPrGraceDays} дн. для веток без подходящего слитого PR`,
                     );
                     continue;
                   }
@@ -353,17 +354,17 @@ jobs:
             }
 
             const deleted = results.filter((r) => r.decision === 'УДАЛЕНА');
-            const candidates = results.filter((r) => r.decision === 'КАНДИДАТ (DRY-RUN)');
+            const candidates = results.filter((r) => r.decision === 'КАНДИДАТ (DRY-RUN, без удаления)');
             const kept = results.filter((r) => r.decision === 'СОХРАНЕНА' || r.decision === 'ОШИБКА — СОХРАНЕНА');
 
             const lines = [];
-            lines.push('# Repository Janitor: сводка');
+            lines.push('# Очистка веток репозитория: сводка');
             lines.push('');
             lines.push(`- **Режим:** ${dryRun ? 'DRY-RUN — удаление физически заблокировано' : 'рабочий режим — удаление разрешено только после всех проверок'}`);
-            lines.push(`- **Номер ежедневного запуска workflow:** ${Number.isFinite(runNumber) ? runNumber : 'не определён'}`);
+            lines.push(`- **Номер ежедневного запуска рабочего процесса:** ${Number.isFinite(runNumber) ? runNumber : 'не определён'}`);
             lines.push(`- **Защитный период:** первые ${dryRuns} запусков всегда DRY-RUN`);
-            lines.push(`- **Аварийный FORCE_DRY_RUN:** ${forceDryRun ? 'включён' : 'выключен'}`);
-            lines.push(`- **Default branch:** ${md(defaultBranch || 'не удалось определить')}`);
+            lines.push(`- **Аварийный FORCE_DRY_RUN (принудительный режим без удаления):** ${forceDryRun ? 'включён' : 'выключен'}`);
+            lines.push(`- **Ветка по умолчанию:** ${md(defaultBranch || 'не удалось определить')}`);
             lines.push(`- **Найдено веток:** ${branchCount}`);
             lines.push(`- **Лимит реальных удалений за запуск:** ${Number.isFinite(maxDeletionsPerRun) ? maxDeletionsPerRun : 'некорректное значение — удаления запрещены'}`);
             lines.push(`- **Удалено:** ${deleted.length}`);
@@ -402,7 +403,7 @@ jobs:
             }
 
             if (candidates.length > 0) {
-              lines.push('## Что было бы удалено после окончания DRY-RUN');
+              lines.push('## Что было бы удалено после окончания DRY-RUN (пробного режима без удаления)');
               lines.push('');
               for (const item of candidates) {
                 lines.push(`- \`${md(item.name)}\`: ${md(item.reason)}`);
@@ -431,7 +432,24 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`);
 
             if (fatalError) {
-              core.setFailed(`Repository Janitor остановлен: ${fatalError.message}`);
+              core.setFailed(`Очистка веток репозитория остановлена: ${fatalError.message}`);
             } else if (errors.length > 0) {
-              core.setFailed(`Repository Janitor сохранил ветки с ошибками проверки: ${errors.length}`);
+              core.setFailed(`Очистка веток репозитория сохранила ветки с ошибками проверки: ${errors.length}`);
             }
+
+
+      - name: Дополнить русскую сводку при аварийном сбое
+        if: always() && steps.cleanup.outcome != 'success'
+        env:
+          CLEANUP_OUTCOME: ${{ steps.cleanup.outcome }}
+        shell: bash
+        run: |
+          {
+            echo
+            echo '## Дополнительная отметка об ошибке'
+            echo
+            echo "- **Итог основного шага:** `$CLEANUP_OUTCOME`"
+            echo '- Автоматическое удаление нельзя считать успешно завершённым.'
+            echo '- Если основной шаг успел сформировать подробную сводку выше, используйте её как источник причины. Если нет, откройте красный шаг «Проверить ветки и выполнить безопасную уборку».'
+            echo '- При любой неопределённости ветки должны считаться сохранёнными до отдельной проверки.'
+          } >> "$GITHUB_STEP_SUMMARY"

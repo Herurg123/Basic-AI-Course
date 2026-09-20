@@ -1,4 +1,4 @@
-name: Stepik Private Course Release
+name: "Stepik: приватное обновление курса"
 
 on:
   pull_request:
@@ -13,12 +13,12 @@ on:
   workflow_dispatch:
     inputs:
       course_id:
-        description: 'Private production-staging course.'
+        description: 'ID приватного рабочего staging-курса Stepik (тестовой сборки перед публикацией).'
         required: true
         default: '299189'
         type: string
       confirm_write:
-        description: 'false = full read-only preflight; true = guarded sync всех PENDING lessons и course page.'
+        description: 'false = полная предварительная проверка без записи; true = защищённая синхронизация всех PENDING-уроков и страницы курса.'
         required: true
         default: false
         type: boolean
@@ -31,7 +31,7 @@ env:
 
 jobs:
   tests:
-    name: Offline private-release tests
+    name: Проверка автоматики приватного обновления Stepik
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -45,16 +45,42 @@ jobs:
           cache-dependency-path: scripts/stepik_uploader/requirements.txt
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
-      - name: Запустить полный offline test suite
+      - name: Запустить полный набор офлайн-тестов
         run: python -m unittest discover -s tests/stepik_uploader -v
-      - name: Проверить канон без Stepik writes
+      - name: Проверить канон без записи в Stepik
         run: >-
           python scripts/stepik_uploader/stepik_uploader.py dry-run
           --repo-root .
           --report-dir artifacts/stepik-private-release-ci
 
+
+      - name: Сформировать русскую сводку проверки
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$JOB_STATUS" in
+            success) result='УСПЕХ' ;;
+            failure) result='ОШИБКА' ;;
+            cancelled) result='ОТМЕНЕНО' ;;
+            *) result="$JOB_STATUS" ;;
+          esac
+          {
+            echo '## Проверка автоматики приватного обновления Stepik'
+            echo
+            echo "- **Итог:** $result"
+            echo '- **Запись во внешний Stepik:** не выполнялась; это задание CI содержит только тесты и локальную проверку канона.'
+            if [[ "$JOB_STATUS" != "success" ]]; then
+              echo
+              echo '### Что делать при ошибке'
+              echo 'Откройте первый красный шаг выше. Собственные сообщения проекта должны быть на русском; техническая трассировка библиотеки может сохраняться как дополнительная диагностика.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   release:
-    name: Sync complete private Stepik course
+    name: Синхронизировать приватный курс Stepik
     if: github.event_name == 'workflow_dispatch'
     needs: tests
     runs-on: ubuntu-latest
@@ -85,18 +111,18 @@ jobs:
       - name: Установить зависимости
         run: python -m pip install -r scripts/stepik_uploader/requirements.txt
 
-      - name: Проверить fixed scope и current main
+      - name: Проверить фиксированный охват и текущую main
         shell: bash
         run: |
           set -euo pipefail
           if [[ "$COURSE_ID" != "299189" ]]; then
-            echo 'Private release разрешён только для course_id=299189.' >&2
+            echo 'Приватное обновление разрешено только для course_id=299189.' >&2
             exit 2
           fi
           mkdir -p artifacts/stepik-private-release
           python scripts/stepik_uploader/live_guard.py             --output artifacts/stepik-private-release/live-source-guard.initial.json
 
-      - name: Зафиксировать initial machine scope
+      - name: Зафиксировать исходный машинный охват
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -112,12 +138,12 @@ jobs:
           pending = state.get('pending', {})
           for target, row in pending.get('lessons', {}).items():
               if row.get('status') != 'PENDING':
-                  raise SystemExit(f'{target}: pending state повреждён')
+                  raise SystemExit(f'{target}: машинное состояние PENDING повреждено')
           if pending.get('course_page') is not None and pending['course_page'].get('status') != 'PENDING':
-              raise SystemExit('course_page pending state повреждён')
+              raise SystemExit('машинное состояние PENDING страницы курса повреждено')
           PY
 
-      - name: Preflight всех PENDING lessons без записи
+      - name: Предварительно проверить все PENDING-уроки без записи
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -131,7 +157,7 @@ jobs:
           PY
           )
           for target in "${targets[@]}"; do
-            echo "=== PREFLIGHT $target ==="
+            echo "=== ПРЕДВАРИТЕЛЬНАЯ ПРОВЕРКА $target ==="
             dir="$base/preflight/lessons/$target"
             mkdir -p "$dir"
             cp "$base/sync-state.initial.json" "$dir/sync-state.previous.json"
@@ -143,7 +169,7 @@ jobs:
           if t in p.get('refresh_target_ids',[]): print('refresh')
           elif t in p.get('initial_target_ids',[]): print('initial')
           elif t in p.get('recovery_target_ids',[]): print('recovery')
-          else: raise SystemExit('unplanned target: '+t)
+          else: raise SystemExit('цель не входит в утверждённый план: '+t)
           PY
             )"
             if [[ "$mode" == "refresh" ]]; then
@@ -156,7 +182,7 @@ jobs:
           PY
               )"
               if [[ "$mode" == "recovery" && "$applicable" != "true" ]]; then
-                echo "$target: planned recovery target не прошёл recovery probe" >&2
+                echo "$target: запланированная цель восстановления не прошла проверку восстановления (recovery)" >&2
                 exit 2
               fi
               if [[ "$applicable" != "true" ]]; then
@@ -166,7 +192,7 @@ jobs:
             echo "$target:$mode" >> "$base/preflight-passed.txt"
           done
 
-      - name: Preflight course page без записи
+      - name: Предварительно проверить страницу курса без записи
         shell: bash
         run: |
           set -euo pipefail
@@ -180,7 +206,7 @@ jobs:
           PY
           )"
           if [[ "$pending" != "true" ]]; then
-            echo 'course_page already closed' > "$dir/already-closed.txt"
+            echo 'страница курса уже не ожидает синхронизации' > "$dir/already-closed.txt"
             exit 0
           fi
           python scripts/stepik_uploader/course_page_commit_gap_recovery.py             --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"             --sync-state "$base/sync-state.initial.json"
@@ -193,7 +219,7 @@ jobs:
             python scripts/stepik_uploader/course_page_sync.py               --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"               --sync-state "$base/sync-state.initial.json"
           fi
 
-      - name: Проверить неизменность source и scope перед write
+      - name: Проверить неизменность исходника и охвата перед записью
         if: inputs.confirm_write == true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -210,15 +236,15 @@ jobs:
           a=json.load(open('artifacts/stepik-private-release/batch-plan.initial.json',encoding='utf-8'))
           b=json.load(open('artifacts/stepik-private-release/batch-plan.before-write.json',encoding='utf-8'))
           if a['source_main_sha'] != b['source_main_sha']:
-              raise SystemExit('source SHA изменился между preflight и write')
+              raise SystemExit('SHA исходника изменился между предварительной проверкой и записью')
           for key in ('initial_target_ids','refresh_target_ids','recovery_target_ids','target_ids'):
               if a.get(key,[]) != b.get(key,[]):
-                  raise SystemExit(key+' изменился между preflight и write')
+                  raise SystemExit('Состав целей ('+key+') изменился между предварительной проверкой и записью')
           if b.get('blockers'):
-              raise SystemExit('Перед write появились batch blockers')
+              raise SystemExit('Перед записью появились блокирующие причины в пакетном плане')
           PY
 
-      - name: Последовательно синхронизировать все PENDING lessons
+      - name: Последовательно синхронизировать все PENDING-уроки
         if: inputs.confirm_write == true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -233,7 +259,7 @@ jobs:
           PY
           )
           for target in "${targets[@]}"; do
-            echo "=== WRITE $target ==="
+            echo "=== ЗАПИСЬ $target ==="
             dir="$base/write/lessons/$target"
             mkdir -p "$dir"
             gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.previous.md"
@@ -246,7 +272,7 @@ jobs:
           if t in p.get('refresh_target_ids',[]): print('refresh')
           elif t in p.get('initial_target_ids',[]): print('initial')
           elif t in p.get('recovery_target_ids',[]): print('recovery')
-          else: raise SystemExit('unplanned target: '+t)
+          else: raise SystemExit('цель не входит в утверждённый план: '+t)
           PY
             )"
             if [[ "$mode" == "refresh" ]]; then
@@ -259,7 +285,7 @@ jobs:
           PY
               )"
               if [[ "$mode" == "recovery" && "$applicable" != "true" ]]; then
-                echo "$target: planned recovery target не прошёл recovery" >&2
+                echo "$target: запланированная цель восстановления не прошла восстановление (recovery)" >&2
                 exit 2
               fi
               if [[ "$applicable" != "true" ]]; then
@@ -270,7 +296,7 @@ jobs:
             journal="$dir/sync-journal.md"
             event="$dir/lesson-deployment-event.json"
             for required in "$state" "$journal" "$event"; do
-              test -f "$required" || { echo "$target: missing release artifact $required" >&2; exit 2; }
+              test -f "$required" || { echo "$target: отсутствует обязательный артефакт выпуска $required" >&2; exit 2; }
             done
             gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.current.md"
             python scripts/stepik_uploader/sync_issue_state.py extract               --body-file "$dir/sync-issue-body.current.md"               --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
@@ -287,7 +313,7 @@ jobs:
             echo "$target:$mode" >> "$base/write-committed.txt"
           done
 
-      - name: Синхронизировать course page
+      - name: Синхронизировать страницу курса
         if: inputs.confirm_write == true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -307,7 +333,7 @@ jobs:
           PY
           )"
           if [[ "$pending" != "true" ]]; then
-            echo 'course_page already closed' > "$dir/already-closed.txt"
+            echo 'страница курса уже не ожидает синхронизации' > "$dir/already-closed.txt"
             exit 0
           fi
           python scripts/stepik_uploader/course_page_commit_gap_recovery.py             --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"             --sync-state "$dir/sync-state.previous.json" --confirm-recovery
@@ -320,7 +346,7 @@ jobs:
             python scripts/stepik_uploader/course_page_sync.py               --repo-root . --report-dir "$dir" --course-id "$COURSE_ID"               --sync-state "$dir/sync-state.previous.json" --confirm-write
           fi
           for required in sync-state.next.json course-page-deployment-event.json sync-journal.md; do
-            test -f "$dir/$required" || { echo "course_page missing $required" >&2; exit 2; }
+            test -f "$dir/$required" || { echo "для страницы курса отсутствует обязательный артефакт $required" >&2; exit 2; }
           done
           gh api "repos/$GITHUB_REPOSITORY/issues/$STEPIK_SYNC_ISSUE" --jq .body > "$dir/sync-issue-body.current.md"
           python scripts/stepik_uploader/sync_issue_state.py extract             --body-file "$dir/sync-issue-body.current.md"             --output "$dir/sync-state.current.json" --course-id "$COURSE_ID"
@@ -330,7 +356,7 @@ jobs:
           python scripts/stepik_uploader/special_history_commit.py             --event-file "$dir/course-page-deployment-event.json"
           gh issue comment "$STEPIK_SYNC_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$dir/sync-journal.md"
 
-      - name: Проверить финальный zero-PENDING и baselines всех уроков
+      - name: Проверить отсутствие PENDING и контрольные состояния всех уроков (baselines)
         if: inputs.confirm_write == true && success()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -348,9 +374,9 @@ jobs:
           state=json.load(open('artifacts/stepik-private-release/sync-state.final.json',encoding='utf-8'))
           pending=state.get('pending',{})
           if pending.get('lessons'):
-              raise SystemExit('После release остались PENDING lessons: '+', '.join(sorted(pending['lessons'])))
+              raise SystemExit('После обновления остались уроки со статусом PENDING: '+', '.join(sorted(pending['lessons'])))
           if pending.get('course_page') is not None:
-              raise SystemExit('После release course_page всё ещё PENDING')
+              raise SystemExit('После обновления страница курса всё ещё имеет статус PENDING')
 
           manifest=build_structural_manifest(Path('.').resolve(), source_sha='final-gate')
           expected={
@@ -361,47 +387,123 @@ jobs:
           baselines=set(state.get('lessons',{}))
           missing=sorted(expected-baselines)
           if missing:
-              raise SystemExit('Нет final machine baseline: '+', '.join(missing))
+              raise SystemExit('Нет финального машинного baseline для: '+', '.join(missing))
           if len(expected) != 21:
-              raise SystemExit(f'Canonical lesson count неожиданно изменился: {len(expected)}')
+              raise SystemExit(f'Количество канонических уроков неожиданно изменилось: {len(expected)}')
           for target in sorted(expected):
               row=state['lessons'][target]
               if not isinstance(row.get('stepik_lesson_id'),int):
-                  raise SystemExit(f'{target}: missing Stepik lesson ID')
+                  raise SystemExit(f'{target}: отсутствует Stepik lesson ID')
               if not row.get('step_ids'):
-                  raise SystemExit(f'{target}: missing confirmed step IDs')
+                  raise SystemExit(f'{target}: отсутствуют подтверждённые Stepik step IDs')
           PY
 
-      - name: Сводка
+      - name: Сформировать русскую итоговую сводку
         if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
         shell: bash
         run: |
           set -euo pipefail
           base='artifacts/stepik-private-release'
+          case "$JOB_STATUS" in
+            success) result='УСПЕХ' ;;
+            failure) result='ОШИБКА' ;;
+            cancelled) result='ОТМЕНЕНО' ;;
+            *) result="$JOB_STATUS" ;;
+          esac
           {
-            echo '## Stepik private course release'
+            echo '## Stepik: приватное обновление курса'
             echo
-            echo "- confirm_write: $CONFIRM_WRITE"
+            echo "- **Итог запуска:** $result"
+            if [[ "$CONFIRM_WRITE" == "true" ]]; then
+              echo '- **Режим записи в Stepik:** включён (`confirm_write=true`).'
+            else
+              echo '- **Режим записи в Stepik:** выключен; выполнена только предварительная проверка (`confirm_write=false`).'
+            fi
             if [[ -f "$base/batch-plan.initial.json" ]]; then
               python - <<'PY'
           import json
           p=json.load(open('artifacts/stepik-private-release/batch-plan.initial.json',encoding='utf-8'))
-          print(f"- source SHA: `{p['source_main_sha']}`")
-          print(f"- initial targets: {len(p.get('initial_target_ids',[]))}")
-          print(f"- refresh targets: {len(p.get('refresh_target_ids',[]))}")
-          print(f"- recovery targets: {len(p.get('recovery_target_ids',[]))}")
-          print(f"- course-page pending: {p['course_page_pending']}")
+          print(f"- **SHA исходника:** `{p['source_main_sha']}`")
+          print(f"- **Первичная загрузка новых уроков:** {len(p.get('initial_target_ids',[]))}")
+          print(f"- **Обновление существующих уроков:** {len(p.get('refresh_target_ids',[]))}")
+          print(f"- **Восстановление незавершённых операций:** {len(p.get('recovery_target_ids',[]))}")
+          print(f"- **Страница курса ожидает синхронизации:** {'да' if p.get('course_page_pending') else 'нет'}")
           PY
             fi
             if [[ -f "$base/write-committed.txt" ]]; then
-              echo "- committed lessons: $(paste -sd ', ' "$base/write-committed.txt")"
+              python - <<'PY'
+          from pathlib import Path
+          labels={'refresh':'обновление','initial':'первичная загрузка','recovery':'восстановление'}
+          rows=[]
+          for raw in Path('artifacts/stepik-private-release/write-committed.txt').read_text(encoding='utf-8').splitlines():
+              raw=raw.strip()
+              if not raw:
+                  continue
+              target, _, mode = raw.partition(':')
+              rows.append(f"`{target}` ({labels.get(mode, mode)})")
+          print(f"- **Уроков с зафиксированным завершением операции:** {len(rows)}")
+          if rows:
+              print("- **Обработанные уроки:** " + ", ".join(rows))
+          PY
+            else
+              echo '- **Уроков с зафиксированным завершением операции:** 0'
             fi
             if [[ -f "$base/sync-state.final.json" ]]; then
-              echo '- final machine state: zero-PENDING gate passed'
+              echo '- **Финальное машинное состояние:** подтверждено, ожидающих синхронизации объектов (`PENDING`) нет.'
+            elif [[ "$CONFIRM_WRITE" == "true" ]]; then
+              echo '- **Финальное машинное состояние:** не подтверждено.'
+            else
+              echo '- **Финальное машинное состояние:** не изменялось, потому что запись была выключена.'
+            fi
+            if [[ "$JOB_STATUS" != "success" ]]; then
+              echo
+              echo '### Причина остановки или ошибки'
+              python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('artifacts/stepik-private-release')
+          found=[]
+          def add(value):
+              if isinstance(value,str) and value.strip() and value.strip() not in found:
+                  found.append(value.strip())
+              elif isinstance(value,list):
+                  for item in value:
+                      add(item)
+          if root.exists():
+              for path in sorted(root.rglob('*.json')):
+                  try:
+                      data=json.loads(path.read_text(encoding='utf-8'))
+                  except Exception:
+                      continue
+                  if not isinstance(data,dict):
+                      continue
+                  add(data.get('blockers'))
+                  if data.get('verdict') in {'BLOCKED','FAILED'}:
+                      add(data.get('failure_reason'))
+                      add(data.get('reason'))
+                      add(data.get('message'))
+          if found:
+              for item in found[:8]:
+                  print(f"- Техническая причина: `{item}`")
+          else:
+              print("- Автоматически извлечь более точную причину из артефактов не удалось. Откройте первый красный шаг выше: там находится исходная диагностика.")
+          PY
+              echo
+              echo 'Запуск остановлен безопасно. Не используйте автоматический повтор старого запуска, пока не подтверждена причина и актуальность текущего `main`/машинного состояния.'
+            else
+              echo
+              echo '### Следующее действие'
+              if [[ "$CONFIRM_WRITE" == "true" ]]; then
+                echo 'Если финальное состояние подтверждено и PENDING отсутствует, техническая синхронизация этого запуска завершена.'
+              else
+                echo 'Предварительная проверка завершена. Для реальной записи нужен отдельный защищённый запуск с `confirm_write=true`.'
+              fi
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Сохранить release evidence
+      - name: Сохранить артефакты подтверждения выпуска
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

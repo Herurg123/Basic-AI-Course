@@ -43,8 +43,8 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
 
     def test_every_lesson_uses_one_preflight_and_write_loop(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("Preflight всех PENDING lessons без записи", raw)
-        self.assertIn("Последовательно синхронизировать все PENDING lessons", raw)
+        self.assertIn("Предварительно проверить все PENDING-уроки без записи", raw)
+        self.assertIn("Последовательно синхронизировать все PENDING-уроки", raw)
         self.assertIn("refresh_target_ids", raw)
         self.assertIn("initial_target_ids", raw)
         self.assertIn("recovery_target_ids", raw)
@@ -63,11 +63,11 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
 
     def test_all_preflights_precede_any_mutating_route(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
-        lesson_preflight = raw.index("Preflight всех PENDING lessons без записи")
-        course_preflight = raw.index("Preflight course page без записи")
-        scope_recheck = raw.index("Проверить неизменность source и scope перед write")
-        lesson_write = raw.index("Последовательно синхронизировать все PENDING lessons")
-        course_write = raw.index("Синхронизировать course page")
+        lesson_preflight = raw.index("Предварительно проверить все PENDING-уроки без записи")
+        course_preflight = raw.index("Предварительно проверить страницу курса без записи")
+        scope_recheck = raw.index("Проверить неизменность исходника и охвата перед записью")
+        lesson_write = raw.index("Последовательно синхронизировать все PENDING-уроки")
+        course_write = raw.index("Синхронизировать страницу курса")
         self.assertLess(lesson_preflight, course_preflight)
         self.assertLess(course_preflight, scope_recheck)
         self.assertLess(scope_recheck, lesson_write)
@@ -76,8 +76,8 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
     def test_lesson_state_patch_precedes_history_commit(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
         block = raw[
-            raw.index("Последовательно синхронизировать все PENDING lessons"):
-            raw.index("Синхронизировать course page")
+            raw.index("Последовательно синхронизировать все PENDING-уроки"):
+            raw.index("Синхронизировать страницу курса")
         ]
         patch = block.index("gh api --method PATCH")
         history = block.index("history_cli.py mark-state-committed")
@@ -86,12 +86,12 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
     def test_course_page_recovery_probe_is_read_only_and_write_phase_confirmed(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
         preflight = raw[
-            raw.index("Preflight course page без записи"):
-            raw.index("Проверить неизменность source и scope перед write")
+            raw.index("Предварительно проверить страницу курса без записи"):
+            raw.index("Проверить неизменность исходника и охвата перед записью")
         ]
         write = raw[
-            raw.index("Синхронизировать course page"):
-            raw.index("Проверить финальный zero-PENDING")
+            raw.index("Синхронизировать страницу курса"):
+            raw.index("Проверить отсутствие PENDING и контрольные состояния всех уроков (baselines)")
         ]
         self.assertIn("course_page_commit_gap_recovery.py", preflight)
         self.assertNotIn("--confirm-recovery", preflight)
@@ -100,13 +100,13 @@ class PrivateReleaseWorkflowTests(unittest.TestCase):
 
     def test_final_gate_requires_zero_pending_and_all_21_baselines(self) -> None:
         raw = WORKFLOW.read_text(encoding="utf-8")
-        final = raw[raw.index("Проверить финальный zero-PENDING"):]
+        final = raw[raw.index("Проверить отсутствие PENDING и контрольные состояния всех уроков (baselines)"):]
         self.assertIn("pending.get('lessons')", final)
         self.assertIn("pending.get('course_page')", final)
         self.assertIn("expected-baselines", final)
         self.assertIn("len(expected) != 21", final)
-        self.assertIn("missing Stepik lesson ID", final)
-        self.assertIn("missing confirmed step IDs", final)
+        self.assertIn("отсутствует Stepik lesson ID", final)
+        self.assertIn("отсутствуют подтверждённые Stepik step IDs", final)
 
 
 if __name__ == "__main__":
