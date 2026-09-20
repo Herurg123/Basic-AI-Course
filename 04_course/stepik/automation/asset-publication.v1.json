@@ -27,11 +27,11 @@
     }
   },
   "expected_topology": {
-    "learner_link_occurrences": 49,
+    "learner_link_occurrences": 43,
     "unique_source_files": 43,
     "extensions_by_occurrence": {
       ".docx": 1,
-      ".md": 42,
+      ".md": 36,
       ".png": 3,
       ".svg": 2,
       ".txt": 1
@@ -41,7 +41,7 @@
   "extension_rules": {
     ".md": {
       "mode": "inline-source",
-      "note": "Canonical Markdown source remains learner content and must be adapted into the owning Stepik learner step by the verified rendering layer. Nested Markdown dependencies are separate graph nodes and must be resolved by the same policy. This policy does not prescribe blind string replacement."
+      "note": "Canonical Markdown source remains learner content and is physically inlined by verified rendering. One source must have one canonical learner occurrence; later references must use a normal HTTPS link to the canonical Stepik step instead of another repo-relative .md link. Nested Markdown dependencies remain separate graph nodes and must be resolved by the same policy."
     },
     ".png": {
       "mode": "stepik-image-upload",
