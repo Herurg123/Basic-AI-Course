@@ -76,11 +76,11 @@ class AssetResolutionTests(unittest.TestCase):
             row for row in rows
             if row["source_path"] == "04_course/stepik/how-to-save-practice.md"
         ]
-        self.assertEqual(len(help_rows), 3)
+        self.assertEqual(len(help_rows), 1)
         self.assertTrue(all(row["asset_id"] is None for row in help_rows))
         self.assertEqual(
             {row["lesson"] for row in help_rows},
-            {"M06-L04", "M07-L01", "M07-L02"},
+            {"M06-L04"},
         )
 
         nested = [
