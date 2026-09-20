@@ -8,6 +8,10 @@ from typing import Any, Iterable
 
 from .canonical import ASSET_RE, parse_stepik_plan
 
+# Этот compiler формирует learner-facing body каждого Stepik-шага во всех 21 уроках.
+# Любое содержательное изменение файла является глобальным Stepik-impact и должно
+# ставить все канонические уроки в PENDING через impact.py.
+
 MARKER_RE = re.compile(
     r"<!--\s*(Exercise|Check)\s*:\s*(M\d{2}-L\d{2}-[EC]\d{2})\s*-->",
     re.IGNORECASE,
