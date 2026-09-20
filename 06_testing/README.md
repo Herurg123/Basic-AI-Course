@@ -17,6 +17,6 @@
 
 Полный cumulative production gate M00–M08 пройден. Human Pilot Architecture v1.0 и operational package утверждены и смёржены. Текущий статус: `HUMAN PILOT DESIGNED / OPERATIONAL PACKAGE APPROVED / NOT YET PERFORMED`; human validation = `NOT PERFORMED`.
 
-Следующий gate теперь не производство ещё одного документа, а **Wave 0 readiness**: private Stepik staging, consent/data-minimization в рабочей среде, moderator rehearsal, recovery readiness и актуальный service preflight. Пока эти пункты не подтверждены, Wave 0 не считается `READY`.
+Следующий gate — **Wave 0 readiness**. Private Stepik staging уже закрыт на MACHINE-уровне (`ZERO-PENDING`, 21/21 baselines), поэтому дальнейшая работа смещена в реальные pre-human проверки: PHONE/COMPUTER HUMAN VISUAL и PED-01, PED-06/PED-07, current service preflight, consent/data-minimization в рабочей среде и moderator rehearsal. Пока эти пункты не подтверждены, Wave 0 не считается `READY`.
 
 После readiness последовательность: Wave 0 → Wave 1 → подтверждённые fixes → Wave 2 / retest → итоговый human-validation verdict. Только после human validation возможен переход к closed beta; финальные динамические service/Stepik checks и public release остаются последующими gates.
