@@ -5,17 +5,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 18,
-    "steps_reviewed": 127,
+    "lessons_reviewed": 19,
+    "steps_reviewed": 134,
     "counts": {
       "CRITICAL": 0,
       "BLOCKING": 37,
-      "MAJOR": 75,
-      "POLISH": 12,
+      "MAJOR": 80,
+      "POLISH": 14,
       "CLEAN": 3,
-      "NOT_REVIEWED": 21
+      "NOT_REVIEWED": 14
     },
-    "findings_total": 103,
+    "findings_total": 108,
     "independent_critic": "NOT_PERFORMED"
   },
   "lessons": [
@@ -211,11 +211,12 @@
     {
       "lesson_id": "M07-L01",
       "step_count": 7,
-      "reviewed": false,
+      "reviewed": true,
       "counts": {
-        "NOT_REVIEWED": 7
+        "POLISH": 2,
+        "MAJOR": 5
       },
-      "summary": "Индивидуальный аудит ещё не выполнен"
+      "summary": "Безопасная интегративная репетиция сохраняет выбор нужных действий и не закрывает F1. Части задачи действительно разделены; новое время не раскрывается вместе с первой частью. Памятка не задаёт последовательность, применение в названной отдельной заметке реально задано внутри карточки S03. Основные дефекты — поздние карточки, повторное оформление уже выполненного применения, продолжение практики внутри проверки и поздний резерв. S01/S02 имеют POLISH, а не автоматический MAJOR за шаблон."
     },
     {
       "lesson_id": "M07-L02",

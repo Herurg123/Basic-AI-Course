@@ -6,17 +6,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 18,
-    "steps_reviewed": 127,
+    "lessons_reviewed": 19,
+    "steps_reviewed": 134,
     "counts": {
       "CRITICAL": 0,
       "BLOCKING": 37,
-      "MAJOR": 75,
-      "POLISH": 12,
+      "MAJOR": 80,
+      "POLISH": 14,
       "CLEAN": 3,
-      "NOT_REVIEWED": 21
+      "NOT_REVIEWED": 14
     },
-    "findings_total": 103,
+    "findings_total": 108,
     "independent_critic": "NOT_PERFORMED"
   },
   "steps": [
@@ -5481,24 +5481,35 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M07-L01.json",
       "html_sha256": "7f4f247fd76f406a882b160eefce60942a129deedeb82c6ec6aff0575b86fc5e",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Понять цель связной учебной работы и правило использовать только нужные действия с безопасными данными.",
+      "work_location": "Stepik.",
+      "work_object": "Краткая рамка интеграции и безопасности.",
+      "observable_result": "Прочитаны условия репетиции, нового артефакта нет.",
+      "save_requirement": "Нет.",
+      "completion": "Рамка прочитана до памятки и задачи.",
+      "required_blocks": [
+        "Связь знакомых навыков",
+        "Ненужные функции не обязательны",
+        "Учебные данные",
+        "Проверка существенного при необходимости"
+      ],
+      "superfluous_blocks": [
+        "Общие Зачем/Где",
+        "Что сделать над вводной",
+        "Готово через понимание"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Все операции изучались; безопасность дана до передачи.",
+      "term_gap": "Нет.",
+      "previous_link": "Собирает ранее проверенные действия без нового навыка.",
+      "next_link": "S02 предлагает общую необязательную памятку.",
+      "severity": "POLISH",
+      "finding_ids": [
+        "SEM-104"
+      ],
+      "required_fix": "Сократить ясную вводную обвязку без добавления упражнения или обязательных функций."
     },
     {
       "module_id": "M07",
@@ -5510,24 +5521,35 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M07-L01.json",
       "html_sha256": "fed70bd3ee500b926670901ccb702f27ab31aacb70b991e9281f4e88204f24e8",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "При необходимости прочитать общие вопросы для связной работы без превращения их в алгоритм.",
+      "work_location": "Stepik.",
+      "work_object": "Короткая памятка A02.",
+      "observable_result": "Прочитана доступная общая опора; отдельного ответа не требуется.",
+      "save_requirement": "Нет.",
+      "completion": "Необязательная памятка прочитана или пропущена, далее учебная задача.",
+      "required_blocks": [
+        "Необязательная опора",
+        "Не порядок шагов",
+        "Не все вопросы нужны каждой задаче"
+      ],
+      "superfluous_blocks": [
+        "Общий заголовок",
+        "Что сделать над памяткой",
+        "Готово через понимание до текста справки"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Общая помощь разрешена на уровне 2. Пункты не диктуют конкретный ход E02 и не заменяют самостоятельный финал.",
+      "term_gap": "Нет.",
+      "previous_link": "Поддерживает рамку S01.",
+      "next_link": "S03 содержит целую учебную задачу, а не цепочку рецептурных микрошагов.",
+      "severity": "POLISH",
+      "finding_ids": [
+        "SEM-104",
+        "SEM-105"
+      ],
+      "required_fix": "Дать содержательное название и убрать конец перед короткой справкой. Не расширять её до пошагового алгоритма."
     },
     {
       "module_id": "M07",
@@ -5539,24 +5561,41 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M07-L01.json",
       "html_sha256": "3a68baa86decf3395a138eea7af4519ec00ac446e6b419ac702d7807f3bfbbfc",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Решить с ИИ учебную задачу объявления и довести пригодный текст до отдельной заметки Учебная доска сообщений.",
+      "work_location": "Условия Stepik, Алиса AI либо допустимый резерв; отдельная своя заметка для применения.",
+      "work_object": "Первая часть вымышленного книжного обмена и собственный результат по ней.",
+      "observable_result": "Пригодное объявление находится в названной учебной заметке; реальный процесс доступен для последующей проверки.",
+      "save_requirement": "Сохранять естественный след и конечную заметку; ссылка на памятку M06-L04-S02 дана до работы.",
+      "completion": "Задача первой части завершена реальным применением, а не только ответом в чате.",
+      "required_blocks": [
+        "Полная первая часть",
+        "Ссылка на сервис",
+        "Самостоятельный выбор нужных действий",
+        "Нейтральное сохранение",
+        "Названное место применения"
+      ],
+      "superfluous_blocks": [
+        "Конец и возврат до карточки",
+        "Общая повторная рубрика сохранения"
+      ],
+      "ambiguous_pointers": [
+        "Главные условия и команда применения находятся после окончания",
+        "Следующий S04 повторно выглядит отдельной практикой применения"
+      ],
+      "prerequisite_gap": "Карточка уже содержит полноценное действие и место. Резерв чата известен ранее, но локальный доступ к нему только в S07.",
+      "term_gap": "Учебная доска сообщений — заголовок собственной заметки, реальной внешней публикации не требуется.",
+      "previous_link": "Применяет общую рамку без обязательного полного набора функций.",
+      "next_link": "S04 повторяет границу применения, уже заданную здесь.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-104",
+        "SEM-105",
+        "SEM-106",
+        "SEM-108"
+      ],
+      "required_fix": "Предъявить карточку до конца, сохранить единый процесс до применения и доступ к резерву при потребности. Не создавать дополнительный практический результат ради S04."
     },
     {
       "module_id": "M07",
@@ -5568,24 +5607,36 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M07-L01.json",
       "html_sha256": "0992bffaec0948fa5053bd580ccf026056fb2f86f3dce0863c655e1b7a85a055",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "CHECK",
+      "learner_task": "Убедиться, что первая версия действительно перенесена в указанную учебную заметку перед изменением ситуации.",
+      "work_location": "Собственная заметка Учебная доска сообщений; Stepik для перехода.",
+      "work_object": "Результат первой части, уже требуемый в S03.",
+      "observable_result": "Проверено наличие пригодной первой версии в месте применения; при пропуске перенос завершён.",
+      "save_requirement": "Та же заметка, нового артефакта не нужно.",
+      "completion": "Первая часть реально применена, можно открывать новую информацию.",
+      "required_blocks": [
+        "Связь с первой версией",
+        "Граница реального применения до изменения"
+      ],
+      "superfluous_blocks": [
+        "Общий заголовок",
+        "Обещание нового применения при повторе уже заданного",
+        "Готово через понимание"
+      ],
+      "ambiguous_pointers": [
+        "Не обозначено, что это проверка окончания той же первой части, а не второе применение"
+      ],
+      "prerequisite_gap": "Внешняя заметка и перенос уже объяснены в карточке S03, действия не отсутствуют.",
+      "term_gap": "Нет.",
+      "previous_link": "Проверяет конец S03, но обвязка изображает новую практику.",
+      "next_link": "S05 раскрывает изменение после первой завершённой версии.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-104",
+        "SEM-106"
+      ],
+      "required_fix": "Обозначить проверку окончания первой части или объединить с соответствующей практикой; сохранить реальное применение до новой информации без искусственного повтора."
     },
     {
       "module_id": "M07",
@@ -5597,24 +5648,39 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M07-L01.json",
       "html_sha256": "9ab1ca302d5f5946716888a1d61bebe7bef786b23186b2136796a3ffad2b0410",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "После первого применения учесть новое время и самому выбрать уместное знакомое действие с результатом и его учебным применением.",
+      "work_location": "Условия в Stepik, собственный рабочий результат/заметка и при необходимости прежний чат.",
+      "work_object": "Вторая часть с изменением начала на 14:30 при неизменном окончании и остальных условиях.",
+      "observable_result": "Принято и выполнено собственное решение по изменению, учебный результат пригоден в новых условиях.",
+      "save_requirement": "Сохранить что изменилось, своё решение, действие и причину; напоминание продолжается в S06.",
+      "completion": "Изменение обработано и результат действительно пригоден в новых условиях; одного открытия карточки недостаточно.",
+      "required_blocks": [
+        "После первой версии и применения",
+        "Новая информация",
+        "Свой выбор следующего действия",
+        "Связь с прежним результатом"
+      ],
+      "superfluous_blocks": [
+        "Формальный конец до карточки",
+        "Stepik как единственное место работы"
+      ],
+      "ambiguous_pointers": [
+        "Развёрнутая команда и фиксация собственного действия продолжаются в проверке S06"
+      ],
+      "prerequisite_gap": "Part2 не показана до part1; внутри карточки есть реальная задача выбора. Выбор нужен в практике C1, хотя это не независимый F1.",
+      "term_gap": "Нет.",
+      "previous_link": "Открывается после первого применения; ограничение есть до данных и в самой карточке.",
+      "next_link": "S06 сначала продолжает эту практику, потом проверяет процесс.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-104",
+        "SEM-105",
+        "SEM-106",
+        "SEM-107"
+      ],
+      "required_fix": "Разместить полную вторую практику до её конца и проверки, различить условия Stepik и место действия с результатом. Не назвать готовую правку или обязать снова обращаться к ИИ."
     },
     {
       "module_id": "M07",
@@ -5626,24 +5692,38 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M07-L01.json",
       "html_sha256": "9767d051fdeddc1ee7844f4fc3a1512d16189211ec29439c318a43c83bf8861e",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "COMPOSITE",
+      "learner_task": "Завершить фиксацию решения после изменения, затем ответить на четыре вопроса о всей работе и сохранить короткий журнал.",
+      "work_location": "Поле свободного ответа Stepik по своему процессу и отдельной учебной заметке.",
+      "work_object": "Первая версия, изменение условий, собственный следующий ход и итоговое применение.",
+      "observable_result": "Короткий журнал и ответы связаны с реальными решениями и применённым результатом.",
+      "save_requirement": "Сохранить краткую запись уже выполненного; достаточно одного понятного места фиксации, без дублирующих отчётов.",
+      "completion": "Процесс завершён, четыре вопроса отвечены, журнал доступен; это репетиция, F1 ещё впереди.",
+      "required_blocks": [
+        "Причины собственных решений",
+        "Четыре ясных вопроса",
+        "Проверка только нужного",
+        "Реальное применение",
+        "Отличие репетиции от F1"
+      ],
+      "superfluous_blocks": [
+        "Общая рубрика сохранения после конкретного журнала"
+      ],
+      "ambiguous_pointers": [
+        "Начало проверки ещё требует выбрать действие по изменению",
+        "Не разделены локальный журнал и короткое поле ответа, хотя их содержание определено"
+      ],
+      "prerequisite_gap": "Задание и правильное место ответа есть; нельзя объявить проверку отсутствующей. Ранняя инструкция сохранять дана S03.",
+      "term_gap": "Короткий журнал пояснён списком содержания, специальной формы нет.",
+      "previous_link": "Договаривает S05 прежде проверки всего процесса.",
+      "next_link": "S07 завершает репетицию и даёт поздний резерв.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-104",
+        "SEM-106"
+      ],
+      "required_fix": "Перенести продолжение практики к S05, оставить здесь вопросы по выполненному и один ясный способ фиксации. Не требовать лишней проверки/картинки/файла ради рубрики."
     },
     {
       "module_id": "M07",
@@ -5655,24 +5735,39 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M07-L01.json",
       "html_sha256": "dbcc7e9ababa36036a930b9ba1d4e5e4f80b58b8309f02f75960671839e83193",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "COMPOSITE",
+      "learner_task": "При технической необходимости использовать резерв чата и прочитать итог уместности действий.",
+      "work_location": "Stepik для чтения; GigaChat только при условии сбоя нужного действия Алисы.",
+      "work_object": "Условный резерв, граница содержательной помощи и итог репетиции.",
+      "observable_result": "Прочитан итог либо работа продолжена после технической помощи; новый чат не обязателен всем.",
+      "save_requirement": "Нового результата не требуется, прежний процесс сохраняется при продолжении.",
+      "completion": "Учебная работа завершена и итог прочитан; технический переход сам не закрывает практику.",
+      "required_blocks": [
+        "Условный резерв",
+        "Вход только если действие запросило",
+        "Помощь не выбирает следующий приём",
+        "Итог уместности"
+      ],
+      "superfluous_blocks": [
+        "Алиса как место чтения и резервной ветки",
+        "Готово через понимание",
+        "Завершение урока сразу после помощи"
+      ],
+      "ambiguous_pointers": [
+        "Нет точного возврата к месту прерванной практики"
+      ],
+      "prerequisite_gap": "Резерв и операции уже знакомы, но эта справка нужна при сбое S03/S05. Не добавлять новый обязательный инструмент.",
+      "term_gap": "Нет.",
+      "previous_link": "Следует после проверки, хотя может потребоваться раньше.",
+      "next_link": "M07-L02 вводит собственную новую реальную задачу для финального F1.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-104",
+        "SEM-107",
+        "SEM-108"
+      ],
+      "required_fix": "Предъявить условную помощь в момент потребности и вернуть к незавершённой работе; убрать обязательный внешний маршрут у итога. Сохранить границу помощи без готового следующего хода."
     },
     {
       "module_id": "M07",
