@@ -6,17 +6,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 3,
-    "steps_reviewed": 20,
+    "lessons_reviewed": 4,
+    "steps_reviewed": 27,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 12,
-      "MAJOR": 8,
+      "BLOCKING": 13,
+      "MAJOR": 13,
       "POLISH": 0,
-      "CLEAN": 0,
-      "NOT_REVIEWED": 128
+      "CLEAN": 1,
+      "NOT_REVIEWED": 121
     },
-    "findings_total": 20,
+    "findings_total": 24,
     "independent_critic": "NOT_PERFORMED"
   },
   "steps": [
@@ -927,24 +927,33 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M01-L01.json",
       "html_sha256": "9fbdc3c7da4bf440705cb54542808fef23f51ec1465cdb81dae6128e237170a9",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Понять, почему ответ ещё нужно оценить, при необходимости изменить и использовать.",
+      "work_location": "Stepik.",
+      "work_object": "Краткое объяснение рабочего цикла.",
+      "observable_result": "Нового артефакта нет; понятно назначение будущей практики.",
+      "save_requirement": "Не требуется.",
+      "completion": "Прочитан смысл цикла, далее — мини-задача.",
+      "required_blocks": [
+        "Конкретная польза оценки и применения",
+        "Переход к мини-задаче"
+      ],
+      "superfluous_blocks": [
+        "Разберитесь, что важно",
+        "Что сделать у объяснения",
+        "Вам понятен смысл"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Нет: первый ответ и критерий знакомы по M00.",
+      "term_gap": "Рабочий цикл объяснён через действия; отдельное определение не нужно.",
+      "previous_link": "Развивает прежние запрос и критерий.",
+      "next_link": "Переход к условиям мини-задачи понятен по следующему шагу.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-022"
+      ],
+      "required_fix": "Оставить краткое объяснение и убрать фиктивные действие и самоподтверждение понимания."
     },
     {
       "module_id": "M01",
@@ -956,24 +965,39 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M01-L01.json",
       "html_sha256": "308df44bd87ee5ca5289bd74a52de6e14c0db0412a74c38067aee1b118944ed7",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "В фактическом тексте — прочитать условия мини-задачи; обещанное заголовком получение ответа начинается только в S03.",
+      "work_location": "Чтение карточки в Stepik; сейчас в чат отправлять нечего по явной инструкции шага.",
+      "work_object": "Напоминание о встрече: время, кабинет, ограничение длины.",
+      "observable_result": "Известны условия будущего запроса; первый ответ на этом экране не получен по полной инструкции.",
+      "save_requirement": "Нового сохранения нет; карточка остаётся в шаге.",
+      "completion": "Для чтения — условия предъявлены; нынешнее завершение ошибочно обещает выполненное действие и результат.",
+      "required_blocks": [
+        "Условия мини-задачи до использования",
+        "Роль шага, соответствующая фактическому содержанию",
+        "Связь с командой отправить запрос"
+      ],
+      "superfluous_blocks": [
+        "Место в ИИ-чате при чтении карточки",
+        "Готовый результат до команды создать его",
+        "Возврат в Stepik до исходника"
+      ],
+      "ambiguous_pointers": [
+        "Заголовок «получите первый ответ» не соответствует единственной команде открыть карточку",
+        "Карточка появляется после завершения"
+      ],
+      "prerequisite_gap": "Не новый навык, а недостающая в текущем шаге команда, вынесенная в S03.",
+      "term_gap": "Видимые условия конкретны; одно требование в вводной неточно сворачивает составное условие карточки, но сама карточка раскрывает его.",
+      "previous_link": "S01 объяснил пользу цикла.",
+      "next_link": "S03 только начинает обещанное здесь получение ответа; ложная граница требует догадки.",
+      "severity": "BLOCKING",
+      "finding_ids": [
+        "SEM-021",
+        "SEM-022",
+        "SEM-023"
+      ],
+      "required_fix": "Согласовать заголовок, команды и конец: целиком собрать получение и первичную оценку либо честно назвать подготовку и дать явное продолжение. Карточку поставить до действия/перехода."
     },
     {
       "module_id": "M01",
@@ -985,24 +1009,40 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M01-L01.json",
       "html_sha256": "5f8a611efbbdb3db892a7fdfc47f662179a1a38cb5ab139ce31a5b40cbc7ea1f",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "COMPOSITE",
+      "learner_task": "Получить первый ответ, оценить его и, если требуется, конкретно уточнить. Части связаны одним циклом, но текущая граница и заголовок скрывают начало задачи.",
+      "work_location": "Чат Алисы с основным напоминанием; собственная оценка ученика.",
+      "work_object": "Условия S02, первая версия, при необходимости версия после уточнения.",
+      "observable_result": "Первый ответ сопоставлен с условиями; при недостатке отправлено конкретное уточнение и сравнены версии.",
+      "save_requirement": "Версии и уточнение остаются в доступном чате; отдельный новый файл не нужен.",
+      "completion": "Первая версия оценена; при недостатке завершена практика уточнения, при пригодности нужен S04.",
+      "required_blocks": [
+        "Создание ответа с прямой ссылкой",
+        "Оценка по условиям",
+        "Причина практики уточнения",
+        "Условие первой ветки и выход из неё"
+      ],
+      "superfluous_blocks": [
+        "Общее получите результат",
+        "Безусловное выполнение и переход в следующую ветку"
+      ],
+      "ambiguous_pointers": [
+        "Заголовок об уточнении предваряет ещё не выполненное получение ответа",
+        "В том же чате предполагает уже существующий ответ, хотя он создаётся здесь",
+        "Не указано явно, что после первой ветки надо перейти к применению S05"
+      ],
+      "prerequisite_gap": "Действия объяснены; это перегруппировка и навигация, а не отсутствие теории уточнения.",
+      "term_gap": "Уточнение раскрыто конкретными действиями; «сделай лучше» поясняется далее как усиление уже понятного требования.",
+      "previous_link": "Фактически завершает задачу, преждевременно закрытую S02.",
+      "next_link": "Условие S04 позволяет восстановить маршрут, но общий переход не различает ветки.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-021",
+        "SEM-022",
+        "SEM-024"
+      ],
+      "required_fix": "Ясно обозначить части цикла и условный выход в S04 либо S05. Сохранить собственный выбор недостатка и объяснение до уточнения; составной тип не оправдывает случайную границу."
     },
     {
       "module_id": "M01",
@@ -1014,24 +1054,40 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M01-L01.json",
       "html_sha256": "33a6d0f30f328e6ebf8a16e62bf83d14f468930eb328c9cba59b7a172e392468",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Только при сразу пригодном первом ответе потренировать уточнение на подготовленной несовершенной версии.",
+      "work_location": "Карточка в Stepik, затем рабочий ИИ-чат.",
+      "work_object": "Подготовленная версия и требования основной мини-задачи.",
+      "observable_result": "Собственный недостаток назван, уточнение отправлено, версии сопоставлены; основной пригодный ответ сохранён для применения.",
+      "save_requirement": "Не потерять основной ответ и сравниваемые версии в чате; дополнительный отчёт не требуется.",
+      "completion": "По условию выполнена одна практика уточнения; если она уже сделана в S03, эта ветка не нужна.",
+      "required_blocks": [
+        "Условие ветки",
+        "Карточка до её использования",
+        "Собственная оценка недостатка",
+        "Возврат к основной версии"
+      ],
+      "superfluous_blocks": [
+        "Безусловное получите результат/выполните действие",
+        "Переход перед учебной карточкой"
+      ],
+      "ambiguous_pointers": [
+        "Первый абзац о «сделай лучше» относится и к прошлой ветке",
+        "Что делать уже выполнившим S03, явно не названо, хотя условие ветки и карточки позволяет понять пропуск"
+      ],
+      "prerequisite_gap": "Нет: команды уточнения и его смысл только что введены.",
+      "term_gap": "Нет.",
+      "previous_link": "Дополняет S03 альтернативной тренировкой; оба условия сохраняют собственное решение ученика.",
+      "next_link": "S05 правильно возвращает к основной задаче, а не к результату запасной карточки.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-021",
+        "SEM-022",
+        "SEM-023",
+        "SEM-024"
+      ],
+      "required_fix": "Предъявить карточку до конца действия, перенести общее пояснение уточнения к обеим веткам и явно разрешить пропуск неприменимой ветки. Не назвать готовый недостаток."
     },
     {
       "module_id": "M01",
@@ -1043,24 +1099,36 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M01-L01.json",
       "html_sha256": "69ee800ca9b2f3fa4ac60d575e2b3e3a8c524270ab5d86d1d858c522063223ea",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Реально использовать пригодную версию основной задачи вне чата.",
+      "work_location": "Собственная заметка, учебный файл или черновик сообщения.",
+      "work_object": "Пригодная версия основного напоминания, выбранная по объяснённому условию.",
+      "observable_result": "Текст действительно перенесён в выбранное внешнее место.",
+      "save_requirement": "Результат применения остаётся в выбранной заметке/файле/черновике; отдельная копия ради отчёта не нужна.",
+      "completion": "Небольшое внешнее действие выполнено, а не только понято.",
+      "required_blocks": [
+        "Выбор основной версии после развилки",
+        "Реальное внешнее действие",
+        "Уточнение, что отправка человеку не нужна",
+        "Наблюдаемый конец"
+      ],
+      "superfluous_blocks": [
+        "Вам понятен смысл вместо конца действия",
+        "Неопределённое задание ниже для сохранения"
+      ],
+      "ambiguous_pointers": [
+        "Вводное место уже, чем допустимые в тексте варианты: черновик сообщения также разрешён"
+      ],
+      "prerequisite_gap": "Нет: копирование и хранение введены в M00.",
+      "term_gap": "Применение пояснено конкретными посильными примерами.",
+      "previous_link": "Правильно разделяет основной результат и тренировочную запасную версию.",
+      "next_link": "S06 проверяет фактически выполненный цикл.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-022"
+      ],
+      "required_fix": "Заменить критерий понимания на факт применения и убрать неопределённое дополнительное сохранение. Сохранить допустимые варианты без обязательной отправки человеку."
     },
     {
       "module_id": "M01",
@@ -1072,24 +1140,29 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M01-L01.json",
       "html_sha256": "9ebec15cf440f4b6d40da3199a280eea2c9364a1328b4821ccfada45c3101ebc",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "CHECK",
+      "learner_task": "Сверить выполненный цикл и кратко ответить о требовании, собственном уточнении и реальном применении.",
+      "work_location": "Поле Stepik по своему чату и внешнему результату.",
+      "work_object": "Основная задача, версии, конкретное уточнение по одной ветке, след применения.",
+      "observable_result": "Даны три содержательных ответа по реально выполненной работе; при неконкретном уточнении назначена повторная тренировка.",
+      "save_requirement": "Используются существующие чат и результат применения; новый файл не требуется.",
+      "completion": "Реальные действия сверены, вопросы отвечены; текст не заменяет отсутствовавшее действие.",
+      "required_blocks": [
+        "Четыре части выполненного цикла",
+        "Три конкретных вопроса",
+        "Место ответа Stepik",
+        "Повтор при неконкретном уточнении"
+      ],
+      "superfluous_blocks": [],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Нет: все действия и условия были предъявлены. Объяснение решения после поддержанной практики допустимо; здесь не требуется задним числом создавать независимую попытку.",
+      "term_gap": "Следы раскрыты перечнем реально созданных объектов и вопросов; нового термина для прохождения не нужно.",
+      "previous_link": "Проверяет выполненное применение S05 и одну из веток уточнения.",
+      "next_link": "S07 имеет явно условный заголовок резерва и итог; новой обязательной практики без сбоя нет.",
+      "severity": "CLEAN",
+      "finding_ids": [],
+      "required_fix": "Исправление не требуется. Сохранить собственные ответы, реальные действия и конкретный повод повторить уточнение."
     },
     {
       "module_id": "M01",
@@ -1101,24 +1174,38 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M01-L01.json",
       "html_sha256": "9816ab5a00622da2df8a869d4d26d254bea70c1ded58faacbc828b14b7c8fb9f",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "TECHNICAL_SUPPORT",
+      "learner_task": "При недоступности основного чата продолжить упражнение в резерве; прочитать итог и вопрос следующего урока.",
+      "work_location": "Условно GigaChat; итог читается в Stepik.",
+      "work_object": "Основная задача, требование и нужная ветка уточнения.",
+      "observable_result": "При сбое завершена практика; без сбоя нового артефакта нет.",
+      "save_requirement": "Нового сохранения нет; уже полученные версии должны оставаться доступны при переходе.",
+      "completion": "После резерва завершены практика, применение и проверка; без сбоя прочитан итог.",
+      "required_blocks": [
+        "Условие резерва и ссылка",
+        "Условный вход",
+        "Возврат к месту прерывания",
+        "Итог и мост к проверке основания"
+      ],
+      "superfluous_blocks": [
+        "Общая цель вместо условия помощи",
+        "Вам понятен смысл"
+      ],
+      "ambiguous_pointers": [
+        "То же упражнение не указывает, продолжать прерванную ветку или повторять весь цикл",
+        "Команда завершить урок не возвращает к применению/проверке"
+      ],
+      "prerequisite_gap": "Резерв знаком; новой файловой особенности здесь нет.",
+      "term_gap": "Основание введено в M00-L03; следующий вопрос понятен.",
+      "previous_link": "Помощь находится после завершённой проверки, а нужна при сбое во время практики.",
+      "next_link": "Вопрос об основании точно подготавливает M01-L02.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-022",
+        "SEM-024"
+      ],
+      "required_fix": "Привязать условную помощь к прерванному действию и возврату, убрать формальное завершение чтением. Сохранить мост к следующему уроку."
     },
     {
       "module_id": "M01",
