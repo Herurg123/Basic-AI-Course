@@ -6,17 +6,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 7,
-    "steps_reviewed": 46,
+    "lessons_reviewed": 8,
+    "steps_reviewed": 52,
     "counts": {
       "CRITICAL": 0,
       "BLOCKING": 18,
-      "MAJOR": 27,
-      "POLISH": 0,
+      "MAJOR": 32,
+      "POLISH": 1,
       "CLEAN": 1,
-      "NOT_REVIEWED": 102
+      "NOT_REVIEWED": 96
     },
-    "findings_total": 41,
+    "findings_total": 45,
     "independent_critic": "NOT_PERFORMED"
   },
   "steps": [
@@ -2018,24 +2018,33 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M03-L01.json",
       "html_sha256": "4cee8fb3eca9232af1c2dedaf8a517d86081468451aa57e7735c027969362d82",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Понять, почему следующий ход следует выбирать по причине недостатка.",
+      "work_location": "Stepik.",
+      "work_object": "Знакомые типы затруднений и их связь с разными действиями.",
+      "observable_result": "Нового артефакта нет; понятен принцип предстоящего выбора.",
+      "save_requirement": "Не требуется.",
+      "completion": "Прочитана рамка, далее — конкретная версия для анализа.",
+      "required_blocks": [
+        "Связь с прежним уточнением",
+        "Причина различать следующие ходы"
+      ],
+      "superfluous_blocks": [
+        "Разберитесь, что важно",
+        "Что сделать у объяснения",
+        "Вам понятен смысл"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Нет: критерий, условия и уточнение уже введены.",
+      "term_gap": "Причина проблемы поясняется бытовыми примерами.",
+      "previous_link": "Развивает собственное продолжение диалога M02-L02.",
+      "next_link": "Даёт смысл сравнению подготовленной версии S02.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-042"
+      ],
+      "required_fix": "Сохранить рамку причинного выбора, убрать фиктивное действие и самоподтверждение понимания."
     },
     {
       "module_id": "M03",
@@ -2047,24 +2056,36 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M03-L01.json",
       "html_sha256": "e6c114d7ecaa37984542ec5a0dfce1f4cec43a242ab1cc81406a01015cfcaa1b",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Сравнить подготовленный ответ с задачей и самому назвать один конкретный недостаток.",
+      "work_location": "Stepik; собственная оценка без обращения к ИИ.",
+      "work_object": "Карточка сообщения о переносе встречи и подготовленная многословная версия.",
+      "observable_result": "Сформулирован один недостаток относительно требований задачи.",
+      "save_requirement": "Можно опереться на короткую собственную заметку; отдельная сдача на этом шаге не требуется.",
+      "completion": "Недостаток назван, далее выбирается связанный ход.",
+      "required_blocks": [
+        "Карточка до оценки",
+        "Собственный выбор одного недостатка",
+        "Переход к выбору действия"
+      ],
+      "superfluous_blocks": [
+        "Общие цель и результат",
+        "Завершение до карточки"
+      ],
+      "ambiguous_pointers": [
+        "Нужная версия находится после блока готовности"
+      ],
+      "prerequisite_gap": "Нет: сравнение по требованию уже выполнено в M01/M02.",
+      "term_gap": "Нет.",
+      "previous_link": "Применяет рамку S01 к заданному объекту.",
+      "next_link": "S03 использует именно названный недостаток; связность сохранена.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-042",
+        "SEM-043"
+      ],
+      "required_fix": "Поставить карточку до завершения; назвать концом собственную формулировку недостатка без раскрытия готовой оценки."
     },
     {
       "module_id": "M03",
@@ -2076,24 +2097,36 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M03-L01.json",
       "html_sha256": "244b34b07eddb6dc412f97fb3e100f48e94684d63053c65090754aa6cd7e4189",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Выбрать следующий ход из временной опоры и объяснить себе его связь с найденным недостатком.",
+      "work_location": "Stepik и собственное размышление; ИИ пока не нужен.",
+      "work_object": "Недостаток S02 и четыре возможных типа действия.",
+      "observable_result": "Выбран ход с собственной причиной, готовой для формулирования уточнения.",
+      "save_requirement": "Обязательная отдельная сдача не задана; короткая заметка допустима, но новый отчёт не нужен.",
+      "completion": "Выбран и обоснован ход, а не только прочитан список.",
+      "required_blocks": [
+        "Список как временная поддержка",
+        "Запрет механического соответствия",
+        "Вопрос о причинной связи",
+        "Переход к собственному сообщению"
+      ],
+      "superfluous_blocks": [
+        "Заголовок «Разберитесь с текущим шагом»",
+        "Вам понятен смысл вместо сделанного выбора"
+      ],
+      "ambiguous_pointers": [
+        "Абстрактная роль и критерий чтения скрывают фактический выбор действия"
+      ],
+      "prerequisite_gap": "Перечисленные приёмы опираются на M01/M02; изменения самой формулировки задачи понятны из прошлой тренировки.",
+      "term_gap": "Нет.",
+      "previous_link": "Прямо связывает выбор с недостатком S02.",
+      "next_link": "S04 переводит выбранный ход в собственное сообщение ИИ.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-042"
+      ],
+      "required_fix": "Назвать выбор связанного действия и его достаточный конец. Сохранить временную опору: этот урок ещё не самостоятельная проверка уровня 3."
     },
     {
       "module_id": "M03",
@@ -2105,24 +2138,35 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M03-L01.json",
       "html_sha256": "7f1c4b1c53e4f9820726cc91846b282a36d7f5c83e89feae6b6c3f0d5483375f",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Сформулировать уточнение, передать ИИ задачу и подготовленную версию, получить новую и сравнить.",
+      "work_location": "Алиса AI по прямой ссылке.",
+      "work_object": "Задача и первая версия из S02, собственное уточнение после S03.",
+      "observable_result": "В чате есть переданные исходные данные, собственное сообщение и новая версия; выполнено сравнение по прежнему требованию.",
+      "save_requirement": "Достаточно доступного чата для проверки S05; отдельный файл не требуется.",
+      "completion": "Новая версия получена и сопоставлена с исходной по тому же требованию.",
+      "required_blocks": [
+        "Собственная формулировка",
+        "Три конкретных объекта передачи",
+        "Прямая ссылка",
+        "Сравнение и возврат к проверке"
+      ],
+      "superfluous_blocks": [
+        "Общая вводная цель",
+        "Формульное выполните действие ниже после точной команды сравнения"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Нет: операция текстового ввода и причина уточнения известны.",
+      "term_gap": "Нет.",
+      "previous_link": "Использует собственные недостаток и ход S02/S03.",
+      "next_link": "S05 проверяет эти же версии и сообщение; переход понятен.",
+      "severity": "POLISH",
+      "finding_ids": [
+        "SEM-042",
+        "SEM-045"
+      ],
+      "required_fix": "Сократить шаблонные вводную и завершение, сохранив ясные объекты передачи и фактическое сравнение. Сам маршрут не нуждается в переработке."
     },
     {
       "module_id": "M03",
@@ -2134,24 +2178,33 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M03-L01.json",
       "html_sha256": "b58a9ab807d492b735172104d791f1b581d264b81d00be72bbb423688a4215d7",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "CHECK",
+      "learner_task": "Показать причинную цепочку собственной работы и определить, связан ли ход с недостатком.",
+      "work_location": "Поле Stepik по своему чату.",
+      "work_object": "Недостаток, решение, отправленное сообщение, версии и сравнение.",
+      "observable_result": "Пять кратких компонентов объясняют реальную работу; при несвязанном уточнении назначена повторная тренировка.",
+      "save_requirement": "Используются существующие сообщения и версии; дополнительный файл не требуется.",
+      "completion": "Работа объяснена и сверена; при несвязном ходе нужен возврат к диагностике и повтор практики.",
+      "required_blocks": [
+        "Пять конкретных компонентов",
+        "Место собственного ответа",
+        "Точный маршрут исправления",
+        "Предупреждение о снятии опоры далее"
+      ],
+      "superfluous_blocks": [],
+      "ambiguous_pointers": [
+        "Вернитесь к первому шагу буквально указывает на вводный S01, хотя поиск недостатка находится в S02"
+      ],
+      "prerequisite_gap": "Нет: сравнение и объяснение подготовлены; поддержанная попытка не выдаётся за независимый уровень 3.",
+      "term_gap": "Нет.",
+      "previous_link": "Проверяет завершённую практику S04.",
+      "next_link": "Ясно подготавливает отсутствие списка в M03-L02; резерв S06 условный.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-044"
+      ],
+      "required_fix": "Заменить двусмысленный первый шаг точным возвратом к поиску недостатка и последующему уточнению. Остальную содержательную проверку сохранить."
     },
     {
       "module_id": "M03",
@@ -2163,24 +2216,36 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M03-L01.json",
       "html_sha256": "a12289a3f6985e378861c8bf9588782368de2968ed16882e72c73bff7b714689",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "TECHNICAL_SUPPORT",
+      "learner_task": "При сбое выполнить работу с той же подготовленной версией в GigaChat; прочитать итог.",
+      "work_location": "Условно GigaChat; итог в Stepik.",
+      "work_object": "Прежние задача, подготовленный ответ и собственное уточнение.",
+      "observable_result": "При сбое получена новая версия и выполнено сравнение; без сбоя нового результата нет.",
+      "save_requirement": "Сохранить доступ к работе для S05, нового отдельного файла нет.",
+      "completion": "Прерванное действие и проверка завершены; без сбоя прочитан итог.",
+      "required_blocks": [
+        "Условие, ссылка и вход",
+        "Сохранение исходной версии",
+        "Возврат к сравнению и проверке",
+        "Краткий причинный итог"
+      ],
+      "superfluous_blocks": [
+        "Общие цель и критерий понимания"
+      ],
+      "ambiguous_pointers": [
+        "После резерва предлагается завершить урок без точного возврата к S04/S05"
+      ],
+      "prerequisite_gap": "Резерв знаком; сохранение подготовленной версии прямо объяснено.",
+      "term_gap": "Нет.",
+      "previous_link": "Помощь находится после единственного внешнего действия и проверки.",
+      "next_link": "Итог закрепляет принцип; переход к самостоятельной проверке объяснён в S05.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-042",
+        "SEM-045"
+      ],
+      "required_fix": "Связать помощь с продолжением S04/S05 и убрать фиктивный конец пониманием; сохранить тот же исходный объект."
     },
     {
       "module_id": "M03",
