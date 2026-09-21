@@ -6,17 +6,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 14,
-    "steps_reviewed": 97,
+    "lessons_reviewed": 15,
+    "steps_reviewed": 105,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 31,
-      "MAJOR": 56,
-      "POLISH": 7,
+      "BLOCKING": 32,
+      "MAJOR": 62,
+      "POLISH": 8,
       "CLEAN": 3,
-      "NOT_REVIEWED": 51
+      "NOT_REVIEWED": 43
     },
-    "findings_total": 83,
+    "findings_total": 88,
     "independent_critic": "NOT_PERFORMED"
   },
   "steps": [
@@ -4194,24 +4194,38 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L01.json",
       "html_sha256": "00c27648070557288ea30587e4f41b641538e02ebb284b49621d3be9946bb42d",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Понять, почему ссылка не равна проверке, и различить три наблюдаемых состояния основания ответа.",
+      "work_location": "Stepik.",
+      "work_object": "Объяснение неустановленного основания, переданного материала и наблюдаемого поиска.",
+      "observable_result": "Прочитаны определения и ограничения; нового артефакта нет.",
+      "save_requirement": "Нет.",
+      "completion": "Закончено объяснение трёх случаев до тренировки.",
+      "required_blocks": [
+        "Причина проверки важного факта",
+        "Три наблюдаемых случая",
+        "Ссылка и поиск не гарантируют верность"
+      ],
+      "superfluous_blocks": [
+        "Браузер как место чтения",
+        "Формальное действие",
+        "Готово через понимание",
+        "Возврат без выхода"
+      ],
+      "ambiguous_pointers": [
+        "Уже назначен открытый исходник, хотя пока читаются определения"
+      ],
+      "prerequisite_gap": "Скрытая история модели не требуется; переданный материал известен из M00/M04.",
+      "term_gap": "Основание поясняется тремя конкретными наблюдаемыми ситуациями.",
+      "previous_link": "Расширяет уже знакомую сверку по материалу.",
+      "next_link": "S02 применяет только что объяснённые категории к трём случаям.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-084",
+        "SEM-085"
+      ],
+      "required_fix": "Оставить определения в Stepik и убрать ложный внешний маршрут и практическую обвязку."
     },
     {
       "module_id": "M06",
@@ -4223,24 +4237,33 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L01.json",
       "html_sha256": "186c8663f960e7e5f3f5584586e89ee0652718517d6b398c310fbf2baa457855",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Самому различить три случая и затем сравнить свой выбор с разбором.",
+      "work_location": "Stepik; достаточно своего ответа перед чтением разбора.",
+      "work_object": "Посторонние ситуации с обычным чатом, расписанием и явно запущенным поиском.",
+      "observable_result": "Три выбора сопоставлены с пояснениями; отдельный независимый зачёт не заявляется.",
+      "save_requirement": "Отдельная запись/отчёт не требуются.",
+      "completion": "Свой выбор сделан и сравнен с разбором.",
+      "required_blocks": [
+        "Три ситуации",
+        "Сначала ответить, затем сравнить",
+        "Корректный разбор",
+        "Поиск не обязателен всегда"
+      ],
+      "superfluous_blocks": [
+        "Общий конец через понимание вместо короткой границы сравнения"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Все категории объяснены до применения. Разбор рядом допустим в поддержанной тренировке с явным порядком.",
+      "term_gap": "Нет.",
+      "previous_link": "Применяет теорию S01.",
+      "next_link": "Переходит от происхождения ответа к проверке конкретного внешнего факта.",
+      "severity": "POLISH",
+      "finding_ids": [
+        "SEM-084"
+      ],
+      "required_fix": "Упростить конец по фактически выполненному сравнению; не объявлять учебный разбор утечкой независимой проверки."
     },
     {
       "module_id": "M06",
@@ -4252,24 +4275,37 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L01.json",
       "html_sha256": "401d3c899f5d3e42102145f81e66b79b9ac645daf857e4aa2ec0d160847879ca",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "В подготовленном непроверенном ответе выбрать существенный внешний факт и понять последствия ошибки.",
+      "work_location": "Карточка Stepik.",
+      "work_object": "Непроверенная строка памятки о восстановлении вкладки Firefox на Windows.",
+      "observable_result": "Выбрано утверждение с последствием для полезности памятки.",
+      "save_requirement": "Сохранить доступ к выбранному утверждению для дальнейшей сверки; отдельная форма не нужна.",
+      "completion": "Факт выбран и его важность понятна по условию задачи.",
+      "required_blocks": [
+        "Безопасная ситуация",
+        "Маркировка ответа как непроверенного",
+        "Выбор существенного",
+        "Доказательство вне карточки"
+      ],
+      "superfluous_blocks": [
+        "Готово перед карточкой"
+      ],
+      "ambiguous_pointers": [
+        "Главный уточняющий вопрос о последствиях перенесён в S04"
+      ],
+      "prerequisite_gap": "В карточке уже есть полноценное требование выбрать факт и последствия; практика не отсутствует.",
+      "term_gap": "Комбинация клавиш — предмет проверки, а не обязательная операция ученика; установленный Firefox для сравнения с документацией не требуется.",
+      "previous_link": "После тренировки происхождения даёт конкретный безопасный объект проверки.",
+      "next_link": "S04 договаривает выбор существенного, затем объясняет пригодность источника.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-084",
+        "SEM-086",
+        "SEM-087"
+      ],
+      "required_fix": "Расположить карточку и поддержку выбора до конца действия; не подставлять за ученика готовые источник и статус."
     },
     {
       "module_id": "M06",
@@ -4281,24 +4317,41 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L01.json",
       "html_sha256": "6b6b8f58b73a1ee09a12ff4346bd1544f1807b69b3de33873fce984bda45b573",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "COMPOSITE",
+      "learner_task": "Уточнить существенность выбранного факта, затем изучить признаки подходящего первичного/официального источника.",
+      "work_location": "Stepik для объяснения; выбранный факт для мысленной проверки последствий.",
+      "work_object": "Свой факт и A02 с критериями ответственности, соответствия вопросу, открытого содержания и условий.",
+      "observable_result": "Выбор существенного уточнён; правила выбора источника прочитаны до поиска.",
+      "save_requirement": "Нового артефакта не требуется.",
+      "completion": "Закончен выбор факта и прочитана полная памятка до внешнего поиска.",
+      "required_blocks": [
+        "Вопрос о последствиях ошибки",
+        "Смысл первичного/официального основания",
+        "Четыре критерия",
+        "Проверка условий",
+        "Нет готового ответа"
+      ],
+      "superfluous_blocks": [
+        "Внешний адрес при чтении",
+        "Готово и переход до памятки"
+      ],
+      "ambiguous_pointers": [
+        "Название объяснения скрывает окончание предыдущего выбора",
+        "Нужная A02 после команды уйти"
+      ],
+      "prerequisite_gap": "Новое понятие объяснено до S05; это не поздняя теория. Тип источника намеренно назван в практике уровня 2.",
+      "term_gap": "Первичный источник раскрыт через ответственного за факт и противопоставление пересказу.",
+      "previous_link": "Сначала завершает поддержку S03.",
+      "next_link": "A02 даёт основание для выполнения S05, если ученик дочитал материал после формального конца.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-084",
+        "SEM-085",
+        "SEM-086",
+        "SEM-087"
+      ],
+      "required_fix": "Собрать выбор факта и полное объяснение в ясные части до поиска; убрать ложный внешний переход."
     },
     {
       "module_id": "M06",
@@ -4310,24 +4363,39 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L01.json",
       "html_sha256": "81335fd7a89749186bf677c4699d109637f3ab4dcc553f1e8ac64f6f0f4a7145",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Найти и открыть подходящий источник, сопоставить фрагмент и условия, определить статус/решение и применить только подтверждённую пригодную часть.",
+      "work_location": "Браузер для источника, собственная заметка для малого применения.",
+      "work_object": "Выбранное утверждение, найденный источник и его относящееся содержание.",
+      "observable_result": "Реальное сопоставление и решение; при подтверждении — строка в учебной памятке, при нехватке данных — отказ от использования как подтверждённого.",
+      "save_requirement": "Источник/относящийся фрагмент и решение доступны для объяснения; пригодная часть записана в заметку, если подтверждена.",
+      "completion": "Проверка проведена по открытой странице и принято честное решение; подтверждение не имитируется.",
+      "required_blocks": [
+        "Реальный поиск и открытие",
+        "Сопоставление условий",
+        "Четыре знакомых статуса",
+        "Решение",
+        "Применение только пригодного",
+        "Доступ к помощи поиска и недоступной страницы"
+      ],
+      "superfluous_blocks": [
+        "Общие цель и конец при полном конкретном списке"
+      ],
+      "ambiguous_pointers": [
+        "Разрешённая помощь поиска через ИИ появляется только в S06, после действия",
+        "Развилка недоступной страницы только в S08"
+      ],
+      "prerequisite_gap": "Открытие ссылки и чат знакомы; если самостоятельный браузерный поиск пока затруднителен, уже предусмотренную нейтральную помощь нужно предъявить раньше. Готовую ссылку не давать.",
+      "term_gap": "Определения статусов и критерии источника уже введены.",
+      "previous_link": "Применяет A02, а не угадывает официальный источник по одному названию.",
+      "next_link": "S06 лишь объясняет возможную помощь поиска; реальное применение уже поручено здесь.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-084",
+        "SEM-088"
+      ],
+      "required_fix": "Дать доступ к нейтральной помощи поиска и недоступному источнику в момент потребности. Сохранить конкретные действия и безопасный отказ при нехватке данных."
     },
     {
       "module_id": "M06",
@@ -4339,24 +4407,37 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L01.json",
       "html_sha256": "fce0642782f4686ef24505cde2ecdb2cfce99b801c6160d6b18ae64f08517c68",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Понять границу помощи ИИ: он может предложить кандидата, но источник нужно открыть самому.",
+      "work_location": "Stepik для чтения; при использовании помощи — свой чат и браузер по условию.",
+      "work_object": "Короткое пояснение допустимой помощи поиска.",
+      "observable_result": "Прочитано ограничение помощи; нового применения этот текст не предписывает.",
+      "save_requirement": "Нет.",
+      "completion": "Закончено пояснение; при необходимости оно используется перед поиском.",
+      "required_blocks": [
+        "ИИ как помощник поиска кандидата",
+        "Самостоятельное открытие страницы"
+      ],
+      "superfluous_blocks": [
+        "Зачем обещает реальное применение, которого в тексте нет",
+        "Общий заголовок",
+        "Готово через понимание",
+        "Ложный обязательный возврат"
+      ],
+      "ambiguous_pointers": [
+        "Обвязка требует применить результат, но под ней только справка о поиске"
+      ],
+      "prerequisite_gap": "Практика малого применения уже была в S05. Её нельзя объявить отсутствующей во всём уроке из-за неверной роли S06.",
+      "term_gap": "Кандидат означает возможный источник, который ещё проверяют.",
+      "previous_link": "Помощь показана после поиска, которому могла помочь.",
+      "next_link": "Далее проверка реально выполненной цепочки.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-084",
+        "SEM-088"
+      ],
+      "required_fix": "Вернуть справку к поиску и назначить объясняющую роль; не сочинять второе применение ради ошибочной рубрики плана."
     },
     {
       "module_id": "M06",
@@ -4368,24 +4449,36 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M06-L01.json",
       "html_sha256": "d074f08abc5791a818aa3b90d77be39ad26f9d5af4dc4aac45fcaac6c91c603d",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "CHECK",
+      "learner_task": "Объяснить существенность факта, пригодность источника и содержание, определившее свой статус.",
+      "work_location": "Поле свободного ответа Stepik по открытому источнику и своей работе.",
+      "work_object": "Факт, источник, фрагмент, статус/решение и малое применение при наличии подтверждённой части.",
+      "observable_result": "Собственное короткое объяснение по реальному сопоставлению.",
+      "save_requirement": "Сохранить доступ к основанию; отдельная обязательная загрузка не требуется.",
+      "completion": "Конкретные вопросы отвечены по выполненной работе; отсутствие подтверждения не выдано за успешное применение.",
+      "required_blocks": [
+        "Цепочка выполненной проверки",
+        "Три конкретных вопроса",
+        "Различение реального основания и согласия второй модели",
+        "Правильное место ответа"
+      ],
+      "superfluous_blocks": [
+        "Браузер как место free-answer",
+        "Возврат из Stepik в Stepik"
+      ],
+      "ambiguous_pointers": [
+        "Где и с чем направляет в исходник вместо поля собственного ответа"
+      ],
+      "prerequisite_gap": "Содержание ответа определено вопросами. Дефект — адрес ответа, не отсутствие задания.",
+      "term_gap": "Нет.",
+      "previous_link": "Проверяет уже выполненное S05 действие.",
+      "next_link": "S08 уточняет законный отрицательный результат и техническую помощь.",
+      "severity": "BLOCKING",
+      "finding_ids": [
+        "SEM-085"
+      ],
+      "required_fix": "Разделить просмотр основания и свой короткий ответ в Stepik; сохранить вопросы и честный статус без подтверждения."
     },
     {
       "module_id": "M06",
@@ -4397,24 +4490,41 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L01.json",
       "html_sha256": "66c718fccd9f849daac326c251796bdbdba3b81079973ee70b4babb6f6845cea",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "COMPOSITE",
+      "learner_task": "При отсутствии основания зафиксировать нехватку и не применять факт; при техническом сбое выбрать допустимый путь; прочитать итог проверки.",
+      "work_location": "Своя запись для статуса, браузер для источника, чат лишь при необходимости диалога, Stepik для итога.",
+      "work_object": "Факт и недостающая информация либо недоступная страница; общий принцип проверки.",
+      "observable_result": "Честный отрицательный результат или продолжение проверки другого безопасного факта; итог прочитан.",
+      "save_requirement": "Зафиксировать данных недостаточно и чего не хватает; не сохранять мнимое доказательство.",
+      "completion": "Отрицательный результат корректно оформлен либо после смены факта выполнена новая проверка; технический переход сам не завершает её.",
+      "required_blocks": [
+        "Допустимость отсутствия подтверждения",
+        "Конкретная нехватка",
+        "Запрет применять как подтверждённое",
+        "Резерв чата с условным входом",
+        "Другой безопасный факт при недоступности страницы",
+        "Итог трёх видов основания"
+      ],
+      "superfluous_blocks": [
+        "Алиса как место всех веток",
+        "Готово через понимание",
+        "Завершить урок после помощи без адресного возврата"
+      ],
+      "ambiguous_pointers": [
+        "После выбора другого факта не назван возврат к практике/проверке"
+      ],
+      "prerequisite_gap": "Отказ от недоказанного вывода прямо признан нормальным результатом; не добавлять принудительное применение ради полной цепочки.",
+      "term_gap": "Нет.",
+      "previous_link": "Отрицательная ветка и техническая помощь даны поздно.",
+      "next_link": "Следующий урок меняет основание на числа и расчёт, сохраняя принцип проверки.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-084",
+        "SEM-085",
+        "SEM-088"
+      ],
+      "required_fix": "Уточнить места условных веток и возврат к проверке после смены факта; сохранить допустимый отказ и итог без фиктивной практики."
     },
     {
       "module_id": "M06",
