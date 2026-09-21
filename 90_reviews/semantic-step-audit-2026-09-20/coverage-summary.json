@@ -5,17 +5,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 17,
-    "steps_reviewed": 117,
+    "lessons_reviewed": 18,
+    "steps_reviewed": 127,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 34,
-      "MAJOR": 69,
-      "POLISH": 11,
+      "BLOCKING": 37,
+      "MAJOR": 75,
+      "POLISH": 12,
       "CLEAN": 3,
-      "NOT_REVIEWED": 31
+      "NOT_REVIEWED": 21
     },
-    "findings_total": 97,
+    "findings_total": 103,
     "independent_critic": "NOT_PERFORMED"
   },
   "lessons": [
@@ -200,11 +200,13 @@
     {
       "lesson_id": "M06-L04",
       "step_count": 10,
-      "reviewed": false,
+      "reviewed": true,
       "counts": {
-        "NOT_REVIEWED": 10
+        "MAJOR": 6,
+        "BLOCKING": 3,
+        "POLISH": 1
       },
-      "summary": "Индивидуальный аудит ещё не выполнен"
+      "summary": "Нейтральное сохранение дано до самостоятельной тройки; рубрика после неё, авторские ключи не раскрыты и скрытую историю модели угадывать не требуется. Повторные задачи реально доступны и арифметические ключи корректны. Главные дефекты — разрыв второй повторной ситуации, смешение условного повтора с обязательным применением и отсутствие определённой новой попытки переноса после подсказки. S09 ясен и имеет POLISH. Внешние источники прочитаны лишь в пределах отдельного evidence; недоступность Эрмитажа в инструменте не объявлена сбоем у всех учеников."
     },
     {
       "lesson_id": "M07-L01",
