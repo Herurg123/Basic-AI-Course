@@ -5,17 +5,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 16,
-    "steps_reviewed": 111,
+    "lessons_reviewed": 17,
+    "steps_reviewed": 117,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 33,
-      "MAJOR": 66,
-      "POLISH": 9,
+      "BLOCKING": 34,
+      "MAJOR": 69,
+      "POLISH": 11,
       "CLEAN": 3,
-      "NOT_REVIEWED": 37
+      "NOT_REVIEWED": 31
     },
-    "findings_total": 92,
+    "findings_total": 97,
     "independent_critic": "NOT_PERFORMED"
   },
   "lessons": [
@@ -189,11 +189,13 @@
     {
       "lesson_id": "M06-L03",
       "step_count": 6,
-      "reviewed": false,
+      "reviewed": true,
       "counts": {
-        "NOT_REVIEWED": 6
+        "POLISH": 2,
+        "MAJOR": 3,
+        "BLOCKING": 1
       },
-      "summary": "Индивидуальный аудит ещё не выполнен"
+      "summary": "Безопасность, допустимость нехватки данных и соразмерность решения последствиям объяснены до практики. Обе ситуации вымышлены; реальная диагностика оборудования прямо исключена. Поддержка уровня 2 уместна. Сборка преждевременно показывает вторую задачу, разрывает первую и ошибочно направляет ответ проверки в браузер. S01/S04 достаточно ясны и требуют лишь упрощения; нового чата или реального рискованного действия урок не требует."
     },
     {
       "lesson_id": "M06-L04",

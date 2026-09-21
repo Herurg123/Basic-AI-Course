@@ -6,17 +6,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 16,
-    "steps_reviewed": 111,
+    "lessons_reviewed": 17,
+    "steps_reviewed": 117,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 33,
-      "MAJOR": 66,
-      "POLISH": 9,
+      "BLOCKING": 34,
+      "MAJOR": 69,
+      "POLISH": 11,
       "CLEAN": 3,
-      "NOT_REVIEWED": 37
+      "NOT_REVIEWED": 31
     },
-    "findings_total": 92,
+    "findings_total": 97,
     "independent_critic": "NOT_PERFORMED"
   },
   "steps": [
@@ -4791,24 +4791,34 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L03.json",
       "html_sha256": "3226fb5693a2216bd784fa63a2e24a8ff219c7dd4ac2ea848fc705bda5a04f24",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Понять допустимость статуса данных недостаточно и связь безопасного следующего действия с качеством основания и последствиями ошибки.",
+      "work_location": "Stepik.",
+      "work_object": "Объяснение границы доверия и учебной безопасности.",
+      "observable_result": "Прочитано объяснение до разбора вымышленных ситуаций; практического артефакта нет.",
+      "save_requirement": "Нет.",
+      "completion": "Закончено объяснение, далее первая учебная ситуация.",
+      "required_blocks": [
+        "Нехватка данных не равна подтверждению",
+        "Соразмерность последствиям",
+        "Вымышленность и отсутствие реальных рискованных решений"
+      ],
+      "superfluous_blocks": [
+        "Общие Зачем и Где при ясном тексте",
+        "Что сделать над объяснением",
+        "Готово через понимание"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Четыре статуса знакомы; причина остановки объясняется до применения.",
+      "term_gap": "Ответственный специалист пояснён как человек, профессионально отвечающий за ситуацию; не требуется специальная квалификация ученика.",
+      "previous_link": "Развивает разрешённую нехватку основания из M06-L01/L02.",
+      "next_link": "S02 предлагает применить принцип к вымышленному сообщению клуба.",
+      "severity": "POLISH",
+      "finding_ids": [
+        "SEM-093"
+      ],
+      "required_fix": "Сократить шаблон вокруг ясного объяснения, сохранив предварительную безопасность и принцип последствий; не добавлять упражнение ради окончания."
     },
     {
       "module_id": "M06",
@@ -4820,24 +4830,40 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L03.json",
       "html_sha256": "327ac794b7ef14e7963acd686c783f4b29417b4515592dea6452b21fad4d223a",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "По первой вымышленной ситуации решить, допустимо ли включить названное ИИ время в сообщение как подтверждённый факт, и выбрать статус.",
+      "work_location": "Встроенная карточка Stepik.",
+      "work_object": "Ситуация книжного клуба Маяк без расписания, правил или сообщения организатора.",
+      "observable_result": "Собственное решение по доступным основаниям и статус первой ситуации.",
+      "save_requirement": "Сохранить доступ к своему решению для S05; отдельный обязательный файл не требуется.",
+      "completion": "Первая ситуация разобрана, решение и статус определены по условию.",
+      "required_blocks": [
+        "Условия первой ситуации",
+        "Непроверенный ответ ИИ",
+        "Реальная задача выбора",
+        "Четыре знакомых статуса"
+      ],
+      "superfluous_blocks": [
+        "Формальный конец до карточки",
+        "Вторая задача с командой решения внутри шага первой"
+      ],
+      "ambiguous_pointers": [
+        "Основной текст просит только первую ситуацию, материал задаёт также вторую и статус для каждой",
+        "Разберите не содержит здесь всей поддержки, продолженной в S03"
+      ],
+      "prerequisite_gap": "Внутри A01 уже есть полноценная задача, её нельзя объявить отсутствующей. Отсутствие источника задано условием, искать реальный вымышленный клуб не требуется.",
+      "term_gap": "Нет.",
+      "previous_link": "Применяет рамку S01.",
+      "next_link": "S03 уточняет первую задачу, хотя S02 уже показывает команды обеих.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-093",
+        "SEM-095",
+        "SEM-096",
+        "SEM-097"
+      ],
+      "required_fix": "Расположить текущую ситуацию и её поддержку до конца шага; ограничить объём встроенного материала текущей задачей либо явно определить порядок двух ситуаций. Не подменять выбор готовым статусом."
     },
     {
       "module_id": "M06",
@@ -4849,24 +4875,37 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L03.json",
       "html_sha256": "3d18d982a3807523a8f9c4b5dcec27d56d3d6cecfa83e012d0d292cc05a942ac",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Продолжить первую ситуацию: определить существенное утверждение, основание, статус и следующий ход, не принимая отсутствие опровержения за подтверждение.",
+      "work_location": "Stepik по первой карточке из S02.",
+      "work_object": "Своё решение по времени работы клуба и данные условия.",
+      "observable_result": "Решение первой ситуации соотнесено с основанием и следующим действием.",
+      "save_requirement": "Своё решение доступно для итоговой проверки; новый отчёт не нужен.",
+      "completion": "Первая ситуация разобрана по фактическим основаниям; чтение напоминания само не заменяет решения.",
+      "required_blocks": [
+        "Собственный выбор по ситуации",
+        "Различение не опровергнуто и подтверждено",
+        "Ясная связь с первой карточкой"
+      ],
+      "superfluous_blocks": [
+        "Заголовок Разберитесь с текущим шагом",
+        "Готово через понимание при реальном выборе"
+      ],
+      "ambiguous_pointers": [
+        "ИИ там звучит уверенно после двух показанных ситуаций",
+        "Общее название скрывает продолжение первой практики"
+      ],
+      "prerequisite_gap": "Это продолжение поддержанного действия, а не только объяснение из строки плана. Не считать напоминание поздней единственной теорией: основание и допустимый отрицательный статус введены в S01 и раньше.",
+      "term_gap": "Нет.",
+      "previous_link": "Продолжает инструкцию S02, отделённую сборкой от своего объекта.",
+      "next_link": "S04 переходит ко второй ситуации с большими последствиями.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-093",
+        "SEM-095"
+      ],
+      "required_fix": "Связать выбор с первой ситуацией и дать честную практическую роль/конец; собрать разорванную инструкцию без повторного решения той же задачи ради структуры."
     },
     {
       "module_id": "M06",
@@ -4878,24 +4917,33 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L03.json",
       "html_sha256": "a394876871ae6c6aa6de8eb35a80a0541ffa98bcaabb2aa24e46052ec1806871",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "По второй вымышленной ситуации определить достаточность основания для продолжения работы и безопасный следующий шаг.",
+      "work_location": "Stepik, вторая ситуация той же карточки S02.",
+      "work_object": "Учебная мастерская Куб: неизвестный сигнал оборудования и необоснованный ответ ИИ.",
+      "observable_result": "Собственное решение о допустимости продолжения и безопасном следующем ходе с учётом последствий.",
+      "save_requirement": "Сохранить доступ к решению для S05; дополнительных артефактов не нужно.",
+      "completion": "Определены достаточность основания и безопасный следующий шаг в рамках вымышленной ситуации.",
+      "required_blocks": [
+        "Ясный выбор второй ситуации",
+        "Последствия ошибки",
+        "Собственное безопасное решение",
+        "Не выполнять реальную диагностику"
+      ],
+      "superfluous_blocks": [
+        "Общие цель и конец вместо краткой границы решения"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Нужная карточка уже доступна в S02, её вторая часть однозначно подписана. Знание устройства оборудования не требуется и диагностика прямо запрещена.",
+      "term_gap": "Индикатор — часть заданной ситуации; расшифровку сигнала ученик не обязан знать.",
+      "previous_link": "Переносит прежний принцип на более заметные последствия; ранний показ второй задачи отмечен в S02.",
+      "next_link": "S05 сопоставляет уже принятые решения по обеим ситуациям.",
+      "severity": "POLISH",
+      "finding_ids": [
+        "SEM-093"
+      ],
+      "required_fix": "Упростить оформление ясного задания и конец; при переразбиении сохранить доступ к второй карточке и её запрет реальной диагностики. Не добавлять специалиста или технический диагноз как обязательный готовый ответ."
     },
     {
       "module_id": "M06",
@@ -4907,24 +4955,37 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M06-L03.json",
       "html_sha256": "0ee8ff70ea0c675e56a673422461cb4d16944becc940be5464c49e6a01b556cc",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "CHECK",
+      "learner_task": "По обеим ситуациям показать существенное утверждение, известное и недостающее, статус, следующий ход и причину выбора с учётом последствий.",
+      "work_location": "Поле свободного ответа Stepik по своим двум решениям.",
+      "work_object": "Результаты учебных разборов первой и второй карточок.",
+      "observable_result": "Короткий собственный ответ по двум реально принятым решениям; нехватка основания не выдана за подтверждение.",
+      "save_requirement": "Ответ Stepik по своим решениям; отдельная загрузка файлов не нужна и отключена.",
+      "completion": "Решения сопоставлены с критериями и объяснены в ответе; согласие второй модели не засчитано доказательством.",
+      "required_blocks": [
+        "Пять содержательных критериев",
+        "Обе ситуации",
+        "Собственное объяснение причин",
+        "Недопустимость мнимого основания",
+        "Место ответа"
+      ],
+      "superfluous_blocks": [
+        "Браузер или исходник как место собственного ответа",
+        "Возврат в Stepik при работе в Stepik"
+      ],
+      "ambiguous_pointers": [
+        "У вас должно быть видно не связано с полем ответа, место уводит в исходный материал"
+      ],
+      "prerequisite_gap": "Содержание предъявления определено. Реальное применение рискованного совета или поиск вымышленного источника не требуются; решение остановиться допустимо.",
+      "term_gap": "Нет.",
+      "previous_link": "Проверяет уже выполненные два разбора.",
+      "next_link": "S06 объясняет возможность пересмотра статуса при новых основаниях.",
+      "severity": "BLOCKING",
+      "finding_ids": [
+        "SEM-094"
+      ],
+      "required_fix": "Направить короткий ответ в Stepik по своей работе, отделить просмотр карточки от предъявления. Сохранить допустимость остановки без реального рискованного действия."
     },
     {
       "module_id": "M06",
@@ -4936,24 +4997,39 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M06-L03.json",
       "html_sha256": "7885225ecd93422320e3dad351218c99b71fd550761eced99ba8c8a742fe86d9",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "COMPOSITE",
+      "learner_task": "Понять, когда новые данные позволяют пересмотреть статус, прочитать условную справку о чате и итог безопасного решения.",
+      "work_location": "Stepik; чат только при собственной необязательной потребности.",
+      "work_object": "Объяснение пересмотра статуса, границы ИИ и итог урока.",
+      "observable_result": "Прочитаны основания изменения решения и итог; нового ответа модели или внешнего действия не требуется.",
+      "save_requirement": "Нет нового сохраняемого результата.",
+      "completion": "Объяснение и итог прочитаны после проверки своих решений.",
+      "required_blocks": [
+        "Новое основание может изменить статус",
+        "Повтор догадки не доказательство",
+        "Чат условен",
+        "Итог безопасного выбора"
+      ],
+      "superfluous_blocks": [
+        "Алиса как место чтения",
+        "Формальное действие",
+        "Готово через понимание",
+        "Безусловный возврат"
+      ],
+      "ambiguous_pointers": [
+        "В Алисе AI противоречит условию Если вам удобен чат"
+      ],
+      "prerequisite_gap": "Это обобщение, а не новая практика или обязательное обращение к специалисту. Рабочий чат для карточек не нужен.",
+      "term_gap": "Новые данные пояснены примерами документа, исходных значений и ответа ответственного человека.",
+      "previous_link": "Объясняет допустимый последующий пересмотр уже проверенных решений.",
+      "next_link": "M06-L04 снимает поддержку и смешивает три знакомых типа основания.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-093",
+        "SEM-094"
+      ],
+      "required_fix": "Оставить объяснение и итог в Stepik, сохранить явную условность чата и убрать обязательный внешний маршрут/фиктивное действие."
     },
     {
       "module_id": "M06",
