@@ -5,17 +5,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 5,
-    "steps_reviewed": 33,
+    "lessons_reviewed": 6,
+    "steps_reviewed": 39,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 16,
-      "MAJOR": 16,
+      "BLOCKING": 18,
+      "MAJOR": 20,
       "POLISH": 0,
       "CLEAN": 1,
-      "NOT_REVIEWED": 115
+      "NOT_REVIEWED": 109
     },
-    "findings_total": 30,
+    "findings_total": 35,
     "independent_critic": "NOT_PERFORMED"
   },
   "lessons": [
@@ -73,11 +73,12 @@
     {
       "lesson_id": "M02-L01",
       "step_count": 6,
-      "reviewed": false,
+      "reviewed": true,
       "counts": {
-        "NOT_REVIEWED": 6
+        "MAJOR": 4,
+        "BLOCKING": 2
       },
-      "summary": "Индивидуальный аудит ещё не выполнен"
+      "summary": "Переход от темы к результату и смысл критерия объяснены до основной второй практики; готовые критерии за ученика не выбраны. Первая карточка преждевременно показывает команды второй ситуации. Отправка второго запроса и оценка отделены от практики и помещены в проверку. Проверка не различает ИИ-чат, хранение собственной формулировки и поле Stepik."
     },
     {
       "lesson_id": "M02-L02",

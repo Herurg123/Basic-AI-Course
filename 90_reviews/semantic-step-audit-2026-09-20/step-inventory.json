@@ -6,17 +6,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 5,
-    "steps_reviewed": 33,
+    "lessons_reviewed": 6,
+    "steps_reviewed": 39,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 16,
-      "MAJOR": 16,
+      "BLOCKING": 18,
+      "MAJOR": 20,
       "POLISH": 0,
       "CLEAN": 1,
-      "NOT_REVIEWED": 115
+      "NOT_REVIEWED": 109
     },
-    "findings_total": 30,
+    "findings_total": 35,
     "independent_critic": "NOT_PERFORMED"
   },
   "steps": [
@@ -1477,24 +1477,31 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M02-L01.json",
       "html_sha256": "6c4bd4479779dc6b9bb5dc637afcbc9acde6ff27dfe2bff76622acf92f8dfcc6",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Различить тему разговора и нужный результат запроса.",
+      "work_location": "Stepik.",
+      "work_object": "Бытовые примеры тем и объяснение задачи.",
+      "observable_result": "Нового артефакта нет; понятно, зачем назвать результат.",
+      "save_requirement": "Не требуется.",
+      "completion": "Прочитано различие, далее — проба на ситуации.",
+      "required_blocks": [
+        "Различие темы и результата",
+        "Связь с короткими прежними задачами"
+      ],
+      "superfluous_blocks": [
+        "Общие цель, действие и критерий понимания"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Нет.",
+      "term_gap": "Промпт употреблён как необязательное название запроса; смысл фразы прямо отрицает необходимость особой формулы.",
+      "previous_link": "Переходит от общего цикла M01 к самостоятельному формулированию его начала.",
+      "next_link": "Готовит первую ситуацию S02.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-031"
+      ],
+      "required_fix": "Сохранить доступное различие, убрать фиктивное действие и самоподтверждение понимания."
     },
     {
       "module_id": "M02",
@@ -1506,24 +1513,39 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M02-L01.json",
       "html_sha256": "9cf6b05a9e2f41cd275c6b2110c23b6ebe99d273439ea67956e4ed1f12a71f53",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "Для поездки сформулировать нужный результат и его назначение, отправить запрос и получить ответ.",
+      "work_location": "Карточка в Stepik, затем Алиса AI.",
+      "work_object": "Первая ситуация карточки: один день в соседнем городе, занятия после обеда.",
+      "observable_result": "Собственная конкретная задача отправлена, ответ получен.",
+      "save_requirement": "Достаточно доступного чата; новый файл не требуется.",
+      "completion": "Получен ответ на собственную формулировку первой задачи.",
+      "required_blocks": [
+        "Только актуальная первая ситуация либо ясная граница второй",
+        "Команда сформулировать результат и цель",
+        "Ссылка и отправка",
+        "Фактический конец"
+      ],
+      "superfluous_blocks": [
+        "Общие получите результат и выполните ниже",
+        "Переход до карточки"
+      ],
+      "ambiguous_pointers": [
+        "Под указателем первой ситуации встроена вся карточка, включая отдельные повелительные команды второй",
+        "Не сказано отложить вторую ситуацию до S04"
+      ],
+      "prerequisite_gap": "Смысл задачи дан в S01; критерии знакомы ранее. Преждевременная вторая часть создаёт сбой маршрута, не доказанную нехватку знаний.",
+      "term_gap": "Нет.",
+      "previous_link": "Применяет различие темы и задачи.",
+      "next_link": "S03 должен обобщить первую пробу до второй, но встроенная карточка уже предлагает вторую практику.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-031",
+        "SEM-032",
+        "SEM-035"
+      ],
+      "required_fix": "Расположить первую карточку до завершения и не выдавать вторую команду как текущее продолжение; сохранить собственную формулировку результата."
     },
     {
       "module_id": "M02",
@@ -1535,24 +1557,33 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M02-L01.json",
       "html_sha256": "09b40ffb4b80b2ba9440132e70e957f6afa3099a8f40b9dd379dfa2335a145fd",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Понять пользу 1–3 наблюдаемых признаков пригодности до оценки результата.",
+      "work_location": "Stepik.",
+      "work_object": "Опыт первой задачи и уже знакомое понятие критерия.",
+      "observable_result": "Нового артефакта нет; подготовлен собственный выбор признаков во второй ситуации.",
+      "save_requirement": "Не требуется.",
+      "completion": "Прочитан смысл проверяемого признака.",
+      "required_blocks": [
+        "Связь с полученным ответом",
+        "Наблюдаемость вместо «хорошо»",
+        "Переход к собственному выбору"
+      ],
+      "superfluous_blocks": [
+        "Что сделать у объяснения",
+        "Вам понятен смысл"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Нет: конкретный пример критерия уже был в M00/M01; здесь достаточно обобщения.",
+      "term_gap": "Критерий заново кратко пояснён.",
+      "previous_link": "Обобщает опыт первой задачи; повтор термина имеет педагогическую функцию.",
+      "next_link": "Объяснение предшествует основной команде выбрать критерии S04, если ранние команды карточки S02 отложены.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-031"
+      ],
+      "required_fix": "Сохранить полезное обобщение и убрать фиктивное действие; не навязывать готовые признаки второй задачи."
     },
     {
       "module_id": "M02",
@@ -1564,24 +1595,35 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M02-L01.json",
       "html_sha256": "a357a39703c32d9798cae7f346e6b5563b8568bdc4e5ea91d29972952004dfb9",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "GUIDED_ACTION",
+      "learner_task": "По второй ситуации сформулировать задачу и 1–3 собственных критерия; отправка и оценка фактически вынесены в S05.",
+      "work_location": "Собственная формулировка для чата по второй части карточки S02.",
+      "work_object": "Ситуация с полкой и желаемый результат помощи ИИ.",
+      "observable_result": "Выбраны задача и признаки; ответ на них ещё не получен по командам текущего шага.",
+      "save_requirement": "Собственная формулировка должна оставаться доступна до отправки и проверки, без нового обязательного приложения.",
+      "completion": "Подготовлены задача и критерии; конец полной практики включает последующую отправку/оценку и сейчас не отделён явно.",
+      "required_blocks": [
+        "Указатель второй ситуации",
+        "Собственный выбор задачи и признаков",
+        "Понятное продолжение или целостная практика"
+      ],
+      "superfluous_blocks": [
+        "Общий готовый результат без указания, только ли это подготовка"
+      ],
+      "ambiguous_pointers": [
+        "Переход к проверке S05 предлагается до получения ответа второй задачи"
+      ],
+      "prerequisite_gap": "Критерии объяснены раньше. Позднее различение условий и критериев в проверке уточняет уже освоенный смысл, не обязательно должно предшествовать каждой поддержанной пробе.",
+      "term_gap": "Нет.",
+      "previous_link": "Использует понятие критерия из S03 и вторую часть карточки S02.",
+      "next_link": "S05 сначала требует новое внешнее действие вместо проверки завершённой попытки.",
+      "severity": "BLOCKING",
+      "finding_ids": [
+        "SEM-031",
+        "SEM-033"
+      ],
+      "required_fix": "Собрать задачу, критерии, отправку и оценку в понятный маршрут либо явно назвать фазу подготовки и её продолжение. Не выбирать критерии за ученика."
     },
     {
       "module_id": "M02",
@@ -1593,24 +1635,43 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M02-L01.json",
       "html_sha256": "3c9c5012313e82cbd36dcc9cb711453bcd56bfc864514d4099d0adb74b955eee",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "COMPOSITE",
+      "learner_task": "Сначала отправить второй запрос и оценить ответ, затем зафиксировать задачу, критерии и объяснение одного признака. Действие и проверка связаны, но их порядок скрыт ролью проверки уже сделанного.",
+      "work_location": "Алиса AI для получения ответа; собственная запись и поле Stepik для объяснения выбора.",
+      "work_object": "Вторая задача, её заранее выбранные признаки и ответ на неё.",
+      "observable_result": "Ответ реально оценён; задача, критерии и смысл одного из них кратко зафиксированы.",
+      "save_requirement": "Три компонента записи названы, но где хранить/предъявлять их, надо уточнить; новый дополнительный отчёт не требуется.",
+      "completion": "Получение и оценка выполнены; понятная краткая запись внесена в нужное место.",
+      "required_blocks": [
+        "Отделение нового действия от проверки",
+        "Три названных компонента записи",
+        "Место собственного ответа",
+        "Возврат к уточнению расплывчатой задачи",
+        "Различие условия и критерия как обратная связь"
+      ],
+      "superfluous_blocks": [
+        "Проверка уже сделанного до команды отправить запрос",
+        "Алиса как место всего шага",
+        "Ответили на вопросы при списке сохраняемых компонентов",
+        "Задание ниже после конца инструкции"
+      ],
+      "ambiguous_pointers": [
+        "Не разграничены хранение у себя и запись в поле Stepik",
+        "Слово «сохраните» не означает отправить ИИ собственное объяснение"
+      ],
+      "prerequisite_gap": "Основные знания даны; проблема — фазы и места. Содержание краткой записи определено тремя пунктами, поэтому полное отсутствие задания для поля не заявляется.",
+      "term_gap": "Условия и критерии разъяснены через функцию; это полезная обратная связь после пробы.",
+      "previous_link": "Завершает отложенную отправку и оценку S04.",
+      "next_link": "После сверки идёт условный резерв и итог.",
+      "severity": "BLOCKING",
+      "finding_ids": [
+        "SEM-031",
+        "SEM-033",
+        "SEM-034",
+        "SEM-035"
+      ],
+      "required_fix": "Сначала завершить практику, затем проверять её; явно назначить место записи трёх компонентов и хранения при необходимости. Сохранить самостоятельный выбор критериев и обратную связь."
     },
     {
       "module_id": "M02",
@@ -1622,24 +1683,36 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M02-L01.json",
       "html_sha256": "9f14f46f11ee5c77a250e05dd4d0158a0eae16c0c7a9d7e1b0ec70f1791cce9d",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "TECHNICAL_SUPPORT",
+      "learner_task": "При сбое продолжить ту же задачу в GigaChat, затем подвести итог.",
+      "work_location": "Условно GigaChat; итог в Stepik.",
+      "work_object": "Уже выбранная задача и критерии.",
+      "observable_result": "Прерванное действие завершено; без сбоя нового результата нет.",
+      "save_requirement": "Сохранить прежние задачу и критерии при переносе, нового файла не требуется.",
+      "completion": "Работа продолжена и проверена; без сбоя прочитан итог.",
+      "required_blocks": [
+        "Условный резерв",
+        "Запрет ненужного перезапуска задачи",
+        "Возврат к нужной фазе",
+        "Вопрос следующего урока"
+      ],
+      "superfluous_blocks": [
+        "Общие цель и критерий понимания"
+      ],
+      "ambiguous_pointers": [
+        "Не назван конкретный шаг возврата после восстановления"
+      ],
+      "prerequisite_gap": "Нет нового навыка; резерв знаком и явно сохраняет прежнюю задачу.",
+      "term_gap": "Нет.",
+      "previous_link": "Помощь находится после практики и проверки.",
+      "next_link": "Вопрос об условиях задачи ясно подготавливает M02-L02.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-031",
+        "SEM-035"
+      ],
+      "required_fix": "Связать помощь с местом сбоя и возвратом; сохранить полезное указание не начинать урок заново."
     },
     {
       "module_id": "M02",
