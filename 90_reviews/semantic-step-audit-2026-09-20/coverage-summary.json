@@ -5,17 +5,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 12,
-    "steps_reviewed": 80,
+    "lessons_reviewed": 13,
+    "steps_reviewed": 85,
     "counts": {
       "CRITICAL": 0,
       "BLOCKING": 29,
-      "MAJOR": 45,
-      "POLISH": 4,
-      "CLEAN": 2,
-      "NOT_REVIEWED": 68
+      "MAJOR": 48,
+      "POLISH": 5,
+      "CLEAN": 3,
+      "NOT_REVIEWED": 63
     },
-    "findings_total": 70,
+    "findings_total": 74,
     "independent_critic": "NOT_PERFORMED"
   },
   "lessons": [
@@ -145,11 +145,13 @@
     {
       "lesson_id": "M05-L01",
       "step_count": 5,
-      "reviewed": false,
+      "reviewed": true,
       "counts": {
-        "NOT_REVIEWED": 5
+        "POLISH": 1,
+        "MAJOR": 3,
+        "CLEAN": 1
       },
-      "summary": "Индивидуальный аудит ещё не выполнен"
+      "summary": "Связь с текстовым циклом ясна, причина оценки по назначению объяснена, визуальные версии читаемы и пригодны для сравнения. Авторские изображения не выдаются за живые B7/B8. Главные дефекты — позднее расположение карточки, разрез вопроса и неопределённые запись/сохранение. S01 требует только сокращения; S04 CLEAN, поскольку вопрос, место и смысл ответа ясны."
     },
     {
       "lesson_id": "M05-L02",
