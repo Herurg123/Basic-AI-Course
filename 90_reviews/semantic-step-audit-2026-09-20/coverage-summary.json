@@ -5,17 +5,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 13,
-    "steps_reviewed": 85,
+    "lessons_reviewed": 14,
+    "steps_reviewed": 97,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 29,
-      "MAJOR": 48,
-      "POLISH": 5,
+      "BLOCKING": 31,
+      "MAJOR": 56,
+      "POLISH": 7,
       "CLEAN": 3,
-      "NOT_REVIEWED": 63
+      "NOT_REVIEWED": 51
     },
-    "findings_total": 74,
+    "findings_total": 83,
     "independent_critic": "NOT_PERFORMED"
   },
   "lessons": [
@@ -156,11 +156,13 @@
     {
       "lesson_id": "M05-L02",
       "step_count": 12,
-      "reviewed": false,
+      "reviewed": true,
       "counts": {
-        "NOT_REVIEWED": 12
+        "POLISH": 2,
+        "MAJOR": 8,
+        "BLOCKING": 2
       },
-      "summary": "Индивидуальный аудит ещё не выполнен"
+      "summary": "Нейтральная техническая проба действительно доступна до самостоятельной генерации, показана один раз и не раскрывает основную правку. Части задачи разделены; master целиком не утёк. Реальные B7/B8 и безопасность явно сохранены. Дефекты относятся к местам/форме ответов, границам, условному резерву и полноте повторной попытки. Новые изображения здесь создаёт ученик; свежая проверка сервисов не проводилась."
     },
     {
       "lesson_id": "M06-L01",
