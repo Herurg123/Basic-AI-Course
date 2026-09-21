@@ -19,9 +19,13 @@
 - `04_course/stepik/automation/SYNC-POLICY.md`, `LIVE-SAFETY.md`, `RECOVERY-RECONCILE.md`, `DEPLOYMENT-HISTORY.md`.
 - Код: `verified_rendering.py`, `rendering.py`, `step_model.py`, `transport_equivalence.py`, полный `general_content.py`, включая разбиение и сопоставление фрагментов.
 
+## Индивидуальное чтение курса
+
+- **M00-L01: завершено.** Прочитаны весь `lesson.md`, весь `stepik-plan.md`, все 6 фактических шагов и встроенная карточка. Заключения: `reviews/M00-L01.json`.
+
 ## Требуется дочитать
 
-- Все 21 текущие пары `lesson.md` / `stepik-plan.md` и все 148 фактических шагов. Их машинное восстановление завершено, смысловое чтение ещё впереди.
+- Оставшиеся 20 пар `lesson.md` / `stepik-plan.md` и 142 фактических шага начиная с M00-L02. Машинное восстановление всех шагов завершено; смысловое чтение учитывается отдельно.
 
 ## Метод учёта
 

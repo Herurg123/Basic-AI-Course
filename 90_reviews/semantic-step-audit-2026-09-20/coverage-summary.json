@@ -1,0 +1,213 @@
+{
+  "summary": {
+    "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+    "status": "PARTIAL",
+    "modules_total": 9,
+    "lessons_total": 21,
+    "steps_total": 148,
+    "lessons_reviewed": 1,
+    "steps_reviewed": 6,
+    "counts": {
+      "CRITICAL": 0,
+      "BLOCKING": 4,
+      "MAJOR": 2,
+      "POLISH": 0,
+      "CLEAN": 0,
+      "NOT_REVIEWED": 142
+    },
+    "findings_total": 7,
+    "independent_critic": "NOT_PERFORMED"
+  },
+  "lessons": [
+    {
+      "lesson_id": "M00-L01",
+      "step_count": 6,
+      "reviewed": true,
+      "counts": {
+        "BLOCKING": 4,
+        "MAJOR": 2
+      },
+      "summary": "Основные объяснения безопасности, рабочей версии и критерия даны до практики и доступны новичку. Проблемы возникают в сборке: неверные места работы, разрыв вопроса, ложное сохранение. Новый чистый диалог не получил первого технического пояснения; резерв находится после практики и проверки."
+    },
+    {
+      "lesson_id": "M00-L02",
+      "step_count": 8,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 8
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M00-L03",
+      "step_count": 6,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 6
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M01-L01",
+      "step_count": 7,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 7
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M01-L02",
+      "step_count": 6,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 6
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M02-L01",
+      "step_count": 6,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 6
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M02-L02",
+      "step_count": 7,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 7
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M03-L01",
+      "step_count": 6,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 6
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M03-L02",
+      "step_count": 9,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 9
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M04-L01",
+      "step_count": 6,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 6
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M04-L02",
+      "step_count": 7,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 7
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M04-L03",
+      "step_count": 6,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 6
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M05-L01",
+      "step_count": 5,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 5
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M05-L02",
+      "step_count": 12,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 12
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M06-L01",
+      "step_count": 8,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 8
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M06-L02",
+      "step_count": 6,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 6
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M06-L03",
+      "step_count": 6,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 6
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M06-L04",
+      "step_count": 10,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 10
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M07-L01",
+      "step_count": 7,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 7
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M07-L02",
+      "step_count": 8,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 8
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    },
+    {
+      "lesson_id": "M08-L01",
+      "step_count": 6,
+      "reviewed": false,
+      "counts": {
+        "NOT_REVIEWED": 6
+      },
+      "summary": "Индивидуальный аудит ещё не выполнен"
+    }
+  ]
+}
