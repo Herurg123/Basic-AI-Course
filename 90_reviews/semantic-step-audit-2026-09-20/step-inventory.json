@@ -6,17 +6,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 11,
-    "steps_reviewed": 74,
+    "lessons_reviewed": 12,
+    "steps_reviewed": 80,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 26,
-      "MAJOR": 42,
+      "BLOCKING": 29,
+      "MAJOR": 45,
       "POLISH": 4,
       "CLEAN": 2,
-      "NOT_REVIEWED": 74
+      "NOT_REVIEWED": 68
     },
-    "findings_total": 62,
+    "findings_total": 70,
     "independent_critic": "NOT_PERFORMED"
   },
   "steps": [
@@ -2945,7 +2945,7 @@
       "snapshot_path": "rendered/M04-L02.json",
       "html_sha256": "dd919356c6cbe3f82b64119b183e1530468211467c056009a582272c0b9944eb",
       "review_status": "REVIEWED",
-      "semantic_type": "INDEPENDENT_PRACTICE",
+      "semantic_type": "GUIDED_ACTION",
       "learner_task": "По вымышленному обращению самостоятельно определить допустимое содержание и подготовить реальный безопасный вариант до передачи.",
       "work_location": "Карточка Stepik для чтения; отдельная копия текста для подготовки, затем сервис только при допустимости.",
       "work_object": "Обращение о неисправности чайника для общей памятки, не для конкретного заказа.",
@@ -2965,7 +2965,7 @@
         "Самостоятельно решите: перед концом шага; список начинается в S03",
         "Материал с действием стоит после Готово"
       ],
-      "prerequisite_gap": "Безопасность уже введена; отсутствие практической команды не заявляется — она есть в карточке.",
+      "prerequisite_gap": "Это первая практика уровня 2; собственные решения внутри неё не означают отдельный независимый зачёт. Команда действия есть внутри карточки. Независимый B3 проверяется на изображении.",
       "term_gap": "Нет существенного пробела.",
       "previous_link": "Начало завершает объяснение S01.",
       "next_link": "Список решения и окончание практики продолжены под объясняющим заголовком S03.",
@@ -3206,24 +3206,37 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M04-L03.json",
       "html_sha256": "56f91536f773a3f53e2619733437e28b43609a6fb00dc5ca12b8728e6fa6cae3",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Понять переход от учебного файла к собственному допустимому материалу и полезной задаче.",
+      "work_location": "Stepik.",
+      "work_object": "Короткое объяснение смысла собственного материала.",
+      "observable_result": "Прочитана цель переноса; нового артефакта пока нет.",
+      "save_requirement": "Нет.",
+      "completion": "Объяснение завершено и можно перейти к выбору.",
+      "required_blocks": [
+        "Связь с подготовленными файлами",
+        "Собственный, подходящий и безопасный материал"
+      ],
+      "superfluous_blocks": [
+        "Внешнее место чтения",
+        "Что сделать",
+        "Готово через понимание",
+        "Возврат без выхода"
+      ],
+      "ambiguous_pointers": [
+        "Уже назначен открытый исходник, который ещё предстоит выбрать"
+      ],
+      "prerequisite_gap": "Нет: безопасность, работа по файлу и сверка введены ранее.",
+      "term_gap": "Нет.",
+      "previous_link": "Ясно объясняет увеличение самостоятельности.",
+      "next_link": "Выбор и его безопасные границы следуют в S02.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-063",
+        "SEM-065"
+      ],
+      "required_fix": "Оставить связное объяснение и убрать фиктивную внешнюю работу."
     },
     {
       "module_id": "M04",
@@ -3235,24 +3248,40 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M04-L03.json",
       "html_sha256": "26286b4ad145f29278d6a66147e17c7ed1ad8a61d2c962e81d8153dda2aa6579",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "INDEPENDENT_PRACTICE",
+      "learner_task": "Самому выбрать допустимый материал, до передачи записать материал/назначение/допустимость, затем поставить собственную задачу.",
+      "work_location": "Свой материал и заметка до передачи; Алиса AI только после решения.",
+      "work_object": "Собственный нейтральный текст или поддерживаемый материал; инструкция A01 для допустимости.",
+      "observable_result": "Есть предварительная запись, собственный запрос и полученный по материалу ответ.",
+      "save_requirement": "Реально сохранить предварительную запись и доступ к материалу, запросу и ответу; отдельный формат не обязателен.",
+      "completion": "Собственный допустимый материал использован в своей задаче и ответ доступен для следующей работы.",
+      "required_blocks": [
+        "Собственный выбор",
+        "Запись до передачи",
+        "Вариант создать свою заметку",
+        "Границы безопасности",
+        "Ссылка на сервис"
+      ],
+      "superfluous_blocks": [
+        "Алиса как место предварительного выбора",
+        "Общий конец до встроенной инструкции"
+      ],
+      "ambiguous_pointers": [
+        "Инструкция выбора встроена после команды закончить и вернуться"
+      ],
+      "prerequisite_gap": "Нет: если своего файла нет, карточка разрешает создать нейтральную заметку. Этот путь существует, но стоит поздно.",
+      "term_gap": "Нейтральный материал объяснён примерами без выбора конкретного содержания за ученика.",
+      "previous_link": "Выполняет собственный перенос, заявленный S01.",
+      "next_link": "Ограничение содержательных подсказок появляется в S03 уже после выбора, хотя команды самому были заранее.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-063",
+        "SEM-064",
+        "SEM-065",
+        "SEM-070"
+      ],
+      "required_fix": "Поставить A01 до действия и завершения; различить подготовку и передачу. Сохранить реальный собственный выбор."
     },
     {
       "module_id": "M04",
@@ -3264,24 +3293,41 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M04-L03.json",
       "html_sha256": "77af736b7ffcaac8563657bd9e916df492ea75773cf3796c012e47aa92ea93e8",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "INDEPENDENT_PRACTICE",
+      "learner_task": "Самостоятельно выбрать существенное утверждение и проверить его на подходящем основании по своему материалу.",
+      "work_location": "Ученик сам определяет нужное основание и открывает его; место не должно раскрывать проверяемый выбор заранее.",
+      "work_object": "Ответ по собственному материалу, выбранное утверждение и самостоятельно найденное основание.",
+      "observable_result": "Реальное сопоставление, статус и решение; текущий текст даёт готовую процедуру до попытки, поэтому независимость нельзя объявлять подтверждённой.",
+      "save_requirement": "Доступ к ответу и реальному основанию нужен для последующего объяснения; общая строка о задании ниже не называет объект.",
+      "completion": "Самостоятельная проверка и решение выполнены; при непригодности нужен путь к безопасному дальнейшему действию.",
+      "required_blocks": [
+        "Задача проверки без готового метода",
+        "Самостоятельный выбор существенного",
+        "Доступная нейтральная техническая помощь",
+        "Наблюдаемый результат проверки"
+      ],
+      "superfluous_blocks": [
+        "Готовые пять пунктов проверки в независимой попытке",
+        "Указание открыть исходник до самостоятельного выбора основания",
+        "Неопределённое сохранение ниже"
+      ],
+      "ambiguous_pointers": [
+        "Самостоятельность одновременно заявлена и заменена готовой последовательностью",
+        "Применение вынесено в начало следующей проверки"
+      ],
+      "prerequisite_gap": "Метод уже обучен в M04-L01; повтор рецепта здесь не нужен для устранения скрытого знания. Это частичный B10 по материалу, не полный зачёт других типов.",
+      "term_gap": "Четыре статуса объяснены раньше.",
+      "previous_link": "Сначала договаривает ограничения помощи для уже сделанного выбора S02.",
+      "next_link": "Реальное применение появляется только в S04 под ролью проверки.",
+      "severity": "BLOCKING",
+      "finding_ids": [
+        "SEM-063",
+        "SEM-064",
+        "SEM-066",
+        "SEM-067"
+      ],
+      "required_fix": "Убрать содержательный рецепт из независимой попытки, сохранив нейтральную задачу и техническую помощь. Вернуть применение к практике и определить честный путь при непригодности."
     },
     {
       "module_id": "M04",
@@ -3293,24 +3339,45 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M04-L03.json",
       "html_sha256": "2d1d9a21bf1d1147a1ed8bb2c4444d4f3877c02bdf65965878c3e6dc673225c3",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "COMPOSITE",
+      "learner_task": "При пригодном результате выполнить малое применение, затем проверить самостоятельность собственной работы по материалу.",
+      "work_location": "Своё рабочее место для применения; короткий ответ в Stepik после действия.",
+      "work_object": "Пригодная версия, предварительная запись безопасности, запрос и ответ.",
+      "observable_result": "Реальное применение при пригодности и понятный короткий ответ по выполненной работе; сейчас требования к этому ответу не заданы вопросами.",
+      "save_requirement": "Реальный результат остаётся у ученика. Неопределённая строка сохранить ниже лишняя.",
+      "completion": "Практика выполнена и проверка отражает её; нельзя подтвердить несуществующий или подсказанный выбор.",
+      "required_blocks": [
+        "Применение до его проверки",
+        "Короткое требование к ответу",
+        "Место ответа Stepik",
+        "Различение успешной и тренировочной попытки",
+        "Честная новая попытка при подсказке"
+      ],
+      "superfluous_blocks": [
+        "Ответить на вопросы, которых нет",
+        "Заметка как место всего free-answer",
+        "Возврат в Stepik из его поля",
+        "Неопределённое сохранение"
+      ],
+      "ambiguous_pointers": [
+        "После попытки должно быть видно не объясняет, что написать в поле",
+        "Практическая команда применения скрыта под названием проверки"
+      ],
+      "prerequisite_gap": "A02 могла бы пояснить форму, но фактически не встроена и ссылки на неё нет. Скрытую авторскую инструкцию нельзя засчитать ученику.",
+      "term_gap": "Нет.",
+      "previous_link": "Договаривает практику S03, затем меняет роль.",
+      "next_link": "S05 требует фактический след применения; после признания неуспеха отдельного пути нет.",
+      "severity": "BLOCKING",
+      "finding_ids": [
+        "SEM-063",
+        "SEM-064",
+        "SEM-065",
+        "SEM-067",
+        "SEM-068",
+        "SEM-069"
+      ],
+      "required_fix": "Отделить применение от проверки и явно задать короткий ответ Stepik по сделанному. Предусмотреть новый материал/задачу после содержательной подсказки без ложного зачёта исходной попытки."
     },
     {
       "module_id": "M04",
@@ -3322,24 +3389,33 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M04-L03.json",
       "html_sha256": "b4e7e0a5a2f24b4c056fd08237dc28c6c78f3bdb4571525657af9a1163bcea97",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "CHECK",
+      "learner_task": "Показать результат проверки существенного утверждения и своими словами объяснить основание статуса и применение пригодной версии.",
+      "work_location": "Stepik по своему открытому материалу и сохранённой работе.",
+      "work_object": "Утверждение, относящийся фрагмент, статус, решение и след применения.",
+      "observable_result": "Короткое собственное объяснение по реальному действию; при непригодном ответе требуемый след применения отсутствует по уважительной причине.",
+      "save_requirement": "Исходник и рабочие артефакты остаются у ученика; текстовый ответ отражает уже сделанное.",
+      "completion": "Для пригодной версии форма ясна. Для непригодной не определено, как честно закончить обязательную практику применения.",
+      "required_blocks": [
+        "Конкретные предметы ответа",
+        "Собственное объяснение существенности и основания",
+        "Условие пригодности до применения",
+        "Маршрут при отсутствии пригодной версии"
+      ],
+      "superfluous_blocks": [],
+      "ambiguous_pointers": [
+        "След применения обязателен в проверке, хотя практика разрешает применение только при пригодности"
+      ],
+      "prerequisite_gap": "Объяснения статусов имеются. Нет причины отправлять ученика применять неподтверждённое ради поля ответа.",
+      "term_gap": "Нет.",
+      "previous_link": "Проверяет работу S03/S04, но наследует подсказанный метод и ветку непригодности.",
+      "next_link": "Остаётся только технический резерв, который не решает содержательный неуспех.",
+      "severity": "BLOCKING",
+      "finding_ids": [
+        "SEM-067"
+      ],
+      "required_fix": "Сохранить ясную форму для выполненной работы; добавить безопасное продолжение до пригодного результата без требования применить ошибочную версию или выдумать след."
     },
     {
       "module_id": "M04",
@@ -3351,24 +3427,42 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M04-L03.json",
       "html_sha256": "d3ca8035b38a30051a81743bae1bc2e98d107345259435f1eb37d78e1475a5a5",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "COMPOSITE",
+      "learner_task": "При техническом сбое использовать резерв или безопасный текстовый формат, затем прочитать итог переноса.",
+      "work_location": "GigaChat при резерве; собственный материал при смене формата; Stepik для итога.",
+      "work_object": "Тот же допустимый материал либо другой самостоятельно выбранный нейтральный материал.",
+      "observable_result": "Техническая работа может быть продолжена безопасно; итог прочитан.",
+      "save_requirement": "Сохраняются рабочие артефакты, нового отчёта нет.",
+      "completion": "После помощи нужно вернуться к прерванной практике и её проверке, а не сразу завершить урок.",
+      "required_blocks": [
+        "Условие сбоя",
+        "Прямая ссылка на резерв",
+        "Поддерживаемый формат",
+        "Безопасный текстовый путь",
+        "Вход по запросу сервиса",
+        "Точный возврат",
+        "Итог"
+      ],
+      "superfluous_blocks": [
+        "Алиса как место резервной работы",
+        "Готово через понимание",
+        "Завершите урок вместо возвращения к работе"
+      ],
+      "ambiguous_pointers": [
+        "Нет адреса продолжения после смены сервиса/материала"
+      ],
+      "prerequisite_gap": "Новый формат не требуется освоить любой ценой: разрешён безопасный ручной текст. Платная функция не навязывается.",
+      "term_gap": "Нет.",
+      "previous_link": "Резерв появляется после независимой практики и проверок.",
+      "next_link": "Итог цикла связан с дальнейшей оценкой изображений; нельзя считать цикл завершённым без его реальных действий.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-063",
+        "SEM-065",
+        "SEM-070"
+      ],
+      "required_fix": "Указать реальное место и возврат к нужному действию; сохранить безопасную смену формата и собственный выбор."
     },
     {
       "module_id": "M05",

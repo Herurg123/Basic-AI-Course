@@ -5,17 +5,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 11,
-    "steps_reviewed": 74,
+    "lessons_reviewed": 12,
+    "steps_reviewed": 80,
     "counts": {
       "CRITICAL": 0,
-      "BLOCKING": 26,
-      "MAJOR": 42,
+      "BLOCKING": 29,
+      "MAJOR": 45,
       "POLISH": 4,
       "CLEAN": 2,
-      "NOT_REVIEWED": 74
+      "NOT_REVIEWED": 68
     },
-    "findings_total": 62,
+    "findings_total": 70,
     "independent_critic": "NOT_PERFORMED"
   },
   "lessons": [
@@ -135,11 +135,12 @@
     {
       "lesson_id": "M04-L03",
       "step_count": 6,
-      "reviewed": false,
+      "reviewed": true,
       "counts": {
-        "NOT_REVIEWED": 6
+        "MAJOR": 3,
+        "BLOCKING": 3
       },
-      "summary": "Индивидуальный аудит ещё не выполнен"
+      "summary": "Выбор собственного нейтрального материала и задачи объяснён, при отсутствии файла можно самому написать заметку. Содержательный риск — готовая процедура сверки внутри заявленной самостоятельной проверки. Дополнительно неоднозначны ответ C01, честный повтор после подсказки и завершение при непригодной выдаче. Форма A02 существует в репозитории, но в фактических шагах её нет; нельзя считать её доступной ученику."
     },
     {
       "lesson_id": "M05-L01",
