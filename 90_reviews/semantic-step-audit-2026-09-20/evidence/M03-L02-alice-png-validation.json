@@ -1,0 +1,37 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "asset": "05_assets/M03/M03-L02/M03-L02-A03-alice.png",
+  "bytes": 7834,
+  "sha256": "f5a6b53c2772ef04da39412cd413b9800a8b3cce50b4f718b23fcb1788c6f8db",
+  "matches_pinned_git_blob": true,
+  "png_chunks": [
+    {
+      "type": "IHDR",
+      "length": 13,
+      "crc_matches": true
+    },
+    {
+      "type": "PLTE",
+      "length": 48,
+      "crc_matches": true
+    },
+    {
+      "type": "IDAT",
+      "length": 7717,
+      "crc_matches": false
+    },
+    {
+      "type": "IEND",
+      "length": 0,
+      "crc_matches": true
+    }
+  ],
+  "idat_zlib_error": "Error -3 while decompressing data: incorrect data check",
+  "pillow_load_error": "OSError: broken data stream when reading image file",
+  "scope": "Проверены байты канонического исходника; опубликованное вложение Stepik не загружалось и его повреждение не заявляется подтверждённым.",
+  "recorded_source_sha256": "sha256:f5a6b53c2772ef04da39412cd413b9800a8b3cce50b4f718b23fcb1788c6f8db",
+  "recorded_materialized_sha256": "sha256:f5a6b53c2772ef04da39412cd413b9800a8b3cce50b4f718b23fcb1788c6f8db",
+  "matches_recorded_materialized_sha256": true,
+  "recorded_materialized_at": "2026-09-17T03:41:24Z",
+  "published_url": "https://stepik.org/media/attachments/lesson/2591720/M03-L02-A03-alice.png"
+}
