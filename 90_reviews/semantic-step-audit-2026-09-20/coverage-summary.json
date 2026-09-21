@@ -5,17 +5,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 6,
-    "steps_reviewed": 39,
+    "lessons_reviewed": 7,
+    "steps_reviewed": 46,
     "counts": {
       "CRITICAL": 0,
       "BLOCKING": 18,
-      "MAJOR": 20,
+      "MAJOR": 27,
       "POLISH": 0,
       "CLEAN": 1,
-      "NOT_REVIEWED": 109
+      "NOT_REVIEWED": 102
     },
-    "findings_total": 35,
+    "findings_total": 41,
     "independent_critic": "NOT_PERFORMED"
   },
   "lessons": [
@@ -83,11 +83,11 @@
     {
       "lesson_id": "M02-L02",
       "step_count": 7,
-      "reviewed": false,
+      "reviewed": true,
       "counts": {
-        "NOT_REVIEWED": 7
+        "MAJOR": 7
       },
-      "summary": "Индивидуальный аудит ещё не выполнен"
+      "summary": "Контекст и безопасность объяснены до ввода; показанный приём запроса вопросов не навязан второй ситуации. Встроенная карточка уже содержит полную первую практику, поэтому её отсутствие в основном тексте S02 не является отсутствием задания. Но S03 повторяет выполненные команды, а вторая практика показана заранее. Нужно уточнить критерий собственного выбора и конец работы при уже пригодной первой версии."
     },
     {
       "lesson_id": "M03-L01",
