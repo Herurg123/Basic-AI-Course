@@ -112,7 +112,7 @@ class VerifiedRenderingTests(unittest.TestCase):
                 self.assertNotRegex(step.text, r"(?i)<hr\s*/?>")
         self.assertEqual(total_steps, 148)
 
-    def test_m02_l01_stepik_render_strips_proven_horizontal_rules(self) -> None:
+    def test_m02_l01_material_card_does_not_depend_on_horizontal_rule(self) -> None:
         normalized = build_rendering_plan(
             repo_root=self.repo_root,
             lesson_id="M02-L01",
@@ -128,8 +128,10 @@ class VerifiedRenderingTests(unittest.TestCase):
         )
         legacy_html = "\n".join(step.text for step in legacy.rendered_steps)
         normalized_html = "\n".join(step.text for step in normalized.rendered_steps)
-        self.assertRegex(legacy_html, r"(?i)<hr\s*/?>")
+        self.assertNotRegex(legacy_html, r"(?i)<hr\s*/?>")
         self.assertNotRegex(normalized_html, r"(?i)<hr\s*/?>")
+        self.assertIn("border-left:6px solid #4778b8", normalized_html)
+        self.assertIn("background:#f4f8ff", normalized_html)
         self.assertEqual(
             [normalize_stepik_html_v1(step.text).strip() for step in legacy.rendered_steps],
             [step.text for step in normalized.rendered_steps],
