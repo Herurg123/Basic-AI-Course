@@ -113,6 +113,9 @@ class AuthoredSemanticMigrationRegressionTests(unittest.TestCase):
         # В B1-B6 эти числа закономерно уменьшаются только для явно мигрированных lessons.
         self.assertGreater(legacy_lessons, 0)
         self.assertGreater(legacy_steps, 0)
+        if legacy_lessons == len(lessons):
+            self.assertEqual(legacy_lessons, 21)
+            self.assertEqual(legacy_steps, 148)
 
 
 if __name__ == "__main__":
