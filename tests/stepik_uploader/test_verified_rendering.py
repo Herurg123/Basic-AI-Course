@@ -112,7 +112,7 @@ class VerifiedRenderingTests(unittest.TestCase):
                 self.assertNotRegex(step.text, r"(?i)<hr\s*/?>")
         self.assertEqual(total_steps, 148)
 
-    def test_m02_l01_stepik_render_strips_proven_horizontal_rules(self) -> None:
+    def test_m02_l01_material_card_does_not_depend_on_horizontal_rule(self) -> None:
         normalized = build_rendering_plan(
             repo_root=self.repo_root,
             lesson_id="M02-L01",
@@ -128,7 +128,7 @@ class VerifiedRenderingTests(unittest.TestCase):
         )
         legacy_html = "\n".join(step.text for step in legacy.rendered_steps)
         normalized_html = "\n".join(step.text for step in normalized.rendered_steps)
-        self.assertRegex(legacy_html, r"(?i)<hr\s*/?>")
+        self.assertNotRegex(legacy_html, r"(?i)<hr\s*/?>")
         self.assertNotRegex(normalized_html, r"(?i)<hr\s*/?>")
         self.assertEqual(
             [normalize_stepik_html_v1(step.text).strip() for step in legacy.rendered_steps],
@@ -184,6 +184,8 @@ class VerifiedRenderingTests(unittest.TestCase):
         step2 = plan.rendered_steps[1].text
         self.assertIn("<p>В самой карточке находятся данные, расчёт и задание.", step2)
         self.assertIn("<strong>Материал: Исходные данные и подготовленный расчёт</strong>", step2)
+        self.assertIn("<blockquote>", step2)
+        self.assertIn("</blockquote>", step2)
         self.assertIn('style="text-align:right;"', step2)
         self.assertIn("<br>", step2)
         self.assertNotIn("<br />", step2)
@@ -235,6 +237,27 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertIn("найденные сведения относятся к выбранному утверждению", steps[4].text)
         self.assertNotIn("будет доступен после verified materialization", "\n".join(step.text for step in steps))
 
+    def test_m05_l01_human_review_material_is_structurally_separated(self) -> None:
+        plan = build_rendering_plan(
+            repo_root=self.repo_root,
+            lesson_id="M05-L01",
+            source_steps=self.compiled["M05-L01"],
+            asset_report=self.asset_report,
+        )
+        step2 = plan.rendered_steps[1].text
+        self.assertIn("<strong>Материал: Картинка для вечера настольных игр</strong>", step2)
+        self.assertIn("<blockquote>", step2)
+        self.assertIn("</blockquote>", step2)
+        self.assertIn("Перед просмотром готовых вариантов", step2)
+        self.assertLess(
+            step2.index("<blockquote>"),
+            step2.index("Перед просмотром готовых вариантов"),
+        )
+        self.assertLess(
+            step2.index("Перед просмотром готовых вариантов"),
+            step2.index("</blockquote>"),
+        )
+
     def test_inline_markdown_keeps_instruction_then_appends_material_block(self) -> None:
         plan = build_rendering_plan(
             repo_root=self.repo_root,
@@ -246,6 +269,8 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertIn("мини-задачу", step2)
         self.assertIn("материал ниже", step2)
         self.assertIn("<strong>Материал: Короткое напоминание о встрече</strong>", step2)
+        self.assertIn("<blockquote>", step2)
+        self.assertIn("</blockquote>", step2)
         self.assertNotIn("M01-L01-A01 —", step2)
         self.assertIn("18:30", step2)
         self.assertLess(step2.index("материал ниже"), step2.index("Материал:"))
@@ -262,6 +287,7 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertIn("05_assets/M06/M06-L04/M06-L04-A02.md", step3.source_git_paths)
         self.assertNotIn("M06-L04-A02.md)", step3.text)
         self.assertIn("Материал:", step3.text)
+        self.assertGreaterEqual(step3.text.count("<blockquote>"), 2)
 
     def test_binding_with_stale_source_hash_is_rejected(self) -> None:
         binding = AssetBinding(

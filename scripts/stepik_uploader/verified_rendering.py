@@ -133,6 +133,25 @@ def _drop_h1(markdown_text: str, *, source_path: str) -> tuple[str, str]:
     return title, body
 
 
+def _practice_material_block(title: str, body: str) -> str:
+    """Формирует единый визуальный контейнер для learner-facing материала практики.
+
+    Материал должен визуально отличаться от инструкции ученику даже после удаления
+    Stepik обычных <hr>. Для этого используется нативный blockquote, который Stepik
+    поддерживает как разрешённый HTML-блок и может адаптировать под тему интерфейса.
+    Внутренний Markdown остаётся каноническим и преобразуется общим renderer.
+    """
+    content = body.strip()
+    if not content:
+        raise VerifiedRenderingError("Inline material body пуст")
+    return (
+        "<blockquote>\n\n"
+        f"**Материал: {title}**\n\n"
+        f"{content}\n\n"
+        "</blockquote>"
+    )
+
+
 def _humanize_inline_title(title: str, *, source_path: str) -> str:
     """Убирает production ID только из learner-visible заголовка inline-материала.
 
@@ -245,7 +264,7 @@ def _render_local_markdown(
                     requirements=requirements,
                     recursion_stack=(*recursion_stack, source_path),
                 )
-                append_blocks.append(f"**Материал: {title}**\n\n{nested}")
+                append_blocks.append(_practice_material_block(title, nested))
             return f"**{label} (материал ниже)**"
 
         if mode == "confirmed-url":
@@ -279,7 +298,7 @@ def _render_local_markdown(
 
     rewritten = LOCAL_LINK_RE.sub(replace, markdown_text)
     if append_blocks:
-        rewritten = rewritten.rstrip() + "\n\n---\n\n" + "\n\n---\n\n".join(append_blocks)
+        rewritten = rewritten.rstrip() + "\n\n" + "\n\n".join(append_blocks)
     return rewritten
 
 
