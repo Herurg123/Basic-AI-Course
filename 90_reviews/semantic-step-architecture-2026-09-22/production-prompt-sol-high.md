@@ -98,9 +98,12 @@ B7 проходит critic + ZERO-LEVEL + PEDAGOGUE как интеграцио�
 
 Не заменяй старый шаблон новым.
 
-Для `authored-semantic-v1` compiler:
-- сохраняет Step N/M и смысловой title;
-- сохраняет authored learner body;
+Для `authored-semantic-v1`:
+- exact plan marker: `<!-- learner-render-contract: authored-semantic-v1 -->`;
+- каждый opt-in plan row имеет non-visible `Semantic type` из 10 enum Semantic Step Contract;
+- compiler сохраняет Step N/M;
+- title берёт только из первого authored H2/H3 semantic span; если heading отсутствует — compile fail, никакого lesson-title/generated fallback;
+- compiler сохраняет authored learner body;
 - делает production mapping/rendering;
 - НЕ генерирует по regex `Зачем`, `Где и с чем`, `Что сделать`, `Готово, если`, `Что сохранить`, `Что дальше`;
 - НЕ выводит место из URL/бренда/слов «чат», «Stepik», «файл»;
@@ -234,10 +237,12 @@ B7: после accepted merge использовать только сущест
 Production готово только когда:
 - B0–B7 завершены;
 - 21/21 lessons authored-semantic-v1;
+- 148/148 plan rows имеют валидный `Semantic type`;
 - legacy frame удалён;
 - final whole-course HTML проверен;
 - findings имеют accepted disposition;
-- все learner-facing PRs прошли required audits;
+- каждый learner-facing batch прошёл required scoped audits;
+- B7 отдельно прошёл ordinary critic + full ZERO-LEVEL 148/148 + full PEDAGOGUE 148/148 на final compiled HTML;
 - B7 merge и guarded release/reconciliation завершены, если deployment входит в команду владельца;
 - external gates отражены честно.
 
