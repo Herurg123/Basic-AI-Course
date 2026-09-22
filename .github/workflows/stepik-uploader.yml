@@ -69,22 +69,6 @@ jobs:
           --repo-root .
           --report-dir artifacts/stepik-uploader-ci
 
-      - name: Снять B7 read-only snapshot финального learner HTML
-        if: github.event_name == 'pull_request' && github.head_ref == 'production/b7-whole-course-integration'
-        run: >-
-          python scripts/stepik_uploader/b7_render_snapshot.py
-          --repo-root .
-          --output-dir artifacts/b7-final-rendered
-
-      - name: Сохранить B7 snapshot для semantic audit
-        if: github.event_name == 'pull_request' && github.head_ref == 'production/b7-whole-course-integration'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: b7-final-rendered-${{ github.run_id }}
-          path: artifacts/b7-final-rendered/
-          if-no-files-found: error
-          retention-days: 14
-
       - name: Сформировать русскую сводку проверки
         if: always()
         env:
