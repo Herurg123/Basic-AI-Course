@@ -24,13 +24,16 @@ class B5SemanticRouteTests(unittest.TestCase):
         steps = self._steps("M06-L03")
         self.assertEqual(len(steps), 6)
 
-        first = steps[1].markdown
-        second = steps[3].markdown
+        first = steps[1]
+        second = steps[3]
 
-        self.assertIn("Карточка 1", first)
-        self.assertNotIn("Карточка 2", first)
-        self.assertIn("Карточка 2", second)
-        self.assertNotIn("Карточка 1", second)
+        self.assertEqual(
+            first.unresolved_repo_links,
+            ("../../../05_assets/M06/M06-L03/M06-L03-A01-part1.md",),
+        )
+        self.assertNotIn("школьной мастерской «Куб»", first.markdown)
+        self.assertEqual(second.unresolved_repo_links, ())
+        self.assertIn("школьной мастерской «Куб»", second.markdown)
 
     def test_m06_l04_keeps_proven_ten_step_route_shape(self) -> None:
         steps = self._steps("M06-L04")
@@ -77,8 +80,9 @@ class B5SemanticRouteTests(unittest.TestCase):
     def test_m06_l04_application_form_and_recovery_targets_are_post_action(self) -> None:
         steps = self._steps("M06-L04")
 
-        self.assertNotIn("След фактического применения", "\n".join(step.markdown for step in steps[:6]))
-        self.assertIn("След фактического применения", steps[6].markdown)
+        a03 = "../../../05_assets/M06/M06-L04/M06-L04-A03.md"
+        self.assertTrue(all(a03 not in step.unresolved_repo_links for step in steps[:6]))
+        self.assertIn(a03, steps[6].unresolved_repo_links)
 
         self.assertIn("/lesson/2591729/step/4", steps[4].markdown)
         self.assertIn("/lesson/2591729/step/9", steps[9].markdown)
