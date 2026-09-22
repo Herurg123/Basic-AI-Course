@@ -17,8 +17,8 @@
       "NOT_REVIEWED": 0
     },
     "findings_total": 118,
-    "independent_critic": "PENDING_RECHECK",
-    "independent_critic_report": "critic-round1.md"
+    "independent_critic": "PASS",
+    "independent_critic_report": "critic-round2.md"
   },
   "steps": [
     {
