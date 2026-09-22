@@ -437,12 +437,14 @@ def _frame_authored_semantic_step(
 
 def _block_name(row: dict[str, Any]) -> str:
     semantic_type = row.get("semantic_type")
-    if semantic_type == "CHECK":
-        return "free-answer"
     if semantic_type is None:
         raise GeneralContentCompileError(
             "Production learner row не содержит Semantic type; authored-semantic-v1 обязателен"
         )
+    if semantic_type == "CHECK":
+        return "free-answer"
+    if semantic_type == "COMPOSITE" and row.get("check_ids"):
+        return "free-answer"
     return "text"
 
 
