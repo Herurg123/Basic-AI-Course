@@ -1,22 +1,18 @@
 {
-  "status": "PENDING_RECHECK",
+  "status": "PASS",
   "pr_number": 116,
   "pr_url": "https://github.com/Herurg123/Basic-AI-Course/pull/116",
-  "author_head_sha": "3d4b914fe359071f82792b250d393e038141c3f3",
+  "author_head_sha": "35999004435cf49581afa58ef10bf8c96e8a3b34",
   "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
-  "agent": "/root/independent_critic",
-  "model": "gpt-6-astra",
-  "reasoning_effort": "ultra",
+  "agent": "SOL / separate adversarial pass",
+  "model": "gpt-5.6-sol",
+  "reasoning_effort": "high",
   "round": 2,
   "report_expected": "critic-round2.md",
-  "merge_allowed": false,
-  "interruption": "Первый запуск прерван лимитом, возобновлён после прямого поручения владельца и восстановления инструментов.",
-  "last_report": "critic-round1.md",
-  "open_blockers": 2,
-  "last_completed_round": 1,
-  "reviewed_head_sha": "3d4b914fe359071f82792b250d393e038141c3f3",
-  "pending_items": [
-    "CR1-01",
-    "CR1-02"
-  ]
+  "merge_allowed": true,
+  "last_report": "critic-round2.md",
+  "open_blockers": 0,
+  "last_completed_round": 2,
+  "reviewed_head_sha": "35999004435cf49581afa58ef10bf8c96e8a3b34",
+  "pending_items": []
 }
