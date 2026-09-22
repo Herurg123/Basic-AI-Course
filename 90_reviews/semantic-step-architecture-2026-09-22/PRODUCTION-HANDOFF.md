@@ -126,7 +126,7 @@ B0 ввёл `authored-semantic-v1` как временный opt-in migration co
 - absence/unknown contract = fail-closed compile error;
 - learner title берётся только из первого authored H2/H3 semantic span; отсутствие heading = compile error;
 - purpose/place/action/completion/save/navigation больше не генерируются универсальным regex-frame;
-- learner block type определяется contract-ом: `CHECK` → `free-answer`, остальные semantic types → `text`;
+- learner block type определяется contract-ом: `CHECK` → `free-answer`; `COMPOSITE` + explicit Check ID → `free-answer`; остальные semantic types → `text`;
 - `Semantic type` не становится learner-visible текстом.
 
 Для каждого lesson source содержит learner meaning, plan содержит production mapping, а final rendered HTML проверяется фактически.
