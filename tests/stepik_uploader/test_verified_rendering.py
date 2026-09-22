@@ -185,7 +185,7 @@ class VerifiedRenderingTests(unittest.TestCase):
         )
         step2 = plan.rendered_steps[1].text
         self.assertIn("<p>В самой карточке находятся данные, расчёт и задание.", step2)
-        self.assertIn("<strong>Материал для практики: Исходные данные и подготовленный расчёт</strong>", step2)
+        self.assertIn("<strong>Материал: Исходные данные и подготовленный расчёт</strong>", step2)
         self.assertIn("border-left:6px solid #4778b8", step2)
         self.assertIn('style="text-align:right;"', step2)
         self.assertIn("<br>", step2)
@@ -248,12 +248,12 @@ class VerifiedRenderingTests(unittest.TestCase):
         step2 = plan.rendered_steps[1].text
         self.assertIn("мини-задачу", step2)
         self.assertIn("материал ниже", step2)
-        self.assertIn("<strong>Материал для практики: Короткое напоминание о встрече</strong>", step2)
+        self.assertIn("<strong>Материал: Короткое напоминание о встрече</strong>", step2)
         self.assertIn("border-left:6px solid #4778b8", step2)
         self.assertIn("background:#f4f8ff", step2)
         self.assertNotIn("M01-L01-A01 —", step2)
         self.assertIn("18:30", step2)
-        self.assertLess(step2.index("материал ниже"), step2.index("Материал для практики:"))
+        self.assertLess(step2.index("материал ниже"), step2.index("Материал:"))
 
     def test_nested_m06_dependency_is_recursively_inlined_without_repo_link(self) -> None:
         plan = build_rendering_plan(
@@ -266,7 +266,7 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertIn("05_assets/M06/M06-L04/M06-L04-A01.md", step3.source_git_paths)
         self.assertIn("05_assets/M06/M06-L04/M06-L04-A02.md", step3.source_git_paths)
         self.assertNotIn("M06-L04-A02.md)", step3.text)
-        self.assertIn("Материал для практики:", step3.text)
+        self.assertIn("Материал:", step3.text)
         self.assertIn("border-left:6px solid #4778b8", step3.text)
 
     def test_binding_with_stale_source_hash_is_rejected(self) -> None:
