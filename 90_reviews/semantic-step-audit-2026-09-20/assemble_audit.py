@@ -17,6 +17,7 @@ REQUIRED = {
 }
 TYPES = {"EXPLANATION", "DEMONSTRATION", "GUIDED_ACTION", "INDEPENDENT_PRACTICE", "CHECK", "REFLECTION", "NAVIGATION", "TECHNICAL_SUPPORT", "RECOVERY", "COMPOSITE"}
 PATTERNS = {
+    "INCOMPLETE_CHECK_COVERAGE": "Постпроверка не охватывает обязательные измерения выполненной работы",
     "FRAME_LOCATION_FROM_WORDS": "Место работы ошибочно выводится из упомянутых слов",
     "UNIVERSAL_FRAME": "Одинаковые рубрики создают фиктивные действия, сохранение и завершение",
     "CHUNK_BOUNDARY": "Граница сборки разрывает связанную инструкцию",
@@ -100,11 +101,23 @@ def main() -> None:
         else:
             assert step["severity"] == "CLEAN", step["step_key"]
     totals = Counter(r["severity"] if r["review_status"] == "REVIEWED" else "NOT_REVIEWED" for r in steps)
-    summary = {"source_sha": pin, "status": "COMPLETE_AUTHOR_REVIEW" if not totals["NOT_REVIEWED"] else "PARTIAL", "modules_total": 9, "lessons_total": 21, "steps_total": len(steps), "lessons_reviewed": sum(r["reviewed"] for r in lessons), "steps_reviewed": len(steps) - totals["NOT_REVIEWED"], "counts": {key: totals[key] for key in [*ORDER, "NOT_REVIEWED"]}, "findings_total": len(findings), "independent_critic": "NOT_PERFORMED"}
+    critic_path = HERE / "critic-status.json"
+    critic = json.loads(critic_path.read_text()) if critic_path.exists() else {}
+    critic_state = critic.get("status", "NOT_PERFORMED")
+    assert critic_state in {"NOT_PERFORMED", "RUNNING", "REQUEST_CHANGES", "PENDING_RECHECK", "PASS", "BLOCKED"}
+    if critic_state == "PASS":
+        assert not totals["NOT_REVIEWED"]
+        assert critic.get("last_report") and (HERE / critic["last_report"]).is_file()
+        assert re.fullmatch(r"[0-9a-f]{40}", critic.get("reviewed_head_sha", ""))
+        assert critic.get("open_blockers") == 0
+
+    summary = {"source_sha": pin, "status": "COMPLETE_AUTHOR_REVIEW" if not totals["NOT_REVIEWED"] else "PARTIAL", "modules_total": 9, "lessons_total": 21, "steps_total": len(steps), "lessons_reviewed": sum(r["reviewed"] for r in lessons), "steps_reviewed": len(steps) - totals["NOT_REVIEWED"], "counts": {key: totals[key] for key in [*ORDER, "NOT_REVIEWED"]}, "findings_total": len(findings), "independent_critic": critic_state, "independent_critic_report": critic.get("last_report")}
     write_json("step-inventory.json", {"schema_version": 1, "summary": summary, "steps": steps})
     write_json("findings.json", {"summary": summary, "findings": findings})
     write_json("coverage-summary.json", {"summary": summary, "lessons": lessons})
-    intro = f"Проверено по смыслу **{summary['steps_reviewed']} из {len(steps)} шагов**, **{summary['lessons_reviewed']} из 21 урока**. Остальные явно помечены NOT_REVIEWED. Независимый критик ещё не выполнен.\n"
+    coverage_note = "Остальные явно помечены NOT_REVIEWED." if totals["NOT_REVIEWED"] else "Непроверенных шагов нет."
+    critic_note = {"NOT_PERFORMED": "Независимый критик ещё не выполнен.", "RUNNING": "Независимая критика выполняется.", "REQUEST_CHANGES": "Критик запросил исправления; PASS ещё нет.", "PENDING_RECHECK": "Исправления ожидают повторной независимой проверки.", "PASS": "Независимый критик: PASS. Это не подтверждает готовность курса или человеческие проверки.", "BLOCKED": "Независимая проверка заблокирована; PASS не выдан."}[critic_state]
+    intro = f"Проверено по смыслу **{summary['steps_reviewed']} из {len(steps)} шагов**, **{summary['lessons_reviewed']} из 21 урока**. {coverage_note} {critic_note}\n"
     table = ["# Матрица уроков — рабочая сводка\n", intro, "\n| Урок | Шагов | CRITICAL | BLOCKING | MAJOR | POLISH | CLEAN | Не проверено |", "|---|---:|---:|---:|---:|---:|---:|---:|"]
     for lesson in lessons:
         c = lesson["counts"]

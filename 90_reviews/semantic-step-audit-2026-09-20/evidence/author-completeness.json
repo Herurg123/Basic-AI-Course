@@ -1,6 +1,6 @@
 {
   "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
-  "status": "AUTHOR_COVERAGE_PASS_CRITIC_PENDING",
+  "status": "COMPLETENESS_PASS",
   "modules": 9,
   "lessons": 21,
   "steps": 148,
@@ -11,19 +11,22 @@
   "all_findings_have_fix_and_independence_guard": true,
   "counts": {
     "CRITICAL": 0,
-    "BLOCKING": 37,
-    "MAJOR": 88,
+    "BLOCKING": 38,
+    "MAJOR": 87,
     "POLISH": 19,
     "CLEAN": 4,
     "NOT_REVIEWED": 0
   },
-  "findings": 116,
-  "pattern_families": 18,
+  "findings": 118,
+  "pattern_families": 19,
   "cross_lesson_pattern_families": 12,
-  "single_lesson_pattern_families": 6,
+  "single_lesson_pattern_families": 7,
   "lessons_with_required_fixes": 21,
   "learner_layer_changed_paths": [],
-  "validation": "assemble_audit.py checked schema, finding IDs, step linkage and maximum per-step severity; semantic judgments remain manual",
-  "evidence_limit": "Reconstructed saved publication fingerprints; not fresh Stepik read-back or human observation",
-  "independent_critic": "NOT_PERFORMED"
+  "snapshot_immutability_anchor": "4fb3791c3e38ddbfb0309dd9d4abb7c9cdf8842e",
+  "snapshot_changed_paths": [],
+  "validation": "assemble_audit.py проверяет схему и связи оценок; verify_completeness.py — полные наборы, HTML-хеши и неизменность ученического слоя/снимков. Смысловые заключения остаются ручными.",
+  "evidence_limit": "Восстановление по сохранённым отпечаткам публикации; не свежий Stepik read-back и не человеческое наблюдение.",
+  "independent_critic": "PENDING_RECHECK",
+  "independent_critic_report": null
 }
