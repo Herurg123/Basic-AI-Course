@@ -6,7 +6,7 @@
 
 | № | Тип шага | Содержание | Материал / действие | Проверка | Semantic type |
 |---:|---|---|---|---|---|
-| 1 | explanation | Integration frame: use only needed familiar actions; explicitly rehearsal, not F1 | — | — | EXPLANATION |
+| 1 | рамка | Integration frame: use only needed familiar actions; explicitly rehearsal, not F1 | — | — | EXPLANATION |
 | 2 | optional support | A02 inline as non-sequential questions; generic natural-trace link only. Do not turn memory into algorithm | `M07-L01-A02.md` + prior save-practice link | — | EXPLANATION |
 | 3 | guided integrated practice | A01-part1 inline. Learner solves as a whole and **really applies** final version to `Учебная доска сообщений`. PRIMARY Alice; conditional GigaChat at point of failure | `M07-L01-A01-part1.md` + live chat + learner note | `M07-L01-E01` | GUIDED_ACTION |
 | 4 | completion boundary | Check only that part1 application actually exists outside chat before revealing part2; no second application and no new method | learner note | часть C01 evidence | NAVIGATION |
