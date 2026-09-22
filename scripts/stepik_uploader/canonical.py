@@ -11,6 +11,24 @@ MODULE_HEADER_RE = re.compile(r"^###\s+(M\d{2})\.\s+(.+?)\s*$")
 H1_RE = re.compile(r"^#\s+(.+?)\s*$")
 LESSON_DIR_RE = re.compile(r"^M\d{2}-L\d{2}$")
 MODULE_DIR_RE = re.compile(r"^M\d{2}$")
+RENDER_CONTRACT_TOKEN_RE = re.compile(r"learner-render-contract", re.IGNORECASE)
+
+AUTHORED_SEMANTIC_RENDER_CONTRACT = "authored-semantic-v1"
+AUTHORED_SEMANTIC_MARKER = "<!-- learner-render-contract: authored-semantic-v1 -->"
+SEMANTIC_TYPES = frozenset(
+    {
+        "EXPLANATION",
+        "DEMONSTRATION",
+        "GUIDED_ACTION",
+        "INDEPENDENT_PRACTICE",
+        "CHECK",
+        "REFLECTION",
+        "NAVIGATION",
+        "TECHNICAL_SUPPORT",
+        "RECOVERY",
+        "COMPOSITE",
+    }
+)
 
 SENSITIVE_LESSONS = {
     "M03-L02",
@@ -57,6 +75,40 @@ def _split_table_row(line: str) -> list[str]:
     return [cell.strip() for cell in stripped[1:-1].split("|")]
 
 
+def parse_learner_render_contract(plan_markdown: str, *, path: Path) -> str | None:
+    """Возвращает opt-in render contract и fail-closed проверяет его синтаксис."""
+    lines = plan_markdown.splitlines()
+    candidates = [
+        (index, line.strip())
+        for index, line in enumerate(lines)
+        if RENDER_CONTRACT_TOKEN_RE.search(line)
+    ]
+    if not candidates:
+        return None
+    if len(candidates) != 1:
+        raise CanonicalBuildError(
+            f"В {path} learner render contract должен быть указан ровно один раз"
+        )
+
+    marker_index, marker = candidates[0]
+    if marker != AUTHORED_SEMANTIC_MARKER:
+        raise CanonicalBuildError(
+            f"В {path} допустим только точный marker {AUTHORED_SEMANTIC_MARKER}"
+        )
+
+    header_index: int | None = None
+    for index, line in enumerate(lines):
+        cells = _split_table_row(line)
+        if cells and cells[0] in {"№", "#"} and len(cells) >= 5:
+            header_index = index
+            break
+    if header_index is not None and marker_index >= header_index:
+        raise CanonicalBuildError(
+            f"В {path} learner render contract должен находиться до таблицы Stepik-плана"
+        )
+    return AUTHORED_SEMANTIC_RENDER_CONTRACT
+
+
 def _is_author_only(*, logical_type: str, summary: str, material: str, check: str) -> bool:
     """Определяет только явно служебные строки, не путая их с learner-facing словом «авторский».
 
@@ -88,6 +140,24 @@ def parse_stepik_plan(plan_markdown: str, *, lesson_id: str, path: Path) -> list
     if header_index is None:
         raise CanonicalBuildError(f"В {path} не найдена таблица Stepik-плана")
 
+    render_contract = parse_learner_render_contract(plan_markdown, path=path)
+    header_cells = _split_table_row(lines[header_index])
+    semantic_indexes = [
+        index for index, cell in enumerate(header_cells) if cell == "Semantic type"
+    ]
+    if render_contract == AUTHORED_SEMANTIC_RENDER_CONTRACT:
+        if len(semantic_indexes) != 1:
+            raise CanonicalBuildError(
+                f"В {path} authored-semantic-v1 требует ровно одну колонку Semantic type"
+            )
+        semantic_index = semantic_indexes[0]
+    else:
+        if semantic_indexes:
+            raise CanonicalBuildError(
+                f"В {path} колонка Semantic type допустима только с {AUTHORED_SEMANTIC_MARKER}"
+            )
+        semantic_index = None
+
     rows: list[dict[str, Any]] = []
     for line in lines[header_index + 2 :]:
         cells = _split_table_row(line)
@@ -97,6 +167,17 @@ def parse_stepik_plan(plan_markdown: str, *, lesson_id: str, path: Path) -> list
             continue
         if len(cells) < 5:
             raise CanonicalBuildError(f"В {path} строка таблицы содержит меньше 5 колонок: {line}")
+        if semantic_index is not None:
+            if semantic_index >= len(cells):
+                raise CanonicalBuildError(
+                    f"В {path} строка authored-semantic-v1 не содержит Semantic type: {line}"
+                )
+            semantic_type = cells[semantic_index]
+            if semantic_type not in SEMANTIC_TYPES:
+                allowed = ", ".join(sorted(SEMANTIC_TYPES))
+                raise CanonicalBuildError(
+                    f"В {path} неизвестный Semantic type {semantic_type!r}; допустимы: {allowed}"
+                )
         try:
             position = int(cells[0])
         except ValueError as exc:
