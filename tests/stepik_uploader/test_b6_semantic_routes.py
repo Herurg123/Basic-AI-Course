@@ -78,7 +78,7 @@ class B6SemanticRouteTests(unittest.TestCase):
         steps = self._rendered("M07-L02")
         check = steps[5]
         self.assertEqual(check.block_name, "free-answer")
-        self.assertEqual(check.check_ids, ("M07-L02-C01",))
+        self.assertEqual(self.compiled["M07-L02"][5].check_ids, ("M07-L02-C01",))
         self.assertIn("Как вы понимали, что результат подходит", check.text)
         self.assertIn("Как вы оценили первую или промежуточную версию", check.text)
         self.assertIn("Отдельная заранее заполненная форма не требовалась", check.text)
@@ -90,7 +90,7 @@ class B6SemanticRouteTests(unittest.TestCase):
         self.assertIn("не подтверждается", recovery)
         self.assertIn("другую собственную новую посильную реальную задачу", recovery)
         self.assertIn("/lesson/2591731/step/6", recovery)
-        self.assertNotIn("готовый запасной", recovery)
+        self.assertNotIn("### Новая задача", recovery)
         self.assertIn("Успешную самостоятельную попытку повторять не нужно", recovery)
 
     def test_m08_is_reflection_only_and_requires_no_new_ai_work(self) -> None:
