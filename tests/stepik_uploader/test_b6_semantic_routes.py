@@ -56,7 +56,7 @@ class B6SemanticRouteTests(unittest.TestCase):
         self.assertIn("Учебная доска сообщений", steps[2].text)
         self.assertNotIn("начало переносится на 14:30", steps[2].text)
         self.assertIn("начало переносится на 14:30", steps[4].text)
-        self.assertIn("не сам F1", steps[0].text)
+        self.assertIn("не сама финальная проверка", steps[0].text)
 
     def test_m07_l02_f1_rubric_does_not_leak_before_attempt(self) -> None:
         steps = self._rendered("M07-L02")
