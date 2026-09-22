@@ -237,12 +237,12 @@ B7: после accepted merge использовать только сущест
 Production готово только когда:
 - B0–B7 завершены;
 - 21/21 lessons authored-semantic-v1;
-- 148/148 plan rows имеют валидный `Semantic type`;
+- 100% final plan rows (N/N; исходный baseline = 148) имеют валидный `Semantic type`;
 - legacy frame удалён;
 - final whole-course HTML проверен;
 - findings имеют accepted disposition;
 - каждый learner-facing batch прошёл required scoped audits;
-- B7 отдельно прошёл ordinary critic + full ZERO-LEVEL 148/148 + full PEDAGOGUE 148/148 на final compiled HTML;
+- B7 отдельно прошёл ordinary critic + full ZERO-LEVEL N/N final inventory + full PEDAGOGUE N/N final inventory на final compiled HTML;
 - B7 merge и guarded release/reconciliation завершены, если deployment входит в команду владельца;
 - external gates отражены честно.
 
