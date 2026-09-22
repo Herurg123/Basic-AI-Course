@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import tempfile
 import unittest
 from pathlib import Path
 
 from scripts.stepik_uploader.canonical import build_structural_manifest
 from scripts.stepik_uploader.general_content import (
     EXPECTED_FREE_ANSWER_SOURCE,
+    GeneralContentCompileError,
     compile_all_lesson_sources,
     compile_lesson_source,
     split_source_chunks,
@@ -13,6 +15,35 @@ from scripts.stepik_uploader.general_content import (
 
 
 class GeneralContentCompilerTests(unittest.TestCase):
+    def _write_authored_fixture(
+        self,
+        root: Path,
+        *,
+        lesson_markdown: str,
+        learner_rows: list[tuple[str, str, str]],
+        author_only_rows: list[tuple[str, str, str]] | None = None,
+    ) -> str:
+        lesson_id = "M99-L01"
+        lesson_dir = root / "04_course" / "M99" / lesson_id
+        lesson_dir.mkdir(parents=True)
+        (lesson_dir / "lesson.md").write_text(lesson_markdown, encoding="utf-8")
+
+        rows = [*learner_rows, *(author_only_rows or [])]
+        table_rows = [
+            f"| {index} | {logical_type} | {summary} | — | — | {semantic_type} |"
+            for index, (logical_type, summary, semantic_type) in enumerate(rows, start=1)
+        ]
+        plan = (
+            "# Stepik plan — fixture\n\n"
+            "<!-- learner-render-contract: authored-semantic-v1 -->\n\n"
+            "| № | Тип шага | Содержание | Материал | Проверка | Semantic type |\n"
+            "|---:|---|---|---|---|---|\n"
+            + "\n".join(table_rows)
+            + "\n"
+        )
+        (lesson_dir / "stepik-plan.md").write_text(plan, encoding="utf-8")
+        return lesson_id
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.repo_root = Path(__file__).resolve().parents[2]
@@ -213,6 +244,116 @@ class GeneralContentCompilerTests(unittest.TestCase):
         self.assertTrue(links)
         self.assertTrue(any("05_assets" in link for _, link in links))
         self.assertTrue(any("stepik/" in link for _, link in links))
+
+    def test_authored_semantic_mode_keeps_only_authored_title_and_body(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lesson_id = self._write_authored_fixture(
+                root,
+                lesson_markdown=(
+                    "# Fixture\n\n"
+                    "## Работайте со своим результатом\n\n"
+                    "Сохраните файл после работы в чате и затем вернитесь в Stepik. "
+                    "Ссылка: https://alice.yandex.ru/.\n"
+                ),
+                learner_rows=[("текст", "Проверка нового renderer", "EXPLANATION")],
+            )
+            step = compile_lesson_source(
+                root,
+                free_answer_source=EXPECTED_FREE_ANSWER_SOURCE,
+                lesson_id=lesson_id,
+            )[0]
+
+            self.assertEqual(
+                step.markdown,
+                (
+                    "## Шаг 1 из 1. Работайте со своим результатом\n\n"
+                    "Сохраните файл после работы в чате и затем вернитесь в Stepik. "
+                    "Ссылка: https://alice.yandex.ru/."
+                ),
+            )
+            for synthetic in (
+                "**Зачем:**",
+                "**Где и с чем:**",
+                "**Что сделать**",
+                "**Готово, если:**",
+                "**Что сохранить:**",
+                "**Что дальше:**",
+            ):
+                self.assertNotIn(synthetic, step.markdown)
+            self.assertNotIn("EXPLANATION", step.markdown)
+            self.assertEqual(step.semantic_type, "EXPLANATION")
+
+    def test_authored_semantic_title_uses_first_consecutive_h2_h3(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lesson_id = self._write_authored_fixture(
+                root,
+                lesson_markdown=(
+                    "# Fixture\n\n"
+                    "## Первый смысловой заголовок\n"
+                    "### Вложенный подзаголовок\n\n"
+                    "Learner body.\n"
+                ),
+                learner_rows=[("текст", "Consecutive headings", "EXPLANATION")],
+            )
+            step = compile_lesson_source(
+                root,
+                free_answer_source=EXPECTED_FREE_ANSWER_SOURCE,
+                lesson_id=lesson_id,
+            )[0]
+            self.assertTrue(
+                step.markdown.startswith("## Шаг 1 из 1. Первый смысловой заголовок")
+            )
+            self.assertIn("**Вложенный подзаголовок**", step.markdown)
+
+    def test_authored_semantic_mode_has_no_lesson_title_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lesson_id = self._write_authored_fixture(
+                root,
+                lesson_markdown="# Lesson title must not become step title\n\nТолько authored body без H2/H3.\n",
+                learner_rows=[("текст", "Без heading", "EXPLANATION")],
+            )
+            with self.assertRaisesRegex(GeneralContentCompileError, "не имеет authored H2/H3 heading"):
+                compile_lesson_source(
+                    root,
+                    free_answer_source=EXPECTED_FREE_ANSWER_SOURCE,
+                    lesson_id=lesson_id,
+                )
+
+    def test_authored_semantic_mode_rejects_production_id_only_title(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lesson_id = self._write_authored_fixture(
+                root,
+                lesson_markdown="# Fixture\n\n## M99-L01-E01\n\nLearner body.\n",
+                learner_rows=[("текст", "Production id heading", "EXPLANATION")],
+            )
+            with self.assertRaisesRegex(GeneralContentCompileError, "недопустимый authored title"):
+                compile_lesson_source(
+                    root,
+                    free_answer_source=EXPECTED_FREE_ANSWER_SOURCE,
+                    lesson_id=lesson_id,
+                )
+
+    def test_authored_semantic_author_only_plan_row_does_not_leak(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lesson_id = self._write_authored_fixture(
+                root,
+                lesson_markdown="# Fixture\n\n## Видимый шаг\n\nТолько learner body.\n",
+                learner_rows=[("текст", "Learner row", "EXPLANATION")],
+                author_only_rows=[("author-only evaluation", "Author rubric secret", "CHECK")],
+            )
+            steps = compile_lesson_source(
+                root,
+                free_answer_source=EXPECTED_FREE_ANSWER_SOURCE,
+                lesson_id=lesson_id,
+            )
+            self.assertEqual(len(steps), 1)
+            self.assertNotIn("Author rubric", steps[0].markdown)
+            self.assertNotIn("CHECK", steps[0].markdown)
 
     def test_free_answer_source_is_fail_closed(self) -> None:
         with self.assertRaisesRegex(Exception, "free-answer source"):
