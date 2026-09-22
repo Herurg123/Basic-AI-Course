@@ -100,9 +100,11 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
         self.assertEqual(author_only_rows, 2)
         self.assertEqual(learner_rows, 148)
 
-    def test_all_148_learner_steps_render_and_keep_baseline_structure(self) -> None:
+    def test_all_148_learner_steps_render_and_reconcile_baseline_structure(self) -> None:
         rendered_total = 0
         materialization_requirements: set[str] = set()
+        block_deltas: list[str] = []
+        source_deltas: list[str] = []
 
         for lesson_id in sorted(self.lessons):
             plan = build_rendering_plan(
@@ -127,18 +129,28 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
 
             for actual, expected in zip(rendered, expected_steps, strict=True):
                 self.assertEqual(actual.position, expected["position"], lesson_id)
-                self.assertEqual(
-                    actual.block_name,
-                    expected["platform_block_type"],
-                    f"{lesson_id} S{actual.position:02d}",
-                )
-                self.assertEqual(
-                    actual.source,
-                    expected["platform_source"],
-                    f"{lesson_id} S{actual.position:02d}",
-                )
+                if actual.block_name != expected["platform_block_type"]:
+                    block_deltas.append(
+                        f"{lesson_id} S{actual.position:02d}: "
+                        f"{expected['platform_block_type']} -> {actual.block_name}"
+                    )
+                if actual.source != expected["platform_source"]:
+                    source_deltas.append(
+                        f"{lesson_id} S{actual.position:02d}: "
+                        f"{expected['platform_source']} -> {actual.source}"
+                    )
 
         self.assertEqual(rendered_total, 148)
+        self.assertEqual(
+            block_deltas,
+            [],
+            "Block-type deltas требуют явной B7 reconciliation, а не молчаливого принятия",
+        )
+        self.assertEqual(
+            source_deltas,
+            [],
+            "Stepik source deltas требуют явной B7 reconciliation",
+        )
         self.assertEqual(
             materialization_requirements,
             {"05_assets/M03/M03-L02/M03-L02-A03-alice.png"},
