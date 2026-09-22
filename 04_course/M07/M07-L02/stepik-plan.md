@@ -1,64 +1,54 @@
 # Stepik plan — M07-L02
 
-> Производственный план финального `M07-L02-C01`: F1 INDEPENDENT level 3. Не превращать в пошаговый маршрут. Действуют D-2026-09-12-STEPIK-FLOW и D-2026-09-13-LEARNER-UX.
+> Производственный план единственного `M07-L02-C01`: F1 INDEPENDENT level 3. Не превращать в пошаговый маршрут.
 
-| № | Тип шага | Содержание | Evidence / материал | Статус |
-|---:|---|---|---|---|
-| 1 | learner contract | Own new real task; small/safe/non-high-stakes; no ready case | `M07-L02-A01.md` | вход |
-| 2 | neutral trace | Попросить сохранять реальные решения по мере работы без перечисления содержательных измерений рубрики | natural trace | до E01 |
-| 3 | independence advisory | Техническая помощь разрешена; содержательная помощь загрязняет попытку. Попросить не открывать форму проверки до завершения | — | — |
-| 4 | independent work | Один цельный блок: learner сам выбирает действия, порядок, необходимость проверки, доработки, материала или изображения | реальные инструменты по потребности | `M07-L02-E01` |
-| 5 | actual application | Задача должна быть фактически завершена; намерение или чат недостаточны | конечный артефакт/след у ученика | обязательная часть F1 |
-| 6 | post-action evidence | Только после работы открыть упрощённую A03 и собрать факты уже выполненной попытки | `M07-L02-A03.md`; свободный текст Stepik | `M07-L02-C01` |
-| 7 | evaluation | Author rubric A02 применяется в Human Pilot/проверяемом контексте к natural trace + A03. В публичном бесплатном Stepik ученик использует её смысл для self-check, без обещания формальной сертификации | `M07-L02-A02.md` | PASS / NOT PROVEN / PRACTICE |
-| 8 | recovery | При содержательном загрязнении или действительно недоказанных ключевых действиях learner выбирает другую own new real task; готовый alternate case не выдаётся | `author-notes.md` | повтор C01 |
-| 9 | completion | После PASS сообщить, что базовая самостоятельность завершена; M08 не является вторым экзаменом | — | — |
+<!-- learner-render-contract: authored-semantic-v1 -->
 
-## Advisory вместо hard gate
+| № | Тип шага | Содержание | Evidence / материал | Проверка | Semantic type |
+|---:|---|---|---|---|---|
+| 1 | learner contract | A01 inline; learner chooses own new small/safe/non-high-stakes real task. Card defines class only, no ready case or route | `M07-L02-A01.md` | вход F1 | EXPLANATION |
+| 2 | neutral trace | Natural trace only; explicitly no pre-labelled goal/criteria/context/check form. Prior save-practice link may be used | natural trace | до E01 | EXPLANATION |
+| 3 | independence advisory + technical backup | Only technical help. Alice primary; conditional GigaChat only if suitable for learner’s already chosen task/action. Do not reveal post-check or content route | technical support only | — | EXPLANATION |
+| 4 | independent F1 work | One whole block: learner independently chooses actions/order, evaluates intermediate result, refines/stops/switches as needed, verifies only when needed | real tools/materials by learner choice | `M07-L02-E01` | INDEPENDENT_PRACTICE |
+| 5 | actual completion/application | Learner actually finishes own safe task and applies usable result. Intent/chat-only/refusal alone does not finish F1 | final artifact / natural trace | обязательная часть F1 | INDEPENDENT_PRACTICE |
+| 6 | post-action check/evidence | A03 inline **only after work**. Stepik response covers completed task/application, pre-evaluation fit image supported by earlier trace, own evaluation of first/intermediate version, other key decisions, verification/privacy if applicable, help received | `M07-L02-A03.md` + free-answer Stepik | `M07-L02-C01` | CHECK |
+| 7 | author-only evaluation | A02 applies to natural trace + A03 only after attempt; public learner HTML never receives author rubric | `M07-L02-A02.md` | PASS / NOT PROVEN / PRACTICE | CHECK |
+| 8 | conditional recovery | Only contamination or genuinely NOT PROVEN key action. Learner chooses another own new real task; no ready alternate case. Complete+apply, then return to learner step6 C01. Successful attempt skips | own new task | repeat `M07-L02-C01` | RECOVERY |
+| 9 | completion | After PASS state that F1 is complete; M08 reflection only, no second exam/evidence | — | — | NAVIGATION |
 
-Перед E01 ученик получает простое объяснение:
+## Temporal evidence / SEM-117
 
-> Сначала выполните задачу и сохраните естественный след своей работы. Следующие вопросы помогают разобрать уже выполненную попытку. Stepik может позволить открыть их раньше, но ранний просмотр способен подсказать решения и сделать самопроверку менее честной.
+Do not show F1 rubric or fields before E01.
 
-Не обещать техническую блокировку.
+Post-action A03 must make two meanings explicit:
+- learner’s own image/criteria of a suitable result that **already existed before** content evaluation;
+- learner’s own evaluation of the first/intermediate version and the resulting decision.
 
-## Temporal evidence после D-2026-09-13-LEARNER-UX
+No separate pre-attempt field is required. Earlier natural trace + post-action explanation may prove these meanings. If first version was already suitable, no forced refinement.
 
-Не вводить перед E01 форму «цель → критерии → контекст → проверка → применение».
+## Recovery / SEM-118
 
-Принимать natural trace: собственные сообщения, версии результата, открытые источники, расчёты, заметки и другие реально возникшие артефакты.
+Distinguish:
+- **PROVEN by natural trace + explanation:** keep original independent attempt;
+- **PRACTICE due content contamination:** another own new task;
+- **genuinely NOT PROVEN:** key content choice exists only in late story and has no supporting earlier trace → another own new task.
 
-Post-action explanation может пояснить смысл уже существующего trace. Например, ученик может после работы объяснить, почему конкретная фраза в первом запросе была для него признаком подходящего результата.
+Missing a special pre-labelled field is **not** automatically NOT PROVEN.
 
-Отсутствие отдельного заранее названного поля **не является автоматическим FAIL**. `NOT PROVEN` применяется, если ключевой содержательный выбор не поддерживается никаким ранним действием и существует только как поздний рассказ.
+Recovery never gives a ready exam case, method, source or next step. Learner completes and applies the new task, then returns to learner step 6. Successful learners never repeat.
 
-`Я и так собирался это сделать` без поддерживающего trace не создаёт independent evidence.
+## Free Stepik / author rubric
 
-## Бесплатный Stepik
+- learner files/screenshots stay local;
+- Stepik gets a short free-answer only after completed action;
+- author-only A02 remains structural row 7 and must not enter learner HTML;
+- no claim of technically protected certification in public free path;
+- Human Pilot may inspect actual natural trace separately.
 
-Если ученику нужна общая помощь по сохранению результата/следа работы, learner-facing текст ведёт обычной HTTPS-ссылкой на **единственный встроенный экземпляр** памятки `Как сохранять результаты практики` в M06-L04 step 2. Локальный Markdown повторно не встраивается.
+## F1 boundary
 
-Обязательный маршрут не зависит от платной загрузки файлов в решение или обязательной teacher grading.
-
-- Файлы, изображения и скриншоты learner хранит у себя.
-- В Stepik используется свободный текстовый ответ после выполненной работы.
-- Во время Human Pilot наблюдатель проверяет реальные артефакты непосредственно.
-- Публичный бесплатный маршрут не заявляется как технически защищённая сертификация.
-
-## Что нельзя показывать до independent attempt
-
-Нельзя сообщать конкретный план, нужный следующий шаг, какой контекст добавить, какую правку сделать, какой тип основания нужен, итоговый статус или способ применения.
-
-Допустима только техническая помощь.
-
-## Recovery
-
-Если содержательная помощь реально повлияла на попытку:
-
-- текущая попытка = PRACTICE;
-- `M07-L02-C01` не закрывается;
-- learner выбирает другую собственную новую посильную реальную задачу;
-- новая задача должна отличаться содержательно, а не только именами или числами;
-- новых Exercise/Check/Asset ID не создаётся.
-
-Обычный тест не заменяет самостоятельный выбор задачи, реальные действия и фактическое применение.
+- M07-L02-C01 is the **only** F1 independent level 3.
+- Actual application is mandatory.
+- File/search/image/calculation/second service are adaptive and only used when needed.
+- Correct refusal from a bad intermediate version is valid judgment but does not complete F1 without a finished safe task.
+- M08 cannot add a second F1 or require new evidence.
