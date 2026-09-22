@@ -7,10 +7,16 @@
   "agent": "/root/independent_critic",
   "model": "gpt-6-astra",
   "reasoning_effort": "ultra",
-  "round": 1,
-  "report_expected": "critic-round1.md",
+  "round": 2,
+  "report_expected": "critic-round2.md",
   "merge_allowed": false,
   "interruption": "Первый запуск прерван лимитом, возобновлён после прямого поручения владельца и восстановления инструментов.",
-  "last_report": null,
-  "open_blockers": null
+  "last_report": "critic-round1.md",
+  "open_blockers": 2,
+  "last_completed_round": 1,
+  "reviewed_head_sha": "3d4b914fe359071f82792b250d393e038141c3f3",
+  "pending_items": [
+    "CR1-01",
+    "CR1-02"
+  ]
 }
