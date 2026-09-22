@@ -2,21 +2,21 @@
   "schema_version": 1,
   "summary": {
     "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
-    "status": "PARTIAL",
+    "status": "COMPLETE_AUTHOR_REVIEW",
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 20,
-    "steps_reviewed": 142,
+    "lessons_reviewed": 21,
+    "steps_reviewed": 148,
     "counts": {
       "CRITICAL": 0,
       "BLOCKING": 37,
-      "MAJOR": 86,
-      "POLISH": 16,
-      "CLEAN": 3,
-      "NOT_REVIEWED": 6
+      "MAJOR": 88,
+      "POLISH": 19,
+      "CLEAN": 4,
+      "NOT_REVIEWED": 0
     },
-    "findings_total": 114,
+    "findings_total": 116,
     "independent_critic": "NOT_PERFORMED"
   },
   "steps": [
@@ -6111,24 +6111,32 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M08-L01.json",
       "html_sha256": "866521d5dc46cacdb0d9400306ec2b9add9ffd68cc2d400378a77199e3ec2b7b",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Прочитать, что после завершённого F1 базовый курс уже закончен.",
+      "work_location": "Stepik.",
+      "work_object": "Рамка завершения.",
+      "observable_result": "Прочитан статус; отдельное действие не нужно.",
+      "save_requirement": "Нет.",
+      "completion": "Перейти к осмыслению следующей задачи.",
+      "required_blocks": [
+        "Завершённая база после финальной работы"
+      ],
+      "superfluous_blocks": [
+        "Рубрики над одной фразой",
+        "Зачем перед следующим действием",
+        "Готово через понимание"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Вход — завершённый F1. Новых сервисов, компетенций или фактической работы с ИИ не требуется.",
+      "term_gap": "Нового обязательного понятия для выполнения нет.",
+      "previous_link": "Следует после реально завершённого M07-L02.",
+      "next_link": "S02 объясняет смысл необязательного дальнейшего выбора.",
+      "severity": "POLISH",
+      "finding_ids": [
+        "SEM-115"
+      ],
+      "required_fix": "Сократить рамку; можно связать с объяснением роли M08. Не добавлять проверку F1."
     },
     {
       "module_id": "M08",
@@ -6140,24 +6148,36 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M08-L01.json",
       "html_sha256": "1a532bebae89fa838943194c49f579ec7fd50bfb3b9adea431f08f14d86f5c1b",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "REFLECTION",
+      "learner_task": "Назвать следующую собственную реальную задачу после курса.",
+      "work_location": "Свободный ответ Stepik.",
+      "work_object": "Будущая задача ученика.",
+      "observable_result": "В свободном ответе названа следующая задача.",
+      "save_requirement": "Ответ в Stepik; отдельного отчёта не требуется.",
+      "completion": "Задача названа; её не нужно решать для этого урока.",
+      "required_blocks": [
+        "Не второй экзамен",
+        "Смысл следующего выбора",
+        "Можно продолжать базу"
+      ],
+      "superfluous_blocks": [
+        "Проверка уже выполненной работы",
+        "Фиксация без изменения задним числом",
+        "Конец по вопросам о прошлом"
+      ],
+      "ambiguous_pointers": [
+        "Рамка и поле предлагают отчёт о выполненном, тело — выбор ещё не выполненной задачи"
+      ],
+      "prerequisite_gap": "Вход — завершённый F1. Новых сервисов, компетенций или фактической работы с ИИ не требуется.",
+      "term_gap": "Нового обязательного понятия для выполнения нет.",
+      "previous_link": "После завершения базы выбирает следующую задачу.",
+      "next_link": "S03 помогает назвать переносимые действия.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-115"
+      ],
+      "required_fix": "Согласовать причину и конец с выбором будущей задачи, сохранить поле ответа и связь с базой. Не требовать нового выполнения."
     },
     {
       "module_id": "M08",
@@ -6169,24 +6189,37 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M08-L01.json",
       "html_sha256": "fae5402543126cdbd6bf51bbe5fd9dc428d923f12a8c65adc246393119ae6e21",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "REFLECTION",
+      "learner_task": "На примере своей следующей задачи определить, что из знакомых действий пригодится и какова граница сложности.",
+      "work_location": "Карточка в Stepik; запись итоговой мысли — поле S05, связь сейчас не обозначена.",
+      "work_object": "A01 и названная в S02 задача.",
+      "observable_result": "Сформулирована связь с базовыми приёмами; итоговый текст далее в S05.",
+      "save_requirement": "Неясно, где отметить сейчас; итоговый свободный ответ задан S05, дублировать записи не требуется.",
+      "completion": "Прочитана карточка и выбран уместный знакомый способ; одного понимания рамки недостаточно.",
+      "required_blocks": [
+        "Карточка размышления",
+        "Своя задача",
+        "Только нужные действия",
+        "Граница сложности по задаче"
+      ],
+      "superfluous_blocks": [
+        "Разберитесь с текущим шагом",
+        "Готово до карточки"
+      ],
+      "ambiguous_pointers": [
+        "Отметьте в текстовом шаге без места отметки или связи с будущим ответом"
+      ],
+      "prerequisite_gap": "Вход — завершённый F1. Новых сервисов, компетенций или фактической работы с ИИ не требуется.",
+      "term_gap": "Нового обязательного понятия для выполнения нет.",
+      "previous_link": "Развивает свою задачу S02.",
+      "next_link": "S04 уточняет один вывод, S05 собирает короткую рефлексию.",
+      "severity": "MAJOR",
+      "finding_ids": [
+        "SEM-115",
+        "SEM-116"
+      ],
+      "required_fix": "Дать карточку до конца, предметно назвать размышление и связать его результат с одним итоговым ответом. Не добавлять отдельный обязательный отчёт."
     },
     {
       "module_id": "M08",
@@ -6198,24 +6231,33 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M08-L01.json",
       "html_sha256": "9d89687e9013f2ce21b11e3eaf3c1ef99dffc81994789c06c0cbd45c7a01a6e7",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "REFLECTION",
+      "learner_task": "Выбрать для своей задачи вывод: практика базы или существенное усложнение.",
+      "work_location": "Stepik.",
+      "work_object": "Следующая задача и понятные признаки сложности.",
+      "observable_result": "Выбран один из двух выводов с основанием для S05.",
+      "save_requirement": "Отдельная запись не обязательна; дальше есть итоговые вопросы.",
+      "completion": "Вывод выбран, можно объяснить его в S05.",
+      "required_blocks": [
+        "Признаки сложности",
+        "Два допустимых вывода",
+        "Нет правильного обязательного усложнения"
+      ],
+      "superfluous_blocks": [
+        "Общее Зачем",
+        "Действие ниже в конце, хотя выбор уже выше"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Вход — завершённый F1. Новых сервисов, компетенций или фактической работы с ИИ не требуется.",
+      "term_gap": "Нового обязательного понятия для выполнения нет.",
+      "previous_link": "Применяет рамку A01 к своей задаче.",
+      "next_link": "S05 прямо просит объяснить выбранную границу.",
+      "severity": "POLISH",
+      "finding_ids": [
+        "SEM-115"
+      ],
+      "required_fix": "Упростить начало и конец ясного выбора без дополнительного упражнения или нового поля."
     },
     {
       "module_id": "M08",
@@ -6227,24 +6269,28 @@
       "platform_block_type": "free-answer",
       "snapshot_path": "rendered/M08-L01.json",
       "html_sha256": "27756e1de8acbf4e620ff8f994aa2f3da5723889072885383bb0d080bfa22f55",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "REFLECTION",
+      "learner_task": "Коротко записать задачу, переносимые способы, границу сложности и связь с опытом финальной работы.",
+      "work_location": "Поле свободного ответа Stepik.",
+      "work_object": "Собственные выводы S02–S04 и завершённая F1.",
+      "observable_result": "Четыре конкретных пункта рефлексии записаны в поле Stepik.",
+      "save_requirement": "Ответ в Stepik, дополнительных файлов нет.",
+      "completion": "Все четыре пункта отвечены; новый экзамен не проводится.",
+      "required_blocks": [
+        "Четыре конкретных пункта",
+        "Связь с собственным опытом",
+        "Прямое отсутствие нового зачёта"
+      ],
+      "superfluous_blocks": [],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Вход — завершённый F1. Новых сервисов, компетенций или фактической работы с ИИ не требуется.",
+      "term_gap": "Нового обязательного понятия для выполнения нет.",
+      "previous_link": "Собирает размышления по будущей задаче и опыт предыдущего финала.",
+      "next_link": "S06 закрывает курс без покупки продолжения.",
+      "severity": "CLEAN",
+      "finding_ids": [],
+      "required_fix": "Обязательного исправления нет. Сохранить ясные вопросы и правильное место ответа; не усложнять до нового независимого испытания."
     },
     {
       "module_id": "M08",
@@ -6256,24 +6302,33 @@
       "platform_block_type": "text",
       "snapshot_path": "rendered/M08-L01.json",
       "html_sha256": "c922b939d5af9432b1021a98a9f79dc86e5458e40b2e26f320398164f3105259",
-      "review_status": "NOT_REVIEWED",
-      "ambiguous_pointers": null,
-      "completion": null,
-      "finding_ids": null,
-      "learner_task": null,
-      "next_link": null,
-      "observable_result": null,
-      "prerequisite_gap": null,
-      "previous_link": null,
-      "required_blocks": null,
-      "required_fix": null,
-      "save_requirement": null,
-      "semantic_type": null,
-      "severity": null,
-      "superfluous_blocks": null,
-      "term_gap": null,
-      "work_location": null,
-      "work_object": null
+      "review_status": "REVIEWED",
+      "semantic_type": "EXPLANATION",
+      "learner_task": "Прочитать границу освоенной базы и допустимость дальнейшей практики без покупки нового уровня.",
+      "work_location": "Stepik.",
+      "work_object": "Итог курса и критерий поиска дальнейших знаний.",
+      "observable_result": "Прочитан итог; выбранное направление остаётся собственным.",
+      "save_requirement": "Нет.",
+      "completion": "Урок завершён без дополнительной покупки, регистрации или работы.",
+      "required_blocks": [
+        "Базовые навыки уже входят в курс",
+        "Практиковать базу достаточно",
+        "Знания по сложности задачи, не бренду"
+      ],
+      "superfluous_blocks": [
+        "Что сделать над заключением",
+        "Готово перейти к следующему действию в последнем шаге"
+      ],
+      "ambiguous_pointers": [],
+      "prerequisite_gap": "Вход — завершённый F1. Новых сервисов, компетенций или фактической работы с ИИ не требуется.",
+      "term_gap": "Нового обязательного понятия для выполнения нет.",
+      "previous_link": "Завершает рефлексию S05.",
+      "next_link": "Обязательного следующего урока/продукта нет.",
+      "severity": "POLISH",
+      "finding_ids": [
+        "SEM-115"
+      ],
+      "required_fix": "Закончить естественным итогом без фиктивного следующего действия; не обещать существующий продвинутый курс."
     }
   ]
 }
