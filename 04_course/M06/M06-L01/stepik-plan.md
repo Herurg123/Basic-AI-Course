@@ -2,28 +2,41 @@
 
 > Производственный план переноса. Не является публичным ученическим текстом.
 
-| № | Тип шага | Содержание | Внешнее действие / asset | Проверка |
-|---:|---|---|---|---|
-| 1 | текст | Объяснить три наблюдаемые ситуации: внешнее основание ответа не установлено; ответ по переданному материалу; использование поиска действительно наблюдаемо. Отдельно: ссылка/уверенность не доказывают поиск или правильность; если происхождение не установлено, не угадывать | — | — |
-| 2 | мини-практика / сравнение | Три посторонних примера: обычный чат с одной ссылкой без наблюдаемого поиска; вопрос по прикреплённому расписанию; явно запущенный интерфейсом поиск с показанными результатами. Ученик сначала выбирает категорию, затем видит разбор | встроено в `lesson.md` | A1 PRACTICE, без нового Check ID |
-| 3 | практика | Выбрать внешний факт из безопасной карточки и объяснить последствия ошибки | `M06-L01-A01.md` | `M06-L01-E01` |
-| 4 | текст / опора | Дать класс основания «официальный/первичный» и критерии пригодности без готовой ссылки | `M06-L01-A02.md` | — |
-| 5 | практика во внешнем браузере | Самостоятельно найти и открыть источник, найти фрагмент/условия, сопоставить, дать статус и решение | браузер + реальный первичный источник | `M06-L01-E02` |
-| 6 | малое применение | Внести только подтверждённую пригодную часть в учебную заметку/памятку; при недостатке данных не применять | внешняя заметка/документ | B12 PRACTICE |
-| 7 | рубрика | Собрать полную цепочку claim → source → fragment → status → decision → application | evidence ученика | `M06-L01-C01` |
-| 8 | текст | BACKUP и граница: встроенный поиск может найти кандидата на источник, но факт поиска должен быть наблюдаем, а сам поиск не заменяет открытие и проверку источника | — | — |
+<!-- learner-render-contract: authored-semantic-v1 -->
 
-## Что ученик должен знать до M06-L04
+| № | Тип шага | Содержание | Материал / действие | Проверка | Semantic type |
+|---:|---|---|---|---|---|
+| 1 | объяснение | Три наблюдаемые ситуации: external ground not established / attached material / observable search. Link+confidence ≠ proof of search or correctness | — | — | EXPLANATION |
+| 2 | поддержанная мини-практика | Три посторонних cases; learner сначала классифицирует сам, затем видит разбор. Это support до later independence | встроено в `lesson.md` | A1 PRACTICE | GUIDED_ACTION |
+| 3 | выбор существенного claim | A01 inline; карточка сама задаёт object и action. Learner выбирает external claim и consequences of error; source ещё не выбирается | `M06-L01-A01.md` | `M06-L01-E01` | GUIDED_ACTION |
+| 4 | support перед поиском | A02 inline + neutral browser-start mechanics: query, official domain/primary doc, open result. No ready URL/status. AI may suggest candidates/search wording only | `M06-L01-A02.md` + browser | — | EXPLANATION |
+| 5 | supported source verification | Learner сам выбирает source, реально открывает, finds relevant content, compares conditions, chooses status + decision. `данных недостаточно` допустим | browser + real primary/official source | `M06-L01-E02` | GUIDED_ACTION |
+| 6 | small application / safe refusal | Apply only genuinely supported useful part in local note. If not supported/no data, do not use as confirmed; record what is missing. Refusal is safe decision but does not certify claim | local note | B12 PRACTICE | GUIDED_ACTION |
+| 7 | post-action free-answer | In Stepik: claim+importance, source+why suitable, relevant content, status+why, decision, real application or non-application. Evidence pages/chats stay local | free-answer Stepik | `M06-L01-C01` | CHECK |
+| 8 | conditional technical recovery + summary | Chat PRIMARY/BACKUP only for dialogue; source opens in browser. Unavailable page → another official section/fact, repeat verification, return to step7. No late ready link | browser + conditional chat | — | NAVIGATION |
 
-После шагов 1–2 ученик уже встречал все три различия, которые позже понадобятся в независимой проверке:
+## Guardrails
 
-- **внешнее основание не установлено** — не было наблюдаемого материала/поиска либо по условию нельзя установить происхождение;
-- **переданный материал** — ученик сам передал материал и ответ связан с ним;
-- **наблюдаемый поиск** — поисковое действие реально запускалось/показывалось интерфейсом.
+- Source criteria are allowed support in M06-L01; this is not the independent M06-L04.
+- Do not provide a ready URL, fragment, status or decision for the learner’s chosen fact.
+- Search snippet is not an opened source.
+- Second AI agreement is not verification.
+- `данных недостаточно` is an honest status; unsupported claims are not applied as confirmed.
+- B12 requires an actual small application of a suitable verified result somewhere in the M06 route; safe refusal from an unsupported claim is correct but is not re-labelled as confirmed application.
 
-Нельзя учить правилу «в ответе есть ссылка → ИИ использовал поиск». Также нельзя требовать знания скрытого внутреннего процесса генерации.
+## Prerequisite for M06-L04
 
-**Quiz допустим:** только как дополнительное распознавание ложного PASS, например «почему ссылка сама по себе не доказывает поиск» или «почему поисковый фрагмент не равен открытию источника».  
-**Quiz не заменяет:** мини-сравнение, выбор существенного факта, реальное открытие источника, поиск релевантного фрагмента, сопоставление, статус и применение.  
-**PRIMARY/BACKUP:** Алиса AI / GigaChat для чата; вход в GigaChat используется только если нужное действие его требует. B10 выполняется во внешнем браузере и не зависит от встроенного поиска.  
-**Dynamic layer:** конкретный официальный источник выбирает ученик и он может изменяться; перед публикацией перепроверить только техническую доступность браузерного маршрута, а не закреплять «вечную правильную ссылку».
+Learner has already seen:
+- external ground not established;
+- attached material;
+- observable search;
+- primary/official source selection;
+- opened-source comparison;
+- four statuses;
+- safe non-application when evidence is insufficient.
+
+These may be taught here because M06-L04 later removes method/category prompting **before** its independent action.
+
+**PRIMARY/BACKUP:** Alice / conditional GigaChat for chat only; browser verification is separate.  
+**Screenshots:** not required.  
+**Quiz:** may supplement but never replace source opening, comparison, status, decision or application.
