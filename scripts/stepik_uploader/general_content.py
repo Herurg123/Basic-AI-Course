@@ -304,7 +304,12 @@ def _forbidden_check_cuts(chunks: list[SourceChunk]) -> set[int]:
     return forbidden
 
 
-def _align_chunks(rows: list[dict[str, Any]], chunks: list[SourceChunk]) -> list[list[SourceChunk]]:
+def _align_chunks(
+    rows: list[dict[str, Any]],
+    chunks: list[SourceChunk],
+    *,
+    require_heading_starts: bool = False,
+) -> list[list[SourceChunk]]:
     if len(chunks) < len(rows):
         raise GeneralContentCompileError(
             f"Недостаточно source chunks для learner rows: chunks={len(chunks)}, rows={len(rows)}"
@@ -341,6 +346,8 @@ def _align_chunks(rows: list[dict[str, Any]], chunks: list[SourceChunk]) -> list
         max_end = m - (n - (i + 1))
         for start in range(i, m):
             if dp[i][start] == neg:
+                continue
+            if require_heading_starts and chunks[start].first_heading is None:
                 continue
             for end in range(max(start + 1, min_end), max_end + 1):
                 if end in forbidden_cuts:
@@ -606,7 +613,11 @@ def compile_lesson_source(
         raise GeneralContentCompileError(f"{lesson_id}: после author-only фильтра нет learner rows")
 
     chunks = split_source_chunks(lesson_text)
-    spans = _align_chunks(rows, chunks)
+    spans = _align_chunks(
+        rows,
+        chunks,
+        require_heading_starts=render_contract == AUTHORED_SEMANTIC_RENDER_CONTRACT,
+    )
     source_paths = (
         str(lesson_path.relative_to(repo_root)).replace("\\", "/"),
         str(plan_path.relative_to(repo_root)).replace("\\", "/"),
