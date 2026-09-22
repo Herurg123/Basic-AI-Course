@@ -613,6 +613,13 @@ def compile_lesson_source(
         raise GeneralContentCompileError(f"{lesson_id}: после author-only фильтра нет learner rows")
 
     chunks = split_source_chunks(lesson_text)
+    if (
+        render_contract == AUTHORED_SEMANTIC_RENDER_CONTRACT
+        and not any(chunk.first_heading for chunk in chunks)
+    ):
+        raise GeneralContentCompileError(
+            f"{lesson_id}: authored-semantic-v1 step 1 не имеет authored H2/H3 heading"
+        )
     spans = _align_chunks(
         rows,
         chunks,
