@@ -6,7 +6,7 @@ from pathlib import Path
 
 from scripts.stepik_uploader.asset_inventory import build_asset_inventory
 from scripts.stepik_uploader.asset_resolution import assess_asset_publication, load_asset_publication_policy
-from scripts.stepik_uploader.canonical import build_structural_manifest
+from scripts.stepik_uploader.canonical import build_structural_manifest, parse_learner_render_contract
 from scripts.stepik_uploader.step_model import RenderedStep
 from scripts.stepik_uploader.deployment_history import DeploymentRecorder, EventIdentity, MemoryHistoryStore, summarize_event
 from scripts.stepik_uploader.fingerprints import compiled_lesson_fingerprint, live_lesson_fingerprint
@@ -254,11 +254,36 @@ class TransportEquivalenceTests(unittest.TestCase):
                 lesson_id,
             )
 
-        # M06-L02 уже рендерится через доказанный v2 writer contract, поэтому
-        # generic transport layer не добавляет там отдельную strict delta. Этот
-        # набор фиксирует только текущую HTML-форму canonical после rewrite;
-        # learner-visible эквивалентность каждого урока проверяется выше.
-        self.assertEqual(strict_delta_lessons, {"M01-L01", "M02-L01", "M06-L04"})
+        # Исторический strict-delta набор относится только к ещё legacy lessons.
+        # При authored-semantic migration сам learner HTML намеренно меняется, поэтому
+        # нельзя заставлять новый authored output сохранять случайную старую HTML-форму.
+        # Transport-equivalence каждого фактического урока независимо проверена выше.
+        legacy_lessons = {
+            lesson_id
+            for lesson_id in lessons
+            if parse_learner_render_contract(
+                (
+                    repo_root
+                    / "04_course"
+                    / lesson_id.split("-", 1)[0]
+                    / lesson_id
+                    / "stepik-plan.md"
+                ).read_text(encoding="utf-8"),
+                path=(
+                    repo_root
+                    / "04_course"
+                    / lesson_id.split("-", 1)[0]
+                    / lesson_id
+                    / "stepik-plan.md"
+                ),
+            )
+            is None
+        }
+        historical_legacy_deltas = {"M01-L01", "M02-L01", "M06-L04"}
+        self.assertEqual(
+            strict_delta_lessons & legacy_lessons,
+            historical_legacy_deltas & legacy_lessons,
+        )
 
 
 if __name__ == "__main__":
