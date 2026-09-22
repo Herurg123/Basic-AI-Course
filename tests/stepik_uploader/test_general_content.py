@@ -282,6 +282,7 @@ class GeneralContentCompilerTests(unittest.TestCase):
             ):
                 self.assertNotIn(synthetic, step.markdown)
             self.assertNotIn("EXPLANATION", step.markdown)
+            self.assertEqual(step.semantic_type, "EXPLANATION")
 
     def test_authored_semantic_mode_has_no_lesson_title_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
