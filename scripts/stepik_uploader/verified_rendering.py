@@ -153,7 +153,7 @@ def _practice_material_block(title: str, body: str) -> str:
         raise VerifiedRenderingError("Inline material body пуст")
     return (
         f'<div style="{PRACTICE_MATERIAL_STYLE}">\n\n'
-        f"**Материал для практики: {title}**\n\n"
+        f"**Материал: {title}**\n\n"
         f"{content}\n\n"
         "</div>"
     )
