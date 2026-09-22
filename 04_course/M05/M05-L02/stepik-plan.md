@@ -1,54 +1,60 @@
 # Stepik plan — M05-L02
 
-> Производственный план переноса. Не является публичным ученическим текстом. Действуют D-2026-09-12-STEPIK-FLOW и D-2026-09-13-LEARNER-UX.
+> Производственный план переноса. Не является публичным ученическим текстом. Действуют D-2026-09-12-STEPIK-FLOW, D-2026-09-13-LEARNER-UX и Semantic Step Contract v1.0.
 
-| № | Тип шага | Содержание | Материал / действие | Проверка |
-|---:|---|---|---|---|
-| 1 | текст / safety + learner contract | Нейтральная учебная задача; до загрузки проверить безопасность. Объяснить, что незнакомый интерфейс не является частью проверки навыка | — | — |
-| 2 | необязательная техническая проба | **До E01** новичок на посторонней геометрической картинке проверяет механику: запуск генерации, сохранение результата, повторный выбор существующего изображения как исходника, пробное заметное изменение и сохранение двух версий. Уже умеющий ученик пропускает шаг. Не использовать сюжет/назначение E01/E02 и не называть будущую правку | `M05-L02-A03.md`; Алиса AI, при необходимости технический BACKUP | — |
-| 3 | текст / порядок самостоятельной работы | Попросить сначала завершить часть 1 и сохранить исходный запрос + живую версию, затем открывать часть 2 | — | — |
-| 4 | самостоятельная практика | Ученик сам описывает визуальную задачу и выполняет живую генерацию | `M05-L02-A01-part1.md`; основной сервис | `M05-L02-E01` |
-| 5 | post-action check | Цель + собственное описание + живая версия + объяснение требований | свободный текст Stepik + сохранённое изображение у ученика | `M05-L02-C01` |
-| 6 | новое назначение | После первой части показать часть 2. Ученик сам решает, какое изменение нужно существующему изображению | `M05-L02-A01-part2.md` | — |
-| 7 | техническая помощь после выбора правки | Ученик **сначала фиксирует собственную правку**. Если затем мешает только интерфейс, дать ссылку назад на шаг 2, где A03 уже показан единственный раз. Не встраивать A03 повторно и не выбирать операцию за ученика | [техническая проба в шаге 2](https://stepik.org/lesson/2591725/step/2) | — |
-| 8 | самостоятельное редактирование | Самостоятельно диагностировать несоответствие, сформулировать правку и реально изменить существующее изображение | исходник из E01 + доступная функция редактирования | `M05-L02-E02` |
-| 9 | post-action check | Исходник + собственная правка + отредактированная версия + сравнение | свободный текст Stepik; изображения хранятся у ученика | `M05-L02-C02` |
-| 10 | learner-facing recovery | Если ранний просмотр части 2 или содержательная подсказка реально повлияли на правку, после C02 показать новую повторную ситуацию, уже включённую в `lesson.md` | новый безопасный исходник + новое назначение | повтор C02 |
-| 11 | фиксация | После действий предложить простую форму без внутренних ID | `M05-L02-A02.md` | — |
-| 12 | текст | Понятный резервный маршрут без превращения узкой функции резервного сервиса в «правильный ответ» | — | — |
+<!-- learner-render-contract: authored-semantic-v1 -->
+
+| № | Тип шага | Содержание | Материал / действие | Проверка | Semantic type |
+|---:|---|---|---|---|---|
+| 1 | safety + learner contract | Два live evidence: own generation B7 и real edit existing image B8; neutral material only; UI knowledge не проверяется; no payment | — | — | EXPLANATION |
+| 2 | optional technical support | A03 inline один раз **до E01**: unrelated geometry example; generation → save → reselect same image → neutral test edit → save both. Familiar learner skips. GigaChat login only if actual action requests it | `M05-L02-A03.md`; сервисы only for mechanics | — | TECHNICAL_SUPPORT |
+| 3 | order / navigation | Объяснить, зачем полностью закончить part1 и сохранить own prompt + generated image до раскрытия part2; no hard-gate claim | — | — | NAVIGATION |
+| 4 | independent generation | A01-part1 inline; learner сам формулирует description/remaining requirements и реально generates image. PRIMARY Alice; conditional GigaChat at generation failure; save prompt+image | `M05-L02-A01-part1.md`; live service | `M05-L02-E01` | INDEPENDENT_PRACTICE |
+| 5 | post-action C01 | Открыть generated image locally; в Stepik short text: purpose, own description, important requirements, what was actually created/saved. No image upload; A03/demo not evidence | local image + free-answer Stepik | `M05-L02-C01` | CHECK |
+| 6 | reveal new purpose + own choice | A01-part2 inline only after part1. Start E02: compare existing image with new purpose and **record one own correction before technical help**. If no honest mismatch / early reveal influenced source / content hint chose correction → route to step10, no invented defect | `M05-L02-A01-part2.md` + own note | `M05-L02-E02` | INDEPENDENT_PRACTICE |
+| 7 | conditional technical support after choice | Only after correction is recorded: link back to step2 for mechanics. Do not change correction to fit tool. Backup limitation is technical, not content key; unavailable chosen edit remains incomplete or uses recovery | [technical step 2](https://stepik.org/lesson/2591725/step/2) | — | TECHNICAL_SUPPORT |
+| 8 | real edit existing image | Continue E02: use exact saved source, perform recorded correction, save source+edited result. New generation from scratch does not count; technical failure is not imaginary evidence | existing E01 source + live edit function | продолжение `M05-L02-E02` | INDEPENDENT_PRACTICE |
+| 9 | post-action C02 | Open both actual versions locally; in Stepik short text: mismatch, correction chosen before help, observed change, why edited version fits better. No mandatory image upload | local source+edited image + free-answer Stepik | `M05-L02-C02` | CHECK |
+| 10 | conditional recovery — source first | Only if contamination / no meaningful mismatch / technically unexecutable main attempt. Before future purpose is shown, learner independently generates and saves a new wide 16:9 book-exchange header source. No step11 purpose visible here | new safe live source authored in `lesson.md` | recovery for `M05-L02-C02` | RECOVERY |
+| 11 | conditional recovery — purpose/edit | Reveal different use only after recovery source exists: small square schedule icon. Learner records own correction, then may use technical help, really edits same recovery source, saves both, returns to step9. No named correct edit | recovery source + [return to C02](https://stepik.org/lesson/2591725/step/9) | repeat `M05-L02-C02` | RECOVERY |
+| 12 | optional consolidation + transition | A02 inline only after actions; optional local form, not a new exam and not a pre-action recipe. Summarize generation→edit cycle; SERVICE/live-account gate remains external | `M05-L02-A02.md` | — | REFLECTION |
 
 ## Что именно показывает техническая проба
 
-Learner-facing A03 опирается на проверенные 14.09.2026 официальные пользовательские инструкции:
+Learner-facing A03 опирается на официальные пользовательские инструкции, повторно проверенные **22.09.2026**:
 
-- Алиса AI: создание изображения запускается из инструментов чата/режима «Нарисовать картинку»; для редактирования в чат прикрепляется JPEG/PNG и описывается изменение;
-- GigaChat: генерация изображения доступна в обычном пользовательском маршруте; загрузка изображения выполняется через добавление файла, а подтверждённый резервный edit остаётся узким сценарием удаления/замены фона.
+- Алиса AI: генерация описана в пользовательской справке; редактирование выполняется через загрузку JPEG/PNG и описание изменения;
+- GigaChat: генерация изображений документирована; загрузка изображений документирована; узкий резерв удаления/замены фона документирован как реальная операция.
 
-Это **проверка актуальной официальной документации, а не live-account acceptance**. Перед публикацией на свежих бесплатных аккаунтах всё равно нужно подтвердить фактическую доступность хотя бы одной B7 и B8 по принятому маршруту.
+Это **документационная перепроверка, не live-account acceptance**. Перед публикацией на свежих бесплатных аккаунтах отдельно подтверждается фактическая доступность хотя бы одной B7 и B8 по принятому маршруту.
 
-## Рекомендательный порядок Stepik
+## Evidence / completion
 
-Техническая проба размещается раньше проверочной `E01`, чтобы абсолютный новичок не угадывал механику незнакомого интерфейса во время самостоятельной проверки.
+- A03 не является evidence B7/B8.
+- B7 = own description + фактически generated live image.
+- B8 = existing safe source + own correction recorded before content help + фактически edited version of that source + comparison.
+- New generation from scratch ≠ B8.
+- Images stay with learner; Stepik uses short free-answer after action.
+- Already-suitable source does not justify invented defect: use staged recovery.
+- Technical unavailability does not become PASS and does not require purchase.
 
-Части 1 и 2 размещаются последовательными шагами. Stepik может позволить перейти вперёд раньше, поэтому перед первой частью ученик получает спокойное объяснение, зачем лучше сначала закончить живую генерацию.
+## Recovery / independence
 
-Если часть 2 была прочитана заранее, сам факт навигации не является нарушением. Если новая ситуация реально подсказала правку, первая попытка редактирования остаётся тренировочной, а ученик сам использует повторную ситуацию из `lesson.md`.
+Recovery is split across steps 10–11 to preserve order:
 
-Recovery больше не хранится только в author notes.
+1. generate and save new source **without knowing future reuse**;
+2. only then reveal new use;
+3. learner chooses correction;
+4. technical help allowed only after own choice;
+5. real edit;
+6. return to C02.
 
-## Evidence и бесплатный маршрут
+The recovery source is a wide multi-object book-exchange header; the later use is a small square schedule icon. This makes a substantive adaptation necessary without naming a single correct edit: crop/recomposition/simplification/scale/background handling can be reasonable depending on actual source and available service.
 
-- Техническая проба A03 **не является evidence B7/B8**.
-- Создание изображения подтверждается собственным описанием и реально созданной проверочной версией.
-- Редактирование подтверждается связью «исходник → собственная правка → реально изменённая версия».
-- Изображения ученик хранит у себя; обязательная загрузка файлов в решение Stepik не требуется.
-- В Stepik используется короткий свободный текст после выполненного действия.
-- Во время Human Pilot наблюдатель может посмотреть фактические версии изображения и применить author rubric.
+If learner’s reasonable correction is unsupported by available services, do not label the choice wrong. No B8 PASS until a real edit exists.
 
-## Резервный маршрут
+## Service boundary
 
-Резервное редактирование в GigaChat по проверенной официальной документации подтверждено для узкого изменения фона. Это техническая граница сервиса, а не содержательный ключ задания.
+Current documentation confirms Alice editing uploaded JPEG/PNG and GigaChat’s narrow background route, but this batch does not claim a fresh-account live run. Backup capability must not leak “background” as the answer before learner records a correction.
 
-До самостоятельного выбора правки не показывать ученику «фон» как рекомендуемое решение. Если ученик выбирает другую разумную правку, которую резервный сервис не умеет выполнять, нельзя объявлять её неправильной или подгонять решение под кнопку. Используется основной сервис либо learner-facing повторная ситуация.
-
-**Quiz не заменяет:** живую генерацию и реальное редактирование существующего изображения.
+**Quiz не заменяет:** live generation или real edit.
