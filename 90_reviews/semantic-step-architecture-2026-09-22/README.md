@@ -27,7 +27,7 @@
 - [risk-calibrations.md](risk-calibrations.md) — спорные зоны, которые нельзя механически «исправлять».
 - [PRODUCTION-HANDOFF.md](PRODUCTION-HANDOFF.md) — полный handoff следующему этапу.
 - [production-prompt-sol-high.md](production-prompt-sol-high.md) — самодостаточный prompt SOL/HIGH.
-- `critic-round*.md`, `critic-status.json` — обязательная независимая критика архитектурного PR.
+- [critic-round1.md](critic-round1.md) — REQUEST_CHANGES; [critic-response.md](critic-response.md) — адресные исправления; [critic-round2.md](critic-round2.md) — PASS; [critic-status.json](critic-status.json) — formal state.
 
 ## Главные решения
 
