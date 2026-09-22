@@ -32,7 +32,7 @@ Production-инварианты:
 - во всех 21 `stepik-plan.md` обязателен exact marker `<!-- learner-render-contract: authored-semantic-v1 -->`;
 - 150 structural rows включают 2 author-only rows и дают **148 learner-facing Stepik steps**;
 - каждый row имеет валидный `Semantic type`;
-- `CHECK` компилируется в `free-answer`, остальные semantic types — в `text`;
+- `CHECK` компилируется в `free-answer`; `COMPOSITE` с явным Check ID также сохраняет `free-answer`; остальные semantic types — в `text`;
 - learner-visible title/body берутся только из authored H2/H3 + source body;
 - универсальная synthetic-обвязка `Зачем / Где и с чем / Готово / Что дальше` удалена;
 - отсутствующий authored contract блокирует compile fail-closed, legacy fallback отсутствует;
