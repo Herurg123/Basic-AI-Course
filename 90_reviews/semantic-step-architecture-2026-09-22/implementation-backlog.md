@@ -5,9 +5,13 @@
 ## Инфраструктура
 
 ### INF-01 — authored-semantic-v1
-Добавить opt-in режим compiler. Урок без opt-in сохраняет прежний нормализованный HTML. Новый режим оставляет только нумерацию/смысловой title и authored body; педагогические рубрики по текстовым эвристикам не генерируются.
+Добавить opt-in режим compiler. Точный marker в `stepik-plan.md`: `<!-- learner-render-contract: authored-semantic-v1 -->`. Урок без marker сохраняет прежний нормализованный HTML.
 
-Acceptance: до миграции уроков все 21 legacy outputs эквивалентны текущим.
+Для opt-in lesson каждый plan row обязан иметь колонку `Semantic type` с одним из 10 enum Semantic Step Contract. Новый режим берёт title только из первого authored H2/H3 своего semantic span; отсутствие heading или semantic type = compile error. Никаких lesson-title/generated fallback.
+
+Новый режим оставляет только нумерацию/смысловой authored title и body; педагогические рубрики по текстовым эвристикам не генерируются.
+
+Acceptance: до миграции уроков все 21 legacy outputs эквивалентны текущим; malformed/missing marker metadata fixtures fail deterministically.
 
 ### INF-02 — semantic regression harness
 Добавить fixtures и проверки:
