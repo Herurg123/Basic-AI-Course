@@ -268,7 +268,7 @@ def _render_local_markdown(
                     "mode": mode,
                     "derived_format": row.get("derived_format"),
                 }
-                return f"**{label} (будет доступен после verified materialization)**"
+                return f"**{label} (будет доступен после подготовки материала)**"
             if binding.source_sha256 != expected_sha:
                 raise VerifiedRenderingError(
                     f"{source_path}: runtime binding относится к другому source SHA-256"
