@@ -27,6 +27,6 @@
   "snapshot_changed_paths": [],
   "validation": "assemble_audit.py проверяет схему и связи оценок; verify_completeness.py — полные наборы, HTML-хеши и неизменность ученического слоя/снимков. Смысловые заключения остаются ручными.",
   "evidence_limit": "Восстановление по сохранённым отпечаткам публикации; не свежий Stepik read-back и не человеческое наблюдение.",
-  "independent_critic": "PENDING_RECHECK",
-  "independent_critic_report": "critic-round1.md"
+  "independent_critic": "PASS",
+  "independent_critic_report": "critic-round2.md"
 }
