@@ -5,17 +5,17 @@
     "modules_total": 9,
     "lessons_total": 21,
     "steps_total": 148,
-    "lessons_reviewed": 19,
-    "steps_reviewed": 134,
+    "lessons_reviewed": 20,
+    "steps_reviewed": 142,
     "counts": {
       "CRITICAL": 0,
       "BLOCKING": 37,
-      "MAJOR": 80,
-      "POLISH": 14,
+      "MAJOR": 86,
+      "POLISH": 16,
       "CLEAN": 3,
-      "NOT_REVIEWED": 14
+      "NOT_REVIEWED": 6
     },
-    "findings_total": 108,
+    "findings_total": 114,
     "independent_critic": "NOT_PERFORMED"
   },
   "lessons": [
@@ -221,11 +221,12 @@
     {
       "lesson_id": "M07-L02",
       "step_count": 8,
-      "reviewed": false,
+      "reviewed": true,
       "counts": {
-        "NOT_REVIEWED": 8
+        "MAJOR": 6,
+        "POLISH": 2
       },
-      "summary": "Индивидуальный аудит ещё не выполнен"
+      "summary": "Единственный самостоятельный F1 сохраняет собственную новую реальную задачу, выбор нужных действий, безопасность, обязательное применение и рубрику после работы. Авторская A02 не опубликована; форма A03 доступна только в проверке. Дефекты относятся к границам выбора/применения, окончанию до обязательных материалов, неточному месту действия и возврату после условного повтора/технической помощи. Не объявлять самостоятельность утраченной только из-за доступности будущей формы или известных общих правил. Новых BLOCKING не установлено."
     },
     {
       "lesson_id": "M08-L01",
