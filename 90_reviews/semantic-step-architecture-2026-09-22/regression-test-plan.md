@@ -23,7 +23,10 @@
 URL, название сервиса, слово «чат», «Stepik», «файл» не определяют learner location автоматически.
 
 ## R05 — authored title
-Первый step не обязан наследовать lesson title. Test должен разрешать source step heading и ловить пустой/production-ID-only title.
+В authored mode каждый semantic span обязан иметь H2/H3. Title берётся только из первого authored heading. Отсутствие heading, пустой heading или production-ID-only heading = compile failure. Lesson-title/generated fallback запрещён.
+
+## R05a — render marker and semantic type
+Parser принимает exact marker `<!-- learner-render-contract: authored-semantic-v1 -->`. Для каждого row opt-in lesson обязателен `Semantic type` из 10 enum Semantic Step Contract; пропуск/неизвестное значение = failure. Type не может автоматически добавлять learner-facing секции.
 
 ## R06 — inline single-source
 Один repo-relative learner Markdown source не встраивается более одного раза. Повторное обращение идёт по канонической HTTPS-ссылке.
@@ -126,6 +129,9 @@ Batch-level report должен явно подтвердить:
 - M07-L02 = единственный F1;
 - M07-L01 = rehearsal;
 - M08 = reflection.
+
+## R21a — final whole-course dual gate
+B7 regression report обязан содержать отдельные coverage records ZERO-LEVEL 148/148 и PEDAGOGUE 148/148 по одному final compiled set. Batch-level PASS не засчитывается вместо final coverage.
 
 ## R22 — release gates remain open
 Никакой unit/integration/model test не может автоматически записать PASS для HUMAN VISUAL, SERVICE, Human Pilot/HUMAN VALIDATION или Wave 0.
