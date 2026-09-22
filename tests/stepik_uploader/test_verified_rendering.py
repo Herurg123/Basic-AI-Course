@@ -237,6 +237,27 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertIn("найденные сведения относятся к выбранному утверждению", steps[4].text)
         self.assertNotIn("будет доступен после verified materialization", "\n".join(step.text for step in steps))
 
+    def test_m05_l01_human_review_material_is_structurally_separated(self) -> None:
+        plan = build_rendering_plan(
+            repo_root=self.repo_root,
+            lesson_id="M05-L01",
+            source_steps=self.compiled["M05-L01"],
+            asset_report=self.asset_report,
+        )
+        step2 = plan.rendered_steps[1].text
+        self.assertIn("<strong>Материал: Картинка для вечера настольных игр</strong>", step2)
+        self.assertIn("<blockquote>", step2)
+        self.assertIn("</blockquote>", step2)
+        self.assertIn("Перед просмотром готовых вариантов", step2)
+        self.assertLess(
+            step2.index("<blockquote>"),
+            step2.index("Перед просмотром готовых вариантов"),
+        )
+        self.assertLess(
+            step2.index("Перед просмотром готовых вариантов"),
+            step2.index("</blockquote>"),
+        )
+
     def test_inline_markdown_keeps_instruction_then_appends_material_block(self) -> None:
         plan = build_rendering_plan(
             repo_root=self.repo_root,
