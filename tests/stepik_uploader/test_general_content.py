@@ -106,7 +106,12 @@ class GeneralContentCompilerTests(unittest.TestCase):
             )
             self.assertTrue(all(step.semantic_type is not None for step in steps), lesson_id)
             for step in steps:
-                expected_block = "free-answer" if step.semantic_type == "CHECK" else "text"
+                expected_block = (
+                    "free-answer"
+                    if step.semantic_type == "CHECK"
+                    or (step.semantic_type == "COMPOSITE" and step.check_ids)
+                    else "text"
+                )
                 self.assertEqual(step.block_name, expected_block, f"{lesson_id} step {step.position}")
 
     def test_compiler_preserves_all_learner_source_text_in_order(self) -> None:
