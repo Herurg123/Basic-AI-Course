@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+REPO_IMPORT_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_IMPORT_ROOT))
 
 from scripts.stepik_uploader.asset_inventory import build_asset_inventory
 from scripts.stepik_uploader.asset_resolution import assess_asset_publication, load_asset_publication_policy
