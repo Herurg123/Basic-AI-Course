@@ -12,7 +12,7 @@
 | 4 | support перед поиском | A02 inline + neutral browser-start mechanics: query, official domain/primary doc, open result. No ready URL/status. AI may suggest candidates/search wording only | `M06-L01-A02.md` + browser | — | EXPLANATION |
 | 5 | supported source verification | Learner сам выбирает source, реально открывает, finds relevant content, compares conditions, chooses status + decision. `данных недостаточно` допустим | browser + real primary/official source | `M06-L01-E02` | GUIDED_ACTION |
 | 6 | small application / safe refusal | Apply only genuinely supported useful part in local note. If not supported/no data, do not use as confirmed; record what is missing. Refusal is safe decision but does not certify claim | local note | B12 PRACTICE | GUIDED_ACTION |
-| 7 | post-action free-answer | In Stepik: claim+importance, source+why suitable, relevant content, status+why, decision, real application or non-application. Evidence pages/chats stay local | free-answer Stepik | `M06-L01-C01` | CHECK |
+| 7 | post-action check | In Stepik: claim+importance, source+why suitable, relevant content, status+why, decision, real application or non-application. Evidence pages/chats stay local | free-answer Stepik | `M06-L01-C01` | CHECK |
 | 8 | conditional technical recovery + summary | Chat PRIMARY/BACKUP only for dialogue; source opens in browser. Unavailable page → another official section/fact, repeat verification, return to step7. No late ready link | browser + conditional chat | — | NAVIGATION |
 
 ## Guardrails
