@@ -53,6 +53,8 @@ Workflow жёстко разрешён только для репозитори�
 
 **Постоянный gate learner-facing изменений:** любое содержательное изменение материала, с которым непосредственно сталкивается ученик, проходит отдельные `ZERO-LEVEL AUDIT` и `PEDAGOGUE AUDIT`; чисто технические изменения проекта без learner-facing эффекта этим двойным gate не облагаются. Основание: [D-2026-09-18-LEARNER-CONTENT-DUAL-AUDIT](00_governance/decision-log/2026-09-18-learner-content-dual-audit.md).
 
+**Семантический аудит фактических шагов 20–22.09.2026:** [авторская сводка](90_reviews/semantic-step-audit-2026-09-20/audit-summary.md), 148/148 шагов, 21/21 уроков. Новый контракт формы по функции и индивидуальная диагностика подготовлены; итоговый статус критика и merge — в [точке продолжения](90_reviews/semantic-step-audit-2026-09-20/RESUME.md). Ученический слой не исправлялся; готовность к запуску не подтверждена.
+
 **Педагогический аудит Astra 14.09.2026:** [отчёт по всем 21 уроку](90_reviews/pedagogy-zero-level-2026-09-14/audit-report.md) выявил PED-01…PED-07. Source-level исправления приняты через PR #59; independent critic обнаружил и помог устранить CRIT-C-01 до merge. [Issue #50](https://github.com/Herurg123/Basic-AI-Course/issues/50) сохраняется как контекст аудита и реальных regression/readiness gates, а не как признак отсутствия source-исправлений. Source PASS не закрывает автоматически PED-01 real device route, PED-03 live generation/edit, PED-06 publication visual check, PED-07 итоговый live learner UI и Human Pilot.
 
 В `main` утверждены:

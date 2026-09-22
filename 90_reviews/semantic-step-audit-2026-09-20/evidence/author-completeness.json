@@ -1,0 +1,29 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "status": "AUTHOR_COVERAGE_PASS_CRITIC_PENDING",
+  "modules": 9,
+  "lessons": 21,
+  "steps": 148,
+  "unique_step_keys": 148,
+  "same_snapshot_inventory_step_set": true,
+  "all_html_hashes_match": true,
+  "all_steps_reviewed_typed_and_have_fix_disposition": true,
+  "all_findings_have_fix_and_independence_guard": true,
+  "counts": {
+    "CRITICAL": 0,
+    "BLOCKING": 37,
+    "MAJOR": 88,
+    "POLISH": 19,
+    "CLEAN": 4,
+    "NOT_REVIEWED": 0
+  },
+  "findings": 116,
+  "pattern_families": 18,
+  "cross_lesson_pattern_families": 12,
+  "single_lesson_pattern_families": 6,
+  "lessons_with_required_fixes": 21,
+  "learner_layer_changed_paths": [],
+  "validation": "assemble_audit.py checked schema, finding IDs, step linkage and maximum per-step severity; semantic judgments remain manual",
+  "evidence_limit": "Reconstructed saved publication fingerprints; not fresh Stepik read-back or human observation",
+  "independent_critic": "NOT_PERFORMED"
+}
