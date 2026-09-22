@@ -230,7 +230,8 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertEqual(len(steps), 6)
         self.assertIn(binding.url, steps[1].text)
         self.assertEqual(steps[4].block_name, "free-answer")
-        self.assertIn("Почему именно этот фрагмент относится к выбранному утверждению?", steps[4].text)
+        self.assertIn("В поле Stepik", steps[4].text)
+        self.assertIn("найденные сведения относятся к выбранному утверждению", steps[4].text)
         self.assertNotIn("будет доступен после verified materialization", "\n".join(step.text for step in steps))
 
     def test_inline_markdown_keeps_instruction_then_appends_material_block(self) -> None:
