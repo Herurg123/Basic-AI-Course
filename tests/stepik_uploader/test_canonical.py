@@ -7,7 +7,13 @@ from pathlib import Path
 
 import jsonschema
 
-from scripts.stepik_uploader.canonical import CanonicalBuildError, build_structural_manifest, parse_stepik_plan
+from scripts.stepik_uploader.canonical import (
+    AUTHORED_SEMANTIC_RENDER_CONTRACT,
+    CanonicalBuildError,
+    build_structural_manifest,
+    parse_learner_render_contract,
+    parse_stepik_plan,
+)
 from scripts.stepik_uploader.planner import learner_write_rows
 
 
@@ -91,6 +97,112 @@ class CanonicalTests(unittest.TestCase):
         )
         rows = parse_stepik_plan(plan, lesson_id="M07-L02", path=Path("plan.md"))
         self.assertTrue(rows[0]["author_only"])
+
+    def test_legacy_plan_has_no_render_contract_and_keeps_five_column_shape(self) -> None:
+        plan = (
+            "# Stepik plan\n\n"
+            "| № | Тип шага | Содержание | Материал | Проверка |\n"
+            "|---:|---|---|---|---|\n"
+            "| 1 | текст | Содержание | — | — |\n"
+        )
+        self.assertIsNone(parse_learner_render_contract(plan, path=Path("plan.md")))
+        rows = parse_stepik_plan(plan, lesson_id="M00-L01", path=Path("plan.md"))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["logical_type"], "текст")
+
+    def test_authored_semantic_plan_accepts_exact_marker_and_valid_types(self) -> None:
+        plan = (
+            "# Stepik plan\n\n"
+            "<!-- learner-render-contract: authored-semantic-v1 -->\n\n"
+            "| № | Тип шага | Содержание | Материал | Проверка | Semantic type |\n"
+            "|---:|---|---|---|---|---|\n"
+            "| 1 | текст | Объяснение | — | — | EXPLANATION |\n"
+            "| 2 | практика | Действие | — | — | GUIDED_ACTION |\n"
+        )
+        self.assertEqual(
+            parse_learner_render_contract(plan, path=Path("plan.md")),
+            AUTHORED_SEMANTIC_RENDER_CONTRACT,
+        )
+        rows = parse_stepik_plan(plan, lesson_id="M00-L01", path=Path("plan.md"))
+        self.assertEqual([row["position"] for row in rows], [1, 2])
+
+    def test_authored_semantic_marker_must_be_exact(self) -> None:
+        malformed = (
+            "# Stepik plan\n\n"
+            "<!-- learner-render-contract: authored-semantic-v1  -->\n\n"
+            "| № | Тип шага | Содержание | Материал | Проверка | Semantic type |\n"
+            "|---:|---|---|---|---|---|\n"
+            "| 1 | текст | x | — | — | EXPLANATION |\n"
+        )
+        with self.assertRaisesRegex(CanonicalBuildError, "точный marker"):
+            parse_stepik_plan(malformed, lesson_id="M00-L01", path=Path("plan.md"))
+
+    def test_unknown_render_contract_fails_instead_of_silently_using_legacy(self) -> None:
+        plan = (
+            "# Stepik plan\n\n"
+            "<!-- learner-render-contract: authored-semantic-v2 -->\n\n"
+            "| № | Тип шага | Содержание | Материал | Проверка | Semantic type |\n"
+            "|---:|---|---|---|---|---|\n"
+            "| 1 | текст | x | — | — | EXPLANATION |\n"
+        )
+        with self.assertRaisesRegex(CanonicalBuildError, "точный marker"):
+            parse_stepik_plan(plan, lesson_id="M00-L01", path=Path("plan.md"))
+
+    def test_authored_semantic_requires_semantic_type_column(self) -> None:
+        plan = (
+            "# Stepik plan\n\n"
+            "<!-- learner-render-contract: authored-semantic-v1 -->\n\n"
+            "| № | Тип шага | Содержание | Материал | Проверка |\n"
+            "|---:|---|---|---|---|\n"
+            "| 1 | текст | x | — | — |\n"
+        )
+        with self.assertRaisesRegex(CanonicalBuildError, "колонку Semantic type"):
+            parse_stepik_plan(plan, lesson_id="M00-L01", path=Path("plan.md"))
+
+    def test_authored_semantic_rejects_missing_or_unknown_semantic_type(self) -> None:
+        for semantic_type in ("", "PRACTICE", "explanation"):
+            with self.subTest(semantic_type=semantic_type):
+                plan = (
+                    "# Stepik plan\n\n"
+                    "<!-- learner-render-contract: authored-semantic-v1 -->\n\n"
+                    "| № | Тип шага | Содержание | Материал | Проверка | Semantic type |\n"
+                    "|---:|---|---|---|---|---|\n"
+                    f"| 1 | текст | x | — | — | {semantic_type} |\n"
+                )
+                with self.assertRaisesRegex(CanonicalBuildError, "Semantic type"):
+                    parse_stepik_plan(plan, lesson_id="M00-L01", path=Path("plan.md"))
+
+    def test_semantic_type_column_without_opt_in_is_rejected(self) -> None:
+        plan = (
+            "# Stepik plan\n\n"
+            "| № | Тип шага | Содержание | Материал | Проверка | Semantic type |\n"
+            "|---:|---|---|---|---|---|\n"
+            "| 1 | текст | x | — | — | EXPLANATION |\n"
+        )
+        with self.assertRaisesRegex(CanonicalBuildError, "только с"):
+            parse_stepik_plan(plan, lesson_id="M00-L01", path=Path("plan.md"))
+
+    def test_authored_marker_must_precede_plan_table_and_be_unique(self) -> None:
+        after_table = (
+            "# Stepik plan\n\n"
+            "| № | Тип шага | Содержание | Материал | Проверка | Semantic type |\n"
+            "|---:|---|---|---|---|---|\n"
+            "<!-- learner-render-contract: authored-semantic-v1 -->\n"
+            "| 1 | текст | x | — | — | EXPLANATION |\n"
+        )
+        with self.assertRaisesRegex(CanonicalBuildError, "до таблицы"):
+            parse_stepik_plan(after_table, lesson_id="M00-L01", path=Path("plan.md"))
+
+        duplicate = (
+            "# Stepik plan\n\n"
+            "<!-- learner-render-contract: authored-semantic-v1 -->\n"
+            "<!-- learner-render-contract: authored-semantic-v1 -->\n\n"
+            "| № | Тип шага | Содержание | Материал | Проверка | Semantic type |\n"
+            "|---:|---|---|---|---|---|\n"
+            "| 1 | текст | x | — | — | EXPLANATION |\n"
+        )
+        with self.assertRaisesRegex(CanonicalBuildError, "ровно один раз"):
+            parse_stepik_plan(duplicate, lesson_id="M00-L01", path=Path("plan.md"))
 
     def test_more_than_sixteen_plan_rows_is_blocker(self) -> None:
         rows = "\n".join(f"| {i} | текст | x | — | — |" for i in range(1, 18))
