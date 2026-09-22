@@ -25,7 +25,9 @@
 
 Других block-type deltas B7 не допускает.
 
-Stepik source-object deltas относительно baseline не допускаются и проверяются отдельно.
+У той же S02 закономерно меняется Stepik source object: старый `free-answer` profile (`is_attachments_enabled=false`, `is_html_enabled=true`, `manual_scoring=false`) → пустой `{}` для text block. Это не отдельная смысловая правка, а вторая половина того же reconciled block-type change.
+
+Других Stepik source-object deltas B7 не допускает.
 
 ## Physical asset deployment boundary
 
