@@ -167,6 +167,7 @@ def parse_stepik_plan(plan_markdown: str, *, lesson_id: str, path: Path) -> list
             continue
         if len(cells) < 5:
             raise CanonicalBuildError(f"В {path} строка таблицы содержит меньше 5 колонок: {line}")
+        semantic_type: str | None = None
         if semantic_index is not None:
             if semantic_index >= len(cells):
                 raise CanonicalBuildError(
@@ -210,6 +211,7 @@ def parse_stepik_plan(plan_markdown: str, *, lesson_id: str, path: Path) -> list
                 "summary": summary,
                 "material_or_action": material,
                 "check": check,
+                "semantic_type": semantic_type,
                 "asset_ids": sorted(set(ASSET_RE.findall(combined))),
                 "exercise_ids": sorted(set(EXERCISE_RE.findall(combined))),
                 "check_ids": sorted(set(CHECK_RE.findall(combined))),
@@ -284,7 +286,12 @@ def build_structural_manifest(repo_root: Path, *, source_sha: str = "unknown", s
                     "f1_sensitive": lesson_id == "M07-L02",
                     "write_ready": False,
                     "write_blocker": "requires-live-write-gates",
-                    "steps": rows,
+                    # Structural manifest v1.1 остаётся совместимым; semantic role
+                    # используется production compiler/tests и не меняет legacy manifest schema.
+                    "steps": [
+                        {key: value for key, value in row.items() if key != "semantic_type"}
+                        for row in rows
+                    ],
                 }
             )
             lesson_count += 1
