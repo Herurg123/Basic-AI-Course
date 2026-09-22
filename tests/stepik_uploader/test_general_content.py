@@ -4,7 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.stepik_uploader.canonical import build_structural_manifest
+from scripts.stepik_uploader.canonical import (
+    build_structural_manifest,
+    parse_learner_render_contract,
+)
 from scripts.stepik_uploader.general_content import (
     EXPECTED_FREE_ANSWER_SOURCE,
     GeneralContentCompileError,
@@ -66,6 +69,17 @@ class GeneralContentCompilerTests(unittest.TestCase):
                     return lesson
         self.fail(f"lesson not found: {lesson_id}")
 
+    def _is_legacy_lesson(self, lesson_id: str) -> bool:
+        module_id = lesson_id.split("-", 1)[0]
+        plan_path = self.repo_root / "04_course" / module_id / lesson_id / "stepik-plan.md"
+        return (
+            parse_learner_render_contract(
+                plan_path.read_text(encoding="utf-8"),
+                path=plan_path,
+            )
+            is None
+        )
+
     def test_all_21_lessons_compile_and_author_only_rows_are_excluded(self) -> None:
         self.assertEqual(len(self.lesson_ids), 21)
         self.assertEqual(set(self.compiled), set(self.lesson_ids))
@@ -111,8 +125,10 @@ class GeneralContentCompilerTests(unittest.TestCase):
             self.assertNotIn("<!-- Exercise:", compiled, lesson_id)
             self.assertNotIn("<!-- Check:", compiled, lesson_id)
 
-    def test_every_learner_step_has_orientation_card(self) -> None:
+    def test_legacy_learner_steps_keep_orientation_card_until_migrated(self) -> None:
         for lesson_id, steps in self.compiled.items():
+            if not self._is_legacy_lesson(lesson_id):
+                continue
             total = len(steps)
             for step in steps:
                 self.assertTrue(
@@ -136,19 +152,25 @@ class GeneralContentCompilerTests(unittest.TestCase):
             "Asset ID",
         )
         for lesson_id, steps in self.compiled.items():
+            if not self._is_legacy_lesson(lesson_id):
+                continue
             for step in steps:
                 header = step.markdown.split("**Что сделать**", 1)[0]
                 for marker in forbidden:
                     self.assertNotIn(marker, header, f"{lesson_id} step {step.position}: {marker}")
 
-    def test_first_step_uses_lesson_title_as_orientation_title(self) -> None:
+    def test_legacy_first_step_uses_lesson_title_until_lesson_is_migrated(self) -> None:
+        if not self._is_legacy_lesson("M01-L01"):
+            self.skipTest("M01-L01 уже использует authored-semantic-v1")
         self.assertTrue(
             self.compiled["M01-L01"][0].markdown.startswith(
                 "## Шаг 1 из 7. Превратите первый ответ в полезный результат"
             )
         )
 
-    def test_outside_stepik_step_explicitly_sends_learner_back(self) -> None:
+    def test_legacy_outside_stepik_step_keeps_generated_return_until_migrated(self) -> None:
+        if not self._is_legacy_lesson("M01-L01"):
+            self.skipTest("M01-L01 уже использует authored-semantic-v1")
         step = self.compiled["M01-L01"][1]
         self.assertIn("**Что дальше:** после выполнения вернитесь в Stepik", step.markdown)
 
@@ -164,36 +186,45 @@ class GeneralContentCompilerTests(unittest.TestCase):
                     self.assertEqual(step.source, {}, lesson_id)
         self.assertGreater(free_answer_count, 0)
 
-    def test_sensitive_and_branching_lessons_keep_expected_step_shapes(self) -> None:
-        self.assertEqual(
-            [step.block_name for step in self.compiled["M03-L02"]],
-            ["text", "text", "text", "text", "free-answer", "text", "text", "free-answer", "text"],
-        )
-        self.assertEqual(
-            [step.block_name for step in self.compiled["M06-L04"]],
-            ["text", "text", "text", "free-answer", "text", "text", "free-answer", "text", "free-answer", "text"],
-        )
-        self.assertEqual(len(self.compiled["M00-L02"]), 8)
-        self.assertEqual(len(self.compiled["M06-L02"]), 6)
+    def test_unmigrated_sensitive_and_branching_lessons_keep_legacy_step_shapes(self) -> None:
+        expectations = {
+            "M03-L02": ["text", "text", "text", "text", "free-answer", "text", "text", "free-answer", "text"],
+            "M06-L04": ["text", "text", "text", "free-answer", "text", "text", "free-answer", "text", "free-answer", "text"],
+            "M00-L02": ["text"] * 6 + ["free-answer", "text"],
+            "M06-L02": ["text", "text", "text", "text", "free-answer", "text"],
+        }
+        for lesson_id, expected in expectations.items():
+            if not self._is_legacy_lesson(lesson_id):
+                continue
+            self.assertEqual(
+                [step.block_name for step in self.compiled[lesson_id]],
+                expected,
+                lesson_id,
+            )
 
-    def test_check_steps_do_not_absorb_following_semantic_sections(self) -> None:
-        m05 = self.compiled["M05-L02"]
-        self.assertEqual(m05[8].source_headings, ("Проверьте реальное редактирование",))
-        self.assertEqual(m05[8].check_ids, ("M05-L02-C02",))
-        self.assertIn("Повторная ситуация для редактирования", m05[9].source_headings)
+    def test_unmigrated_check_steps_keep_proven_legacy_boundaries(self) -> None:
+        if self._is_legacy_lesson("M05-L02"):
+            m05 = self.compiled["M05-L02"]
+            self.assertEqual(m05[8].source_headings, ("Проверьте реальное редактирование",))
+            self.assertEqual(m05[8].check_ids, ("M05-L02-C02",))
+            self.assertIn("Повторная ситуация для редактирования", m05[9].source_headings)
 
-        m07 = self.compiled["M07-L02"]
-        self.assertEqual(m07[5].source_headings, ("Финальная проверка",))
-        self.assertEqual(m07[5].check_ids, ("M07-L02-C01",))
-        self.assertIn("Если попытка стала тренировочной", m07[6].source_headings)
+        if self._is_legacy_lesson("M07-L02"):
+            m07 = self.compiled["M07-L02"]
+            self.assertEqual(m07[5].source_headings, ("Финальная проверка",))
+            self.assertEqual(m07[5].check_ids, ("M07-L02-C01",))
+            self.assertIn("Если попытка стала тренировочной", m07[6].source_headings)
 
-        m08 = self.compiled["M08-L01"]
-        self.assertEqual(m08[4].source_headings, ("Короткая проверка переноса",))
-        self.assertEqual(m08[4].check_ids, ("M08-L01-C01",))
-        self.assertIn("Важная граница", m08[5].source_headings)
-        self.assertIn("Итог", m08[5].source_headings)
+        if self._is_legacy_lesson("M08-L01"):
+            m08 = self.compiled["M08-L01"]
+            self.assertEqual(m08[4].source_headings, ("Короткая проверка переноса",))
+            self.assertEqual(m08[4].check_ids, ("M08-L01-C01",))
+            self.assertIn("Важная граница", m08[5].source_headings)
+            self.assertIn("Итог", m08[5].source_headings)
 
-    def test_m01_l02_transfer_precedes_final_check_as_in_canonical_lesson(self) -> None:
+    def test_m01_l02_keeps_proven_legacy_order_until_migrated(self) -> None:
+        if not self._is_legacy_lesson("M01-L02"):
+            self.skipTest("M01-L02 уже использует authored-semantic-v1")
         steps = self.compiled["M01-L02"]
         self.assertEqual(steps[3].block_name, "text")
         self.assertIn("Проверьте себя на второй ситуации", steps[3].source_headings)
