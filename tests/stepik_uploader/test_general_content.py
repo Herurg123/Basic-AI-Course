@@ -284,6 +284,29 @@ class GeneralContentCompilerTests(unittest.TestCase):
             self.assertNotIn("EXPLANATION", step.markdown)
             self.assertEqual(step.semantic_type, "EXPLANATION")
 
+    def test_authored_semantic_title_uses_first_consecutive_h2_h3(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lesson_id = self._write_authored_fixture(
+                root,
+                lesson_markdown=(
+                    "# Fixture\n\n"
+                    "## Первый смысловой заголовок\n"
+                    "### Вложенный подзаголовок\n\n"
+                    "Learner body.\n"
+                ),
+                learner_rows=[("текст", "Consecutive headings", "EXPLANATION")],
+            )
+            step = compile_lesson_source(
+                root,
+                free_answer_source=EXPECTED_FREE_ANSWER_SOURCE,
+                lesson_id=lesson_id,
+            )[0]
+            self.assertTrue(
+                step.markdown.startswith("## Шаг 1 из 1. Первый смысловой заголовок")
+            )
+            self.assertIn("**Вложенный подзаголовок**", step.markdown)
+
     def test_authored_semantic_mode_has_no_lesson_title_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
