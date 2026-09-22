@@ -1,0 +1,278 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "module_id": "M02",
+  "lesson_id": "M02-L01",
+  "title": "Скажите ИИ, что именно хотите получить",
+  "stepik_lesson_id": 2591717,
+  "step_count": 6,
+  "reconstructed_fingerprint": "sha256:ad92a5c34c8131c5d4de60e32a260b75bd1e9b969e9fdc0d899d50a98b22763f",
+  "recorded_applied_fingerprint": "sha256:ad92a5c34c8131c5d4de60e32a260b75bd1e9b969e9fdc0d899d50a98b22763f",
+  "matches_applied": true,
+  "recorded_confirmed_live_fingerprint": "sha256:ad92a5c34c8131c5d4de60e32a260b75bd1e9b969e9fdc0d899d50a98b22763f",
+  "matches_recorded_live": true,
+  "transport_normalized_fingerprint": "sha256:3b6d7176f5f9a5f6965548770d37f758e2f89b009593f422ed90701ef3841c59",
+  "transport_normalized_matches_recorded_live": false,
+  "steps": [
+    {
+      "step_key": "M02-L01-S01",
+      "position": 1,
+      "stepik_step_id": 11291282,
+      "stepik_url": "https://stepik.org/lesson/2591717/step/1",
+      "visible_title_html": "Шаг 1 из 6. Скажите ИИ, что именно хотите получить",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 1,
+        "logical_type": "текст",
+        "summary": "Короткий переход от M01: тема ещё не задаёт нужный результат; длинный идеальный prompt не нужен",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        0,
+        1,
+        2
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M02/M02-L01/lesson.md",
+        "04_course/M02/M02-L01/stepik-plan.md"
+      ],
+      "html_sha256": "6c4bd4479779dc6b9bb5dc637afcbc9acde6ff27dfe2bff76622acf92f8dfcc6",
+      "html": "<h2>Шаг 1 из 6. Скажите ИИ, что именно хотите получить</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>До сих пор задачи были совсем короткими. Теперь разберём одну вещь, из-за которой запросы часто остаются расплывчатыми: <strong>тема разговора ещё не является задачей</strong>.</p>\n<p>«Поездка», «порядок дома» или «учёба» говорят, о чём вы думаете. Но ИИ всё ещё не знает, какой результат вам нужен.</p>\n<p>Длинный «идеальный промпт» для этого не требуется. Достаточно яснее назвать результат.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M02-L01-S02",
+      "position": 2,
+      "stepik_step_id": 11297091,
+      "stepik_url": "https://stepik.org/lesson/2591717/step/2",
+      "visible_title_html": "Шаг 2 из 6. Первое действие",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 2,
+        "logical_type": "практика",
+        "summary": "Первая ситуация: превратить тему в конкретную задачу и получить ответ",
+        "material_or_action": "`M02-L01-A01.md`, ситуация 1; обычный текстовый чат",
+        "check": "`M02-L01-E01`",
+        "asset_ids": [
+          "M02-L01-A01"
+        ],
+        "exercise_ids": [
+          "M02-L01-E01"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "source_headings": [
+        "Первое действие"
+      ],
+      "source_git_paths": [
+        "04_course/M02/M02-L01/lesson.md",
+        "04_course/M02/M02-L01/stepik-plan.md",
+        "05_assets/M02/M02-L01/M02-L01-A01.md"
+      ],
+      "html_sha256": "9cf6b05a9e2f41cd275c6b2110c23b6ebe99d273439ea67956e4ed1f12a71f53",
+      "html": "<h2>Шаг 2 из 6. Первое действие</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> в Алисе AI. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Откройте <strong>первую ситуацию (материал ниже)</strong>.</p>\n<p>Там есть тема «поездка на выходные» и небольшая жизненная ситуация.</p>\n<p>Напишите одну-две фразы: <strong>что именно вы хотите получить от ИИ и для чего вам нужен этот результат</strong>.</p>\n<p>Откройте <a href=\"https://alice.yandex.ru/\" target=\"_blank\" rel=\"noopener noreferrer\">Алису AI</a>, отправьте свою задачу и посмотрите на ответ.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>\n\n<p><strong>Материал: Две ситуации: от темы к задаче</strong></p>\n<p>Все сведения ниже вымышлены и безопасны.</p>\n<h2>Ситуация 1 — с большей поддержкой</h2>\n<p><strong>Тема:</strong> поездка на выходные.</p>\n<p>Вы собираетесь на один день в соседний город и хотите заранее решить, чем заняться после обеда.</p>\n<p>Слово «поездка» описывает тему, но ещё не говорит, <strong>какой результат вам нужен</strong>.</p>\n<p>Сформулируйте своими словами, что именно хотите получить от ИИ для этой ситуации. Одной-двух понятных фраз достаточно.</p>\n\n<h2>Ситуация 2 — с меньшей поддержкой</h2>\n<p><strong>Тема:</strong> порядок дома.</p>\n<p>На одной полке вперемешку стоят книги, тетради и несколько небольших вещей. Вы хотите использовать ИИ, чтобы получить результат, который потом поможет навести порядок.</p>\n<p>Решите сами:</p>\n<ul>\n<li>что именно хотите получить от ИИ;</li>\n<li>по каким 1–3 признакам поймёте, что результат подходит.</li>\n</ul>\n<p>Готовых критериев здесь нет. Не используйте реальные личные сведения.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M02-L01-S03",
+      "position": 3,
+      "stepik_step_id": 11297092,
+      "stepik_url": "https://stepik.org/lesson/2591717/step/3",
+      "visible_title_html": "Шаг 3 из 6. Что сейчас изменилось",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 3,
+        "logical_type": "текст",
+        "summary": "Коротко объяснить различие «тема → задача» и смысл проверяемых признаков пригодности",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "source_headings": [
+        "Что сейчас изменилось"
+      ],
+      "source_git_paths": [
+        "04_course/M02/M02-L01/lesson.md",
+        "04_course/M02/M02-L01/stepik-plan.md"
+      ],
+      "html_sha256": "09b40ffb4b80b2ba9440132e70e957f6afa3099a8f40b9dd379dfa2335a145fd",
+      "html": "<h2>Шаг 3 из 6. Что сейчас изменилось</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>После ответа возникает следующий вопрос: по каким признакам вы решите, что получили то, что нужно?</p>\n<p>Можно заранее выбрать 1–3 признака, которые реально получится проверить. Например, не «чтобы было хорошо», а что-то, что видно в самом результате.</p>\n<p>Такой проверяемый признак мы уже называем <strong>критерием</strong>.</p>\n<p>Здесь важно не запомнить слово, а приобрести привычку: до оценки результата понимать, что именно для вас означает «подходит».</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M02-L01-S04",
+      "position": 4,
+      "stepik_step_id": 11297093,
+      "stepik_url": "https://stepik.org/lesson/2591717/step/4",
+      "visible_title_html": "Шаг 4 из 6. Вторая ситуация",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 4,
+        "logical_type": "практика",
+        "summary": "Вторая ситуация: самостоятельно сформулировать задачу и 1–3 критерия без готовых критериев автора",
+        "material_or_action": "`M02-L01-A01.md`, ситуация 2; текстовый чат",
+        "check": "`M02-L01-E02`",
+        "asset_ids": [
+          "M02-L01-A01"
+        ],
+        "exercise_ids": [
+          "M02-L01-E02"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        11,
+        12,
+        13,
+        14
+      ],
+      "source_headings": [
+        "Вторая ситуация"
+      ],
+      "source_git_paths": [
+        "04_course/M02/M02-L01/lesson.md",
+        "04_course/M02/M02-L01/stepik-plan.md"
+      ],
+      "html_sha256": "a357a39703c32d9798cae7f346e6b5563b8568bdc4e5ea91d29972952004dfb9",
+      "html": "<h2>Шаг 4 из 6. Вторая ситуация</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> в ИИ-чате. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Откройте вторую ситуацию в той же карточке.</p>\n<p>На этот раз сами сформулируйте:</p>\n<ol>\n<li>какой конкретный результат хотите получить от ИИ;</li>\n<li>1–3 признака, по которым потом решите, подходит ли результат.</li>\n</ol>\n<p>Готовых критериев в карточке нет. Выберите их под свою задачу.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M02-L01-S05",
+      "position": 5,
+      "stepik_step_id": 11297094,
+      "stepik_url": "https://stepik.org/lesson/2591717/step/5",
+      "visible_title_html": "Шаг 5 из 6. Проверка урока",
+      "platform_block_type": "free-answer",
+      "platform_source": {
+        "is_attachments_enabled": false,
+        "is_html_enabled": true,
+        "manual_scoring": false
+      },
+      "plan_row": {
+        "position": 5,
+        "logical_type": "практика/рубрика",
+        "summary": "Зафиксировать задачу, 1–3 критерия и объяснение хотя бы одного критерия",
+        "material_or_action": "результат E02",
+        "check": "`M02-L01-C01`",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [
+          "M02-L01-C01"
+        ],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "source_headings": [
+        "Проверка урока"
+      ],
+      "source_git_paths": [
+        "04_course/M02/M02-L01/lesson.md",
+        "04_course/M02/M02-L01/stepik-plan.md"
+      ],
+      "html_sha256": "3c9c5012313e82cbd36dcc9cb711453bcd56bfc864514d4099d0adb74b955eee",
+      "html": "<h2>Шаг 5 из 6. Проверка урока</h2>\n<p><strong>Зачем:</strong> Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом.</p>\n<p><strong>Где и с чем:</strong> в Алисе AI. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>После этого отправьте запрос в <a href=\"https://alice.yandex.ru/\" target=\"_blank\" rel=\"noopener noreferrer\">Алису AI</a> и попробуйте оценить ответ именно по выбранным признакам.</p>\n<p><strong>Проверка урока</strong></p>\n<p>По второй ситуации сохраните:</p>\n<ul>\n<li>вашу конкретную задачу;</li>\n<li>1–3 признака подходящего результата;</li>\n<li>короткое объяснение хотя бы одного признака: <strong>что именно вы будете смотреть в ответе</strong>.</li>\n</ul>\n<p>Если из вашей формулировки понятно только общее направление («про порядок дома»), но не понятно, что нужно получить, уточните задачу.</p>\n<p>Не путайте условия ситуации и критерии. Условие сообщает, <strong>при каких обстоятельствах</strong> нужен результат. Критерий помогает понять, <strong>каким должен быть сам результат</strong>, чтобы им можно было воспользоваться.</p>\n<p>Это не проверка знания терминов. Важно, чтобы ваш выбор действительно помог оценить ответ.</p>\n<p><strong>Готово, если:</strong> вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат.</p>\n<p><strong>Что сохранить:</strong> сохраните только то, что прямо требуется в задании ниже; дополнительный отчёт не нужен.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M02-L01-S06",
+      "position": 6,
+      "stepik_step_id": 11297095,
+      "stepik_url": "https://stepik.org/lesson/2591717/step/6",
+      "visible_title_html": "Шаг 6 из 6. Если основной маршрут не работает",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 6,
+        "logical_type": "текст",
+        "summary": "Граница уровня: это PRACTICE B1/B5, самостоятельный уровень 3 будет в M03-L02; компактный BACKUP",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        21,
+        22,
+        23,
+        24
+      ],
+      "source_headings": [
+        "Если основной маршрут не работает",
+        "Итог"
+      ],
+      "source_git_paths": [
+        "04_course/M02/M02-L01/lesson.md",
+        "04_course/M02/M02-L01/stepik-plan.md"
+      ],
+      "html_sha256": "9f14f46f11ee5c77a250e05dd4d0158a0eae16c0c7a9d7e1b0ec70f1791cce9d",
+      "html": "<h2>Шаг 6 из 6. Если основной маршрут не работает</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> в GigaChat. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Используйте <a href=\"https://giga.chat/\" target=\"_blank\" rel=\"noopener noreferrer\">GigaChat</a>. Если сервис попросит войти для этого действия, используйте обычный вход по его правилам. Задача и критерии остаются прежними: не нужно проходить урок заново только из-за другого интерфейса.</p>\n<p><strong>Итог</strong></p>\n<p>Полезный запрос начинается не с большого количества специальных слов, а с ответа на два человеческих вопроса:</p>\n<p><strong>Что я хочу получить?</strong>\n<strong>По каким признакам пойму, что результат подходит?</strong></p>\n<p>В следующем уроке добавится третий вопрос: <strong>какие условия задачи ИИ действительно нужно знать?</strong></p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и завершите этот урок.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    }
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "module_id": "M06",
+  "lesson_id": "M06-L02",
+  "title": "Проверьте числа до того, как доверять расчёту",
+  "stepik_lesson_id": 2591727,
+  "step_count": 6,
+  "reconstructed_fingerprint": "sha256:ec0ff2b9aa7c35994b4366acd0814cba28d07c185301f11ba2e99a44b40f207f",
+  "recorded_applied_fingerprint": "sha256:ec0ff2b9aa7c35994b4366acd0814cba28d07c185301f11ba2e99a44b40f207f",
+  "matches_applied": true,
+  "recorded_confirmed_live_fingerprint": "sha256:ec0ff2b9aa7c35994b4366acd0814cba28d07c185301f11ba2e99a44b40f207f",
+  "matches_recorded_live": true,
+  "transport_normalized_fingerprint": "sha256:ec0ff2b9aa7c35994b4366acd0814cba28d07c185301f11ba2e99a44b40f207f",
+  "transport_normalized_matches_recorded_live": true,
+  "steps": [
+    {
+      "step_key": "M06-L02-S01",
+      "position": 1,
+      "stepik_step_id": 11291312,
+      "stepik_url": "https://stepik.org/lesson/2591727/step/1",
+      "visible_title_html": "Шаг 1 из 6. Проверьте числа до того, как доверять расчёту",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 1,
+        "logical_type": "текст",
+        "summary": "Принцип: арифметика и происхождение входов — разные проверки",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        0,
+        1,
+        2
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M06/M06-L02/lesson.md",
+        "04_course/M06/M06-L02/stepik-plan.md"
+      ],
+      "html_sha256": "43844a1a20afd2bb0118ec4eca4de9871160d3ef4046c7276591f023489c2cea",
+      "html": "<h2>Шаг 1 из 6. Проверьте числа до того, как доверять расчёту</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> в калькуляторе. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Калькулятор может идеально посчитать неправильные числа. Поэтому хороший расчёт начинается не с кнопки <code>=</code>.</p>\n<p>В этом уроке вы проверите два слоя отдельно:</p>\n<ol>\n<li>откуда взялись исходные значения;</li>\n<li>правильно ли выполнено вычисление.</li>\n</ol>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L02-S02",
+      "position": 2,
+      "stepik_step_id": 11339675,
+      "stepik_url": "https://stepik.org/lesson/2591727/step/2",
+      "visible_title_html": "Шаг 2 из 6. Найдите число, которое влияет на решение",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 2,
+        "logical_type": "практика",
+        "summary": "Самому определить значимое число/условие и последствия ошибки",
+        "material_or_action": "`M06-L02-A01.md`",
+        "check": "`M06-L02-E01`",
+        "asset_ids": [
+          "M06-L02-A01"
+        ],
+        "exercise_ids": [
+          "M06-L02-E01"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "source_headings": [
+        "Найдите число, которое влияет на решение"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L02/lesson.md",
+        "04_course/M06/M06-L02/stepik-plan.md",
+        "05_assets/M06/M06-L02/M06-L02-A01.md"
+      ],
+      "html_sha256": "ca5d3a09c036fc3f854e0d9b5bf884fd07238aac9aec17e3b6126b32e3aad005",
+      "html": "<h2>Шаг 2 из 6. Найдите число, которое влияет на решение</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Откройте <strong>учебную карточку с данными и расчётом (материал ниже)</strong>.</p>\n<p>Там есть исходные данные и подготовленный расчёт ИИ.</p>\n<p>Выберите число или условие, ошибка в котором способна изменить итоговое решение.</p>\n<p>Коротко объясните:</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n\n<p><strong>Материал: Исходные данные и подготовленный расчёт</strong></p>\n<p>Все данные вымышлены и используются только для учебной проверки.</p>\n<h2>Задача</h2>\n<p>Для маленькой учебной встречи нужно подготовить канцелярию. Бюджет — <strong>1100 ₽</strong>.</p>\n<h3>Исходная заявка</h3>\n<table>\n<thead>\n<tr>\n  <th>Позиция</th>\n  <th style=\"text-align:right;\">Количество</th>\n  <th style=\"text-align:right;\">Цена за штуку</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n  <td>Тетрадь</td>\n  <td style=\"text-align:right;\">4</td>\n  <td style=\"text-align:right;\">85 ₽</td>\n</tr>\n<tr>\n  <td>Папка</td>\n  <td style=\"text-align:right;\">3</td>\n  <td style=\"text-align:right;\">120 ₽</td>\n</tr>\n<tr>\n  <td>Маркер</td>\n  <td style=\"text-align:right;\">2</td>\n  <td style=\"text-align:right;\">145 ₽</td>\n</tr>\n</tbody>\n</table>\n<h2>Подготовленная выдача ИИ</h2>\n<blockquote>\n<p>Тетради: 4 × 85 = 340 ₽<br>\nПапки: 3 × 120 = 360 ₽<br>\nМаркеры: 3 × 145 = 435 ₽<br>\nИтого: 1135 ₽.<br>\nБюджета 1100 ₽ не хватает на 35 ₽, поэтому лучше убрать один маркер.</p>\n</blockquote>\n<h2>Ваша задача</h2>\n<p>Не доверяйте ни таблице расчёта, ни итоговой рекомендации автоматически.</p>\n<p>По заданию урока сами решите:</p>\n<ul>\n<li>какое число/условие существенно;</li>\n<li>откуда берутся нужные входные значения;</li>\n<li>сходится ли вычисление;</li>\n<li>какой статус и решение следуют после проверки.</li>\n</ul>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L02-S03",
+      "position": 3,
+      "stepik_step_id": 11346550,
+      "stepik_url": "https://stepik.org/lesson/2591727/step/3",
+      "visible_title_html": "Шаг 3 из 6. Сначала входные данные, потом арифметика",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 3,
+        "logical_type": "практика",
+        "summary": "Открыть исходные данные, сверить входы, отдельно пересчитать калькулятором",
+        "material_or_action": "`M06-L02-A01.md` + обычный калькулятор",
+        "check": "`M06-L02-E02`",
+        "asset_ids": [
+          "M06-L02-A01"
+        ],
+        "exercise_ids": [
+          "M06-L02-E02"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "source_headings": [
+        "Сначала входные данные, потом арифметика"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L02/lesson.md",
+        "04_course/M06/M06-L02/stepik-plan.md"
+      ],
+      "html_sha256": "48ebfa3ff5fbbe23a106deb15ce055ff8c8744abdc69e0b808204924b3eac713",
+      "html": "<h2>Шаг 3 из 6. Сначала входные данные, потом арифметика</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> в калькуляторе. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p><strong>Что станет другим, если это значение неверно?</strong></p>\n<p>Не пытайтесь угадать, какое число «задумал автор». Смотрите на последствия для задачи.</p>\n<p><strong>Сначала входные данные, потом арифметика</strong></p>\n<ol>\n<li>Откройте исходные данные в карточке.</li>\n<li>Для каждого значения, которое нужно в расчёте, определите, откуда оно взялось.</li>\n<li>Сравните эти значения с теми, которые использовал ИИ.</li>\n<li>Отдельно пересчитайте результат обычным калькулятором.</li>\n<li>Дайте итоговому выводу статус: <strong>подтверждено / частично подтверждено / не подтверждено / данных недостаточно</strong>.</li>\n<li>Решите, что делать дальше: использовать, исправить, проверить ещё или не применять.</li>\n</ol>\n<p>Можно попросить техническую помощь по калькулятору. Но до вашего действия вам не должны сообщать, какое число ошибочно, каким будет правильный итог или какое решение нужно принять.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L02-S04",
+      "position": 4,
+      "stepik_step_id": 11346584,
+      "stepik_url": "https://stepik.org/lesson/2591727/step/4",
+      "visible_title_html": "Шаг 4 из 6. Используйте только проверенный результат",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 4,
+        "logical_type": "малое применение",
+        "summary": "Записать проверенный итог и решение в отдельную учебную заметку",
+        "material_or_action": "внешняя заметка",
+        "check": "B12 PRACTICE",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        11
+      ],
+      "source_headings": [
+        "Используйте только проверенный результат"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L02/lesson.md",
+        "04_course/M06/M06-L02/stepik-plan.md"
+      ],
+      "html_sha256": "ac5a00d59b25c24a1699161c227a08ffd6f26810d12afee554fddb1ffbd3beda",
+      "html": "<h2>Шаг 4 из 6. Используйте только проверенный результат</h2>\n<p><strong>Зачем:</strong> Доведите уже полученный результат до небольшого реального применения.</p>\n<p><strong>Где и с чем:</strong> в своей заметке или текстовом файле. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Если итог пригоден, запишите в отдельную учебную заметку проверенное число и короткое решение по ситуации.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L02-S05",
+      "position": 5,
+      "stepik_step_id": 11346614,
+      "stepik_url": "https://stepik.org/lesson/2591727/step/5",
+      "visible_title_html": "Шаг 5 из 6. Проверьте уже выполненную работу",
+      "platform_block_type": "free-answer",
+      "platform_source": {
+        "is_attachments_enabled": false,
+        "is_html_enabled": true,
+        "manual_scoring": false
+      },
+      "plan_row": {
+        "position": 5,
+        "logical_type": "рубрика",
+        "summary": "Входы + происхождение + расчёт + статус + решение + след применения",
+        "material_or_action": "evidence ученика",
+        "check": "`M06-L02-C01`",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [
+          "M06-L02-C01"
+        ],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "source_headings": [
+        "Проверьте уже выполненную работу"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L02/lesson.md",
+        "04_course/M06/M06-L02/stepik-plan.md"
+      ],
+      "html_sha256": "3ebbb4edfbfc9621b060bf0f4a1ec452c5128418571b27310a222a02161afead",
+      "html": "<h2>Шаг 5 из 6. Проверьте уже выполненную работу</h2>\n<p><strong>Зачем:</strong> Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом.</p>\n<p><strong>Где и с чем:</strong> в калькуляторе. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Если данных не хватает, не подставляйте догадку только ради красивого результата.</p>\n<p><strong>Проверьте уже выполненную работу</strong></p>\n<p>У вас должно быть видно:</p>\n<ul>\n<li>какое значение вы сочли важным и почему;</li>\n<li>откуда взялись все нужные входные числа;</li>\n<li>отдельный расчёт калькулятором;</li>\n<li>сравнение с расчётом ИИ;</li>\n<li>статус и решение;</li>\n<li>небольшой след применения пригодного результата.</li>\n</ul>\n<p>Если проверена только арифметика, но не происхождение чисел, работа ещё не закончена.</p>\n<p><strong>Готово, если:</strong> вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M06-L02-S06",
+      "position": 6,
+      "stepik_step_id": 11346633,
+      "stepik_url": "https://stepik.org/lesson/2591727/step/6",
+      "visible_title_html": "Шаг 6 из 6. Если нужен чат",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 7,
+        "logical_type": "текст",
+        "summary": "BACKUP и допустимая техническая помощь по калькулятору",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": false,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "source_headings": [
+        "Если нужен чат",
+        "Итог"
+      ],
+      "source_git_paths": [
+        "04_course/M06/M06-L02/lesson.md",
+        "04_course/M06/M06-L02/stepik-plan.md"
+      ],
+      "html_sha256": "cbc047ff1470b97a1566dabfc664800b1c5c464b66acb999b00dabc2e0b8db9a",
+      "html": "<h2>Шаг 6 из 6. Если нужен чат</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> в Алисе AI; в калькуляторе. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>ИИ-чат здесь не является калькулятором истины. Если он нужен для работы, используйте <a href=\"https://alice.yandex.ru/\" target=\"_blank\" rel=\"noopener noreferrer\">Алису AI</a>, а при временной недоступности — <a href=\"https://giga.chat/\" target=\"_blank\" rel=\"noopener noreferrer\">GigaChat</a>.</p>\n<p>Считать лучше обычным доступным калькулятором. Допустима помощь по интерфейсу, но не готовый результат.</p>\n<p><strong>Итог</strong></p>\n<p>У числового ответа два вопроса:</p>\n<p><strong>Верны ли исходные данные?</strong></p>\n<p><strong>Верно ли выполнен расчёт?</strong></p>\n<p>Проверить только второе — очень аккуратный способ получить неправильный вывод.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и завершите этот урок.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    }
+  ]
+}

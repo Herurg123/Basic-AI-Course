@@ -1,0 +1,32 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "status": "COMPLETENESS_PASS",
+  "modules": 9,
+  "lessons": 21,
+  "steps": 148,
+  "unique_step_keys": 148,
+  "same_snapshot_inventory_step_set": true,
+  "all_html_hashes_match": true,
+  "all_steps_reviewed_typed_and_have_fix_disposition": true,
+  "all_findings_have_fix_and_independence_guard": true,
+  "counts": {
+    "CRITICAL": 0,
+    "BLOCKING": 38,
+    "MAJOR": 87,
+    "POLISH": 19,
+    "CLEAN": 4,
+    "NOT_REVIEWED": 0
+  },
+  "findings": 118,
+  "pattern_families": 19,
+  "cross_lesson_pattern_families": 12,
+  "single_lesson_pattern_families": 7,
+  "lessons_with_required_fixes": 21,
+  "learner_layer_changed_paths": [],
+  "snapshot_immutability_anchor": "4fb3791c3e38ddbfb0309dd9d4abb7c9cdf8842e",
+  "snapshot_changed_paths": [],
+  "validation": "assemble_audit.py проверяет схему и связи оценок; verify_completeness.py — полные наборы, HTML-хеши и неизменность ученического слоя/снимков. Смысловые заключения остаются ручными.",
+  "evidence_limit": "Восстановление по сохранённым отпечаткам публикации; не свежий Stepik read-back и не человеческое наблюдение.",
+  "independent_critic": "PASS",
+  "independent_critic_report": "critic-round2.md"
+}

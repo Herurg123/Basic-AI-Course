@@ -1,0 +1,313 @@
+{
+  "source_sha": "d076dd06977ecc85db66abb1d3fc503eb7343d48",
+  "module_id": "M07",
+  "lesson_id": "M07-L01",
+  "title": "Соберите знакомые навыки в одну задачу",
+  "stepik_lesson_id": 2591731,
+  "step_count": 7,
+  "reconstructed_fingerprint": "sha256:f48c7caf9ef0e925ffe73efb2dd4acc5e50763e2f7aafc2fda36d81d512e75da",
+  "recorded_applied_fingerprint": "sha256:f48c7caf9ef0e925ffe73efb2dd4acc5e50763e2f7aafc2fda36d81d512e75da",
+  "matches_applied": true,
+  "recorded_confirmed_live_fingerprint": "sha256:f48c7caf9ef0e925ffe73efb2dd4acc5e50763e2f7aafc2fda36d81d512e75da",
+  "matches_recorded_live": true,
+  "transport_normalized_fingerprint": "sha256:f48c7caf9ef0e925ffe73efb2dd4acc5e50763e2f7aafc2fda36d81d512e75da",
+  "transport_normalized_matches_recorded_live": true,
+  "steps": [
+    {
+      "step_key": "M07-L01-S01",
+      "position": 1,
+      "stepik_step_id": 11291321,
+      "stepik_url": "https://stepik.org/lesson/2591731/step/1",
+      "visible_title_html": "Шаг 1 из 7. Соберите знакомые навыки в одну задачу",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 1,
+        "logical_type": "текст",
+        "summary": "Рамка интеграции: использовать только нужные знакомые действия; нет обязательного полного цикла",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "source_headings": [
+        "Перед началом"
+      ],
+      "source_git_paths": [
+        "04_course/M07/M07-L01/lesson.md",
+        "04_course/M07/M07-L01/stepik-plan.md"
+      ],
+      "html_sha256": "7f4f247fd76f406a882b160eefce60942a129deedeb82c6ec6aff0575b86fc5e",
+      "html": "<h2>Шаг 1 из 7. Соберите знакомые навыки в одну задачу</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>До этого вы тренировались по частям: ставили задачу, добавляли нужный контекст, работали с материалом, улучшали результат, проверяли важное и применяли пригодное.</p>\n<p>Теперь попробуйте решить одну задачу целиком. Используйте <strong>только те действия, которые ей действительно нужны</strong>.</p>\n<p>Не требуется специально загружать файл, искать в интернете, считать, делать картинку или использовать второй сервис ради демонстрации всех возможностей курса.</p>\n<p><strong>Перед началом</strong></p>\n<p>Работайте только с учебными данными из карточки.</p>\n<p>Если в результате появится важное утверждение, которое влияет на применение, опирайтесь на реальное основание, а не на уверенный тон ИИ или согласие второй модели.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M07-L01-S02",
+      "position": 2,
+      "stepik_step_id": 11347227,
+      "stepik_url": "https://stepik.org/lesson/2591731/step/2",
+      "visible_title_html": "Шаг 2 из 7. Разберитесь с текущим шагом",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 2,
+        "logical_type": "памятка",
+        "summary": "Общая непоследовательная памятка, прямо запрещающая читать её как алгоритм",
+        "material_or_action": "`M07-L01-A02.md`",
+        "check": "—",
+        "asset_ids": [
+          "M07-L01-A02"
+        ],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        5
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M07/M07-L01/lesson.md",
+        "04_course/M07/M07-L01/stepik-plan.md",
+        "05_assets/M07/M07-L01/M07-L01-A02.md"
+      ],
+      "html_sha256": "fed70bd3ee500b926670901ccb702f27ab31aacb70b991e9281f4e88204f24e8",
+      "html": "<h2>Шаг 2 из 7. Разберитесь с текущим шагом</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Можно открыть <strong>общую памятку (материал ниже)</strong>. Она напоминает, на что смотреть, но не задаёт порядок шагов.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n\n<p><strong>Материал: Памятка для связной работы</strong></p>\n<p>Это <strong>не инструкция по шагам</strong>. Не идите по пунктам сверху вниз и не пытайтесь обязательно использовать каждый.</p>\n<p>Во время работы иногда полезно спросить себя:</p>\n<ul>\n<li>понимаю ли я, какой результат сейчас нужен;</li>\n<li>передаю ли только допустимую и нужную информацию;</li>\n<li>есть ли важное утверждение, которое стоит проверить перед применением;</li>\n<li>оказался ли пригодный результат там, где он действительно нужен, а не только в чате;</li>\n<li>если что-то изменилось или не получилось, какое из уже знакомых действий сейчас уместно.</li>\n</ul>\n<p>В конкретной задаче часть этих вопросов может вообще не понадобиться.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M07-L01-S03",
+      "position": 3,
+      "stepik_step_id": 11347246,
+      "stepik_url": "https://stepik.org/lesson/2591731/step/3",
+      "visible_title_html": "Шаг 3 из 7. Решите учебную задачу",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 3,
+        "logical_type": "практика",
+        "summary": "Только первая часть master-asset A01 до заголовка «Новая информация»; одна безопасная учебная задача как единый сценарий, без экранов «цель → контекст → запрос → проверка → применение»",
+        "material_or_action": "staged view того же `M07-L01-A01`; новых Asset ID нет",
+        "check": "`M07-L01-E01`",
+        "asset_ids": [
+          "M07-L01-A01"
+        ],
+        "exercise_ids": [
+          "M07-L01-E01"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "source_headings": [
+        "Решите учебную задачу"
+      ],
+      "source_git_paths": [
+        "04_course/M07/M07-L01/lesson.md",
+        "04_course/M07/M07-L01/stepik-plan.md",
+        "05_assets/M07/M07-L01/M07-L01-A01-part1.md"
+      ],
+      "html_sha256": "3a68baa86decf3395a138eea7af4519ec00ac446e6b419ac702d7807f3bfbbfc",
+      "html": "<h2>Шаг 3 из 7. Решите учебную задачу</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> в Алисе AI. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Сохраняйте естественный след работы: сообщения, версии результата, заметки и открытые материалы, если они появляются. При необходимости откройте памятку <a href=\"https://stepik.org/lesson/2591729/step/2\" target=\"_blank\" rel=\"noopener noreferrer\">«Как сохранять результаты практики»</a>.</p>\n<p><strong>Решите учебную задачу</strong></p>\n<p>Откройте <strong>первую часть учебной задачи (материал ниже)</strong>.</p>\n<p>Откройте <a href=\"https://alice.yandex.ru/\" target=\"_blank\" rel=\"noopener noreferrer\">Алису AI</a> и доведите задачу до пригодного результата так, как считаете разумным.</p>\n<p>Вы сами решаете, что сообщать ИИ, нужна ли доработка, что важно проверить и какие знакомые действия здесь вообще не нужны.</p>\n<p><strong>Готово, если:</strong> действие выполнено и нужный результат сохранён так, как указано ниже.</p>\n<p><strong>Что сохранить:</strong> сохраните только то, что прямо требуется в задании ниже; дополнительный отчёт не нужен.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>\n\n<p><strong>Материал: Учебная задача. Часть 1</strong></p>\n<p>Все данные ниже вымышлены.</p>\n<p>Нужно подготовить короткое объявление для учебной доски сообщений о вымышленном книжном обмене.</p>\n<p>Исходная записка:</p>\n<ul>\n<li>суббота, 14:00–16:00;</li>\n<li>читальный зал № 2;</li>\n<li>можно принести до 5 книг в хорошем состоянии;</li>\n<li>учебники старше 10 лет не принимаются;</li>\n<li>участие бесплатное;</li>\n<li>книги можно приносить с 13:45;</li>\n<li>контактные данные участников в объявлении не нужны.</li>\n</ul>\n<p>Нужен понятный короткий текст, по которому человек сможет понять, что происходит, когда прийти и что можно принести.</p>\n<p>Решите задачу так, как считаете разумным. Не требуется использовать все возможности ИИ.</p>\n<p>Когда сочтёте результат пригодным, перенесите финальную версию <strong>из чата в отдельную заметку</strong> с заголовком <code>Учебная доска сообщений</code>. Эта заметка считается конечным местом учебного применения.</p>\n<p>Сам ответ ИИ, оставшийся только в чате, задачу не завершает.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M07-L01-S04",
+      "position": 4,
+      "stepik_step_id": 11347267,
+      "stepik_url": "https://stepik.org/lesson/2591731/step/4",
+      "visible_title_html": "Шаг 4 из 7. Разберитесь с текущим шагом",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 4,
+        "logical_type": "применение",
+        "summary": "Перенести пригодный результат из чата в отдельную учебную заметку `Учебная доска сообщений`; сохранить естественный trace",
+        "material_or_action": "отдельная заметка",
+        "check": "часть `C01`",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        10
+      ],
+      "source_headings": [],
+      "source_git_paths": [
+        "04_course/M07/M07-L01/lesson.md",
+        "04_course/M07/M07-L01/stepik-plan.md"
+      ],
+      "html_sha256": "0992bffaec0948fa5053bd580ccf026056fb2f86f3dce0863c655e1b7a85a055",
+      "html": "<h2>Шаг 4 из 7. Разберитесь с текущим шагом</h2>\n<p><strong>Зачем:</strong> Доведите уже полученный результат до небольшого реального применения.</p>\n<p><strong>Где и с чем:</strong> в своей заметке или текстовом файле. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Задача закончена только тогда, когда пригодный результат <strong>оказался в месте учебного применения</strong>, указанном в карточке. Хороший ответ, оставшийся только в чате, ещё не завершает работу.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и переходите к следующему шагу.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M07-L01-S05",
+      "position": 5,
+      "stepik_step_id": 11347283,
+      "stepik_url": "https://stepik.org/lesson/2591731/step/5",
+      "visible_title_html": "Шаг 5 из 7. Теперь ситуация изменилась",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 5,
+        "logical_type": "сбой",
+        "summary": "Только после E01 и первого применения раскрыть блок «Новая информация» того же A01; конкретный приём не называть",
+        "material_or_action": "staged view того же `M07-L01-A01`",
+        "check": "`M07-L01-E02`",
+        "asset_ids": [
+          "M07-L01-A01"
+        ],
+        "exercise_ids": [
+          "M07-L01-E02"
+        ],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        11
+      ],
+      "source_headings": [
+        "Теперь ситуация изменилась"
+      ],
+      "source_git_paths": [
+        "04_course/M07/M07-L01/lesson.md",
+        "04_course/M07/M07-L01/stepik-plan.md",
+        "05_assets/M07/M07-L01/M07-L01-A01-part2.md"
+      ],
+      "html_sha256": "9ab1ca302d5f5946716888a1d61bebe7bef786b23186b2136796a3ffad2b0410",
+      "html": "<h2>Шаг 5 из 7. Теперь ситуация изменилась</h2>\n<p><strong>Зачем:</strong> Выполните следующий учебный шаг и получите результат, с которым можно продолжить.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>После завершения первой части и применения откройте <strong>вторую часть того же задания (материал ниже)</strong>.</p>\n<p><strong>Готово, если:</strong> вы выполнили действие ниже и получили результат, с которым можно продолжить.</p>\n\n<p><strong>Материал: Учебная задача. Часть 2</strong></p>\n<p>Открывайте эту часть <strong>только после того, как завершили первую версию и перенесли её в учебную заметку</strong>.</p>\n<h2>Новая информация</h2>\n<p>Организатор уточнил: начало переносится на 14:30, время окончания остаётся 16:00, остальные условия без изменений.</p>\n<p>Решите сами, что теперь нужно сделать с уже подготовленным результатом и учебным применением.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M07-L01-S06",
+      "position": 6,
+      "stepik_step_id": 11347303,
+      "stepik_url": "https://stepik.org/lesson/2591731/step/6",
+      "visible_title_html": "Шаг 6 из 7. Посмотрите на работу целиком",
+      "platform_block_type": "free-answer",
+      "platform_source": {
+        "is_attachments_enabled": false,
+        "is_html_enabled": true,
+        "manual_scoring": false
+      },
+      "plan_row": {
+        "position": 6,
+        "logical_type": "post-action check",
+        "summary": "Связность, применение, объяснение, проверка существенного при необходимости, отсутствие лишних действий",
+        "material_or_action": "журнал ученика",
+        "check": "`M07-L01-C01`",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [
+          "M07-L01-C01"
+        ],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "source_headings": [
+        "Посмотрите на работу целиком"
+      ],
+      "source_git_paths": [
+        "04_course/M07/M07-L01/lesson.md",
+        "04_course/M07/M07-L01/stepik-plan.md"
+      ],
+      "html_sha256": "9767d051fdeddc1ee7844f4fc3a1512d16189211ec29439c318a43c83bf8861e",
+      "html": "<h2>Шаг 6 из 7. Посмотрите на работу целиком</h2>\n<p><strong>Зачем:</strong> Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом.</p>\n<p><strong>Где и с чем:</strong> здесь, в Stepik, по уже выполненной работе. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Не ищите подсказку с названием нужного приёма. Решите сами, что изменилось и какое действие теперь разумно.</p>\n<p>Сохраните, что вы решили, что сделали и почему.</p>\n<p><strong>Посмотрите на работу целиком</strong></p>\n<p>После выполнения ответьте на четыре вопроса:</p>\n<ol>\n<li>Задача действительно доведена до пригодного результата и результат применён?</li>\n<li>Можете ли вы объяснить два важных решения своими словами?</li>\n<li>Если появлялось существенное утверждение или условие, было ли оно проверено подходящим способом до применения?</li>\n<li>Не выполняли ли вы лишние действия только ради галочки?</li>\n</ol>\n<p>Сохраните короткий журнал уже выполненной работы: задача, важные решения, что изменилось после новой информации, что проверялось при необходимости и где виден результат применения.</p>\n<p>Это <strong>репетиция связной работы</strong>, а не финальная самостоятельная задача курса.</p>\n<p><strong>Готово, если:</strong> вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат.</p>\n<p><strong>Что сохранить:</strong> сохраните только то, что прямо требуется в задании ниже; дополнительный отчёт не нужен.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    },
+    {
+      "step_key": "M07-L01-S07",
+      "position": 7,
+      "stepik_step_id": 11347318,
+      "stepik_url": "https://stepik.org/lesson/2591731/step/7",
+      "visible_title_html": "Шаг 7 из 7. Если основной чат не работает",
+      "platform_block_type": "text",
+      "platform_source": {},
+      "plan_row": {
+        "position": 7,
+        "logical_type": "текст",
+        "summary": "Явно сообщить: это репетиция, финальная самостоятельная задача впереди",
+        "material_or_action": "—",
+        "check": "—",
+        "asset_ids": [],
+        "exercise_ids": [],
+        "check_ids": [],
+        "author_only": false,
+        "independence_sensitive": true,
+        "f1_sensitive": false,
+        "stepik_block_type": null,
+        "learner_body": null,
+        "rendering_status": "structural-only"
+      },
+      "source_chunk_indexes": [
+        18,
+        19,
+        20
+      ],
+      "source_headings": [
+        "Если основной чат не работает",
+        "Итог"
+      ],
+      "source_git_paths": [
+        "04_course/M07/M07-L01/lesson.md",
+        "04_course/M07/M07-L01/stepik-plan.md"
+      ],
+      "html_sha256": "dbcc7e9ababa36036a930b9ba1d4e5e4f80b58b8309f02f75960671839e83193",
+      "html": "<h2>Шаг 7 из 7. Если основной чат не работает</h2>\n<p><strong>Зачем:</strong> Разберитесь, что важно учесть перед следующим действием.</p>\n<p><strong>Где и с чем:</strong> в Алисе AI. Используйте материалы и результаты, которые названы ниже.</p>\n<p><strong>Что сделать</strong></p>\n<p>Если <a href=\"https://alice.yandex.ru/\" target=\"_blank\" rel=\"noopener noreferrer\">Алиса AI</a> временно не выполняет нужное действие, используйте <a href=\"https://giga.chat/\" target=\"_blank\" rel=\"noopener noreferrer\">GigaChat</a>. Если сервис попросит войти для этого действия, используйте обычный вход по его правилам.</p>\n<p>Помощь с интерфейсом допустима. Подсказка «теперь сделайте именно X» лишает смысла самостоятельный выбор после изменения ситуации.</p>\n<p><strong>Итог</strong></p>\n<p>В реальной работе не нужно демонстрировать весь арсенал ИИ. Хороший процесс — это несколько уместных действий, которые действительно довели задачу до применения.</p>\n<p><strong>Готово, если:</strong> вам понятен смысл этого шага и вы готовы перейти к следующему действию.</p>\n<p><strong>Что дальше:</strong> после выполнения вернитесь в Stepik и завершите этот урок.</p>",
+      "semantic_audit_status": "NOT_REVIEWED"
+    }
+  ]
+}
