@@ -143,8 +143,8 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
         self.assertEqual(rendered_total, 148)
         self.assertEqual(
             block_deltas,
-            [],
-            "Block-type deltas требуют явной B7 reconciliation, а не молчаливого принятия",
+            ["M08-L01 S02: free-answer -> text"],
+            "Допустим ровно один явно reconciled B6 delta: M08 reflection E01 не является Stepik check",
         )
         self.assertEqual(
             source_deltas,
