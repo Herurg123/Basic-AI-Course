@@ -27,11 +27,11 @@
 ## План реализации
 
 ### P1 — learner UX infrastructure
-- [ ] Проверить текущий compiler/rendering путь материалов.
-- [ ] Реализовать единый learner-facing контейнер «Материал для практики» с выбранным оформлением.
-- [ ] Добавить regression-тесты.
-- [ ] Проверить rendered HTML на типичном шаге M05-L01.
-- [ ] Не выполнять live Stepik write до прохождения branch/PR gates.
+- [x] Проверить текущий compiler/rendering путь материалов.
+- [x] Реализовать единый learner-facing контейнер «Материал для практики» с выбранным оформлением.
+- [x] Добавить regression-тесты.
+- [ ] Проверить rendered HTML на типичном шаге M05-L01 через CI/author evidence.
+- [x] Не выполнять live Stepik write до прохождения branch/PR gates.
 
 ### P2 — human-review content repair
 - [ ] Исправить отмеченные владельцем шаги.
@@ -64,3 +64,13 @@
 - Ветка создана от текущего `main` после пользовательской замены снимка Алисы.
 - Learner-facing файлы ещё не изменены.
 - Следующее действие: изучить renderer/compiler и тесты для inline assets/material blocks.
+
+
+### CP1 — визуальный контейнер материала реализован
+- Commit renderer: `dc4ad6f3fdd4300813d66bbf3694e90895c76e31`.
+- Commit regression tests: `ea9568b9fdec3356929a5fef63a0aed91b5d8492`.
+- Выявленная корневая причина: прежний renderer разделял appended inline-material обычным Markdown `---`; доказанная Stepik-нормализация удаляет plain `<hr>`, поэтому визуальная граница исчезала.
+- Новое представление: `Материал для практики: <название>` внутри светлого контейнера `#f4f8ff` с рамкой и заметной левой полосой `6px #4778b8`.
+- Горизонтальные линии между inline-материалами больше не используются как единственный разделитель.
+- Live Stepik пока НЕ изменялся.
+- Следующий gate: PR + CI + обязательные ordinary / zero-level / pedagogue audits для learner-facing изменения.
