@@ -200,7 +200,7 @@
 **Allowed files:** compiler/tests/docs plus corrections found by integration audit. Любая новая learner correction возвращается в соответствующий scoped audit.
 
 **Actions:**
-1. assert 21/21 authored mode и 148/148 rows с валидным `Semantic type`;
+1. assert 21/21 authored mode и 100% final rows (N/N; baseline = 148) с валидным `Semantic type`;
 2. remove legacy framing and dead heuristics;
 3. update GENERAL-COMPILER/README;
 4. whole-course compile;
@@ -216,10 +216,10 @@
 
 **Human/model acceptance:**
 - ordinary independent critic: PASS;
-- **full ZERO-LEVEL audit: 148/148 final learner HTML, отдельный проход, PASS**;
-- **full PEDAGOGUE audit: 148/148 final learner HTML, отдельный проход, PASS**.
+- **full ZERO-LEVEL audit: 100% final learner HTML (N/N; baseline = 148), отдельный проход, PASS**;
+- **full PEDAGOGUE audit: 100% final learner HTML (N/N; baseline = 148), отдельный проход, PASS**.
 
-Scoped audits B1–B6 не заменяют эти два финальных whole-course прохода. B7 merge запрещён, пока любой из трёх verdict не PASS.
+Scoped audits B1–B6 не заменяют эти два финальных whole-course прохода. Если semantic boundary repair меняет число шагов относительно baseline 148, сначала фиксируются новый N и полная reconciliation таблица старые→новые IDs/ссылки; затем оба аудита покрывают N/N. B7 merge запрещён, пока любой из трёх verdict не PASS.
 
 **Stepik impact expectation:** all 21 lessons may be PENDING because shared compiler changed. After accepted B7 main, perform one guarded private release, reconcile read-back, then reopen required HUMAN VISUAL/device/service gates for the changed course.
 
