@@ -77,6 +77,7 @@ class CompiledSourceStep:
     source_chunk_indexes: tuple[int, ...]
     source_headings: tuple[str, ...]
     unresolved_repo_links: tuple[str, ...]
+    semantic_type: str | None = None
     source_markdown: str = ""
 
 
@@ -653,6 +654,7 @@ def compile_lesson_source(
                 source_chunk_indexes=tuple(chunk.index for chunk in span),
                 source_headings=headings,
                 unresolved_repo_links=_repo_links(source_markdown),
+                semantic_type=row.get("semantic_type"),
                 source_markdown=source_markdown,
             )
         )
