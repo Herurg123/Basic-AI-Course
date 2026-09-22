@@ -25,6 +25,9 @@
 **Machine acceptance:**
 - 21/21 legacy compile;
 - normalized HTML equivalence current main;
+- parser принимает только точный `<!-- learner-render-contract: authored-semantic-v1 -->`;
+- authored lesson требует `Semantic type` у каждого row;
+- authored span без H2/H3 fail'ится вместо title fallback;
 - negative/positive authored-mode fixtures;
 - author-only leakage test;
 - inline-source single-copy tests.
@@ -197,7 +200,7 @@
 **Allowed files:** compiler/tests/docs plus corrections found by integration audit. Любая новая learner correction возвращается в соответствующий scoped audit.
 
 **Actions:**
-1. assert 21/21 authored mode;
+1. assert 21/21 authored mode и 148/148 rows с валидным `Semantic type`;
 2. remove legacy framing and dead heuristics;
 3. update GENERAL-COMPILER/README;
 4. whole-course compile;
@@ -211,7 +214,12 @@
 
 **Machine acceptance:** 21/21 compile; no legacy path; no unresolved dependencies; known normalization tests pass; no internal IDs; no duplicate inline-source.
 
-**Human/model acceptance:** critic PASS + ZERO-LEVEL PASS + PEDAGOGUE PASS.
+**Human/model acceptance:**
+- ordinary independent critic: PASS;
+- **full ZERO-LEVEL audit: 148/148 final learner HTML, отдельный проход, PASS**;
+- **full PEDAGOGUE audit: 148/148 final learner HTML, отдельный проход, PASS**.
+
+Scoped audits B1–B6 не заменяют эти два финальных whole-course прохода. B7 merge запрещён, пока любой из трёх verdict не PASS.
 
 **Stepik impact expectation:** all 21 lessons may be PENDING because shared compiler changed. After accepted B7 main, perform one guarded private release, reconcile read-back, then reopen required HUMAN VISUAL/device/service gates for the changed course.
 
