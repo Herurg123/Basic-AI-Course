@@ -270,11 +270,6 @@ def build_structural_manifest(repo_root: Path, *, source_sha: str = "unknown", s
             plan_path = lesson_dir / "stepik-plan.md"
             lesson_text = _read(lesson_path)
             plan_text = _read(plan_path)
-            render_contract = parse_learner_render_contract(plan_text, path=plan_path)
-            if render_contract != AUTHORED_SEMANTIC_RENDER_CONTRACT:
-                raise CanonicalBuildError(
-                    f"{lesson_id}: production canonical plan требует exact {AUTHORED_SEMANTIC_MARKER}"
-                )
             title = parse_lesson_title(lesson_text, path=lesson_path)
             rows = parse_stepik_plan(plan_text, lesson_id=lesson_id, path=plan_path)
             lessons.append(
@@ -291,8 +286,8 @@ def build_structural_manifest(repo_root: Path, *, source_sha: str = "unknown", s
                     "f1_sensitive": lesson_id == "M07-L02",
                     "write_ready": False,
                     "write_blocker": "requires-live-write-gates",
-                    # Structural manifest v1.1 сохраняет прежнюю внешнюю schema;
-                    # authored Semantic type валидируется до этой проекции.
+                    # Structural manifest v1.1 остаётся generic structural view.
+                    # Production authored-only contract валидируется compiler/integration gates.
                     "steps": [
                         {key: value for key, value in row.items() if key != "semantic_type"}
                         for row in rows
