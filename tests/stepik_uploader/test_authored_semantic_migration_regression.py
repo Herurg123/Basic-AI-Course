@@ -109,13 +109,25 @@ class AuthoredSemanticMigrationRegressionTests(unittest.TestCase):
                     f"{lesson_id} S{actual.position:02d}",
                 )
 
-        # На B0 opt-in реальных уроков запрещён: baseline должен покрывать 21/21 и 148/148.
-        # В B1-B6 эти числа закономерно уменьшаются только для явно мигрированных lessons.
-        self.assertGreater(legacy_lessons, 0)
-        self.assertGreater(legacy_steps, 0)
-        if legacy_lessons == len(lessons):
-            self.assertEqual(legacy_lessons, 21)
-            self.assertEqual(legacy_steps, 148)
+        # B1-B6 последовательно мигрируют реальные уроки. После B6 допустимы 0 legacy lessons:
+        # это означает, что 21/21 уже opt-in authored-semantic-v1, а удаление legacy-кода остаётся задачей B7.
+        if legacy_lessons == 0:
+            self.assertEqual(legacy_steps, 0)
+            authored = 0
+            for lesson_id in sorted(lessons):
+                module_id = lesson_id.split("-", 1)[0]
+                plan_path = ROOT / "04_course" / module_id / lesson_id / "stepik-plan.md"
+                if parse_learner_render_contract(
+                    plan_path.read_text(encoding="utf-8"),
+                    path=plan_path,
+                ) is not None:
+                    authored += 1
+            self.assertEqual(authored, len(lessons))
+        else:
+            self.assertGreater(legacy_steps, 0)
+            if legacy_lessons == len(lessons):
+                self.assertEqual(legacy_lessons, 21)
+                self.assertEqual(legacy_steps, 148)
 
 
 if __name__ == "__main__":
