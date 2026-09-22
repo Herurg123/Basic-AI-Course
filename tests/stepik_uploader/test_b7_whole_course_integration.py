@@ -23,7 +23,6 @@ from scripts.stepik_uploader.general_content import (
 from scripts.stepik_uploader.verified_rendering import (
     AssetBinding,
     build_rendering_plan,
-    require_render_ready,
 )
 
 
@@ -59,6 +58,11 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
         )
 
         state = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+        expected_hashes = {
+            str(row["source_path"]): str(row["source_sha256"])
+            for row in cls.asset_report["resolutions"]
+            if row.get("source_path") and row.get("source_sha256")
+        }
         cls.bindings = [
             AssetBinding(
                 **{
@@ -67,6 +71,7 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
                 }
             )
             for row in state["assets"].values()
+            if expected_hashes.get(str(row.get("source_path"))) == row.get("source_sha256")
         ]
 
     def test_all_21_plans_are_authored_and_all_semantic_types_are_valid(self) -> None:
@@ -97,16 +102,21 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
 
     def test_all_148_learner_steps_render_and_keep_baseline_structure(self) -> None:
         rendered_total = 0
+        materialization_requirements: set[str] = set()
+
         for lesson_id in sorted(self.lessons):
-            rendered = require_render_ready(
-                build_rendering_plan(
-                    repo_root=ROOT,
-                    lesson_id=lesson_id,
-                    source_steps=self.compiled[lesson_id],
-                    asset_report=self.asset_report,
-                    bindings=self.bindings,
-                )
+            plan = build_rendering_plan(
+                repo_root=ROOT,
+                lesson_id=lesson_id,
+                source_steps=self.compiled[lesson_id],
+                asset_report=self.asset_report,
+                bindings=self.bindings,
             )
+            rendered = plan.rendered_steps
+            materialization_requirements.update(
+                str(item["source_path"]) for item in plan.materialization_requirements
+            )
+
             baseline = json.loads(
                 (BASELINE_DIR / "rendered" / f"{lesson_id}.json").read_text(encoding="utf-8")
             )
@@ -129,6 +139,11 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
                 )
 
         self.assertEqual(rendered_total, 148)
+        self.assertEqual(
+            materialization_requirements,
+            {"05_assets/M03/M03-L02/M03-L02-A03-alice.png"},
+            "До post-merge guarded release допускается только известный B3 source-hash refresh Alice PNG",
+        )
 
     def test_no_legacy_synthetic_frame_survives_in_final_learner_markdown(self) -> None:
         forbidden = (
