@@ -25,15 +25,6 @@ COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 HEADING_RE = re.compile(r"^(#{2,3})\s+(.+?)\s*$")
 WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё0-9]+")
 REPO_LINK_RE = re.compile(r"\]\((?!https?://|mailto:|#)([^)]+)\)")
-FREE_ANSWER_HINTS = (
-    "check",
-    "рубри",
-    "rubric",
-    "evidence",
-    "reflection",
-    "explanation",
-    "свободн",
-)
 EXPECTED_FREE_ANSWER_SOURCE = {
     "is_attachments_enabled": False,
     "is_html_enabled": True,
@@ -410,95 +401,6 @@ def _align_chunks(
 
 
 
-def _lesson_title(markdown_text: str) -> str:
-    for line in markdown_text.splitlines():
-        if line.startswith("# "):
-            return line[2:].strip()
-    raise GeneralContentCompileError("В learner-facing Markdown отсутствует H1")
-
-
-def _fallback_step_title(row: dict[str, Any]) -> str:
-    logical = str(row.get("logical_type") or "").lower()
-    if any(hint in logical for hint in FREE_ANSWER_HINTS):
-        return "Проверьте выполненную работу"
-    if "recovery" in logical or "повтор" in logical:
-        return "Повторите попытку на новой ситуации"
-    if "резерв" in logical or "backup" in logical:
-        return "Используйте резервный маршрут"
-    if row.get("exercise_ids"):
-        return "Выполните практику"
-    return "Разберитесь с текущим шагом"
-
-
-def _purpose_for_step(row: dict[str, Any], *, block_name: str) -> str:
-    logical = str(row.get("logical_type") or "").lower()
-    if block_name == "free-answer":
-        return "Проверьте уже выполненную работу и зафиксируйте результат, не меняя её задним числом."
-    if "recovery" in logical or "повтор" in logical:
-        return "Получите новую самостоятельную попытку, если предыдущая стала тренировочной."
-    if "резерв" in logical or "backup" in logical:
-        return "Сохраните возможность продолжить урок, если основной маршрут временно недоступен."
-    if any(word in logical for word in ("применение", "внешнее действие", "application")):
-        return "Доведите уже полученный результат до небольшого реального применения."
-    if row.get("exercise_ids"):
-        return "Выполните следующий учебный шаг и получите результат, с которым можно продолжить."
-    return "Разберитесь, что важно учесть перед следующим действием."
-
-
-def _place_for_step(source_markdown: str, row: dict[str, Any], *, block_name: str) -> tuple[str, bool]:
-    material = str(row.get("material_or_action") or "")
-    lower = (source_markdown + "\n" + material).lower()
-    places: list[str] = []
-    outside_stepik = False
-
-    if "alice.yandex.ru" in lower or "алиса ai" in lower:
-        if any(phrase in lower for phrase in ("тот же чат", "продолжите диалог", "вернитесь в чат")):
-            places.append("в том же чате Алисы AI")
-        else:
-            places.append("в Алисе AI")
-        outside_stepik = True
-
-    if "giga.chat" in lower and "alice.yandex.ru" not in lower:
-        places.append("в GigaChat")
-        outside_stepik = True
-
-    if ("чат" in material.lower() or "ai" in material.lower()) and not places:
-        places.append("в ИИ-чате")
-        outside_stepik = True
-
-    if "калькулятор" in lower:
-        places.append("в калькуляторе")
-        outside_stepik = True
-
-    if any(word in lower for word in ("браузер", "исходник", "источник")) and "stepik" not in lower:
-        places.append("в браузере или открытом исходном материале")
-        outside_stepik = True
-
-    if any(word in lower for word in ("заметк", "текстовый файл")) and not places:
-        places.append("в своей заметке или текстовом файле")
-        outside_stepik = True
-
-    if block_name == "free-answer" and not places:
-        places.append("здесь, в Stepik, по уже выполненной работе")
-
-    if not places:
-        places.append("здесь, в Stepik")
-
-    unique = list(dict.fromkeys(places))
-    return "; ".join(unique), outside_stepik
-
-
-def _done_for_step(source_markdown: str, row: dict[str, Any], *, block_name: str) -> str:
-    lower = source_markdown.lower()
-    if block_name == "free-answer":
-        return "вы ответили на вопросы шага по уже выполненной работе и зафиксировали результат."
-    if row.get("exercise_ids"):
-        if "сохран" in lower:
-            return "действие выполнено и нужный результат сохранён так, как указано ниже."
-        return "вы выполнили действие ниже и получили результат, с которым можно продолжить."
-    return "вам понятен смысл этого шага и вы готовы перейти к следующему действию."
-
-
 def _strip_leading_source_heading(source_markdown: str, heading: str | None) -> str:
     if not heading:
         return source_markdown
@@ -506,49 +408,6 @@ def _strip_leading_source_heading(source_markdown: str, heading: str | None) -> 
     if source_markdown.startswith(prefix):
         return source_markdown[len(prefix):].lstrip()
     return source_markdown
-
-
-def _frame_step_card(
-    *,
-    lesson_title: str,
-    position: int,
-    total: int,
-    row: dict[str, Any],
-    block_name: str,
-    source_markdown: str,
-    headings: tuple[str, ...],
-) -> str:
-    base_title = lesson_title if position == 1 else (headings[0] if headings else _fallback_step_title(row))
-    body = _strip_leading_source_heading(source_markdown, headings[0] if headings else None)
-    place, outside_stepik = _place_for_step(source_markdown, row, block_name=block_name)
-
-    parts = [
-        f"## Шаг {position} из {total}. {base_title}",
-        f"**Зачем:** {_purpose_for_step(row, block_name=block_name)}",
-        f"**Где и с чем:** {place}. Используйте материалы и результаты, которые названы ниже.",
-        "**Что сделать**",
-        body,
-        f"**Готово, если:** {_done_for_step(source_markdown, row, block_name=block_name)}",
-    ]
-
-    if "сохран" in source_markdown.lower():
-        parts.append(
-            "**Что сохранить:** сохраните только то, что прямо требуется в задании ниже; "
-            "дополнительный отчёт не нужен."
-        )
-
-    if outside_stepik:
-        if position < total:
-            parts.append(
-                "**Что дальше:** после выполнения вернитесь в Stepik и переходите к следующему шагу."
-            )
-        else:
-            parts.append(
-                "**Что дальше:** после выполнения вернитесь в Stepik и завершите этот урок."
-            )
-
-    return "\n\n".join(part for part in parts if part).strip()
-
 
 
 def _frame_authored_semantic_step(
@@ -577,9 +436,13 @@ def _frame_authored_semantic_step(
 
 
 def _block_name(row: dict[str, Any]) -> str:
-    logical = str(row.get("logical_type") or "").lower()
-    if any(hint in logical for hint in FREE_ANSWER_HINTS):
+    semantic_type = row.get("semantic_type")
+    if semantic_type == "CHECK":
         return "free-answer"
+    if semantic_type is None:
+        raise GeneralContentCompileError(
+            "Production learner row не содержит Semantic type; authored-semantic-v1 обязателен"
+        )
     return "text"
 
 
@@ -604,6 +467,10 @@ def compile_lesson_source(
     lesson_text = _read(lesson_path)
     plan_text = _read(plan_path)
     render_contract = parse_learner_render_contract(plan_text, path=plan_path)
+    if render_contract != AUTHORED_SEMANTIC_RENDER_CONTRACT:
+        raise GeneralContentCompileError(
+            f"{lesson_id}: production compiler требует exact authored-semantic-v1 contract"
+        )
     rows = [
         row
         for row in parse_stepik_plan(plan_text, lesson_id=lesson_id, path=plan_path)
@@ -613,17 +480,14 @@ def compile_lesson_source(
         raise GeneralContentCompileError(f"{lesson_id}: после author-only фильтра нет learner rows")
 
     chunks = split_source_chunks(lesson_text)
-    if (
-        render_contract == AUTHORED_SEMANTIC_RENDER_CONTRACT
-        and not any(chunk.first_heading for chunk in chunks)
-    ):
+    if not any(chunk.first_heading for chunk in chunks):
         raise GeneralContentCompileError(
             f"{lesson_id}: authored-semantic-v1 step 1 не имеет authored H2/H3 heading"
         )
     spans = _align_chunks(
         rows,
         chunks,
-        require_heading_starts=render_contract == AUTHORED_SEMANTIC_RENDER_CONTRACT,
+        require_heading_starts=True,
     )
     source_paths = (
         str(lesson_path.relative_to(repo_root)).replace("\\", "/"),
@@ -631,7 +495,6 @@ def compile_lesson_source(
     )
 
     compiled: list[CompiledSourceStep] = []
-    legacy_lesson_title = _lesson_title(lesson_text) if render_contract is None else None
     total = len(rows)
     for position, (row, span) in enumerate(zip(rows, spans, strict=True), start=1):
         source_markdown = "\n\n".join(chunk.markdown for chunk in span).strip()
@@ -640,31 +503,16 @@ def compile_lesson_source(
         block_name = _block_name(row)
         source = dict(free_answer_source) if block_name == "free-answer" else {}
         headings = tuple(chunk.heading for chunk in span if chunk.heading)
-        if render_contract == AUTHORED_SEMANTIC_RENDER_CONTRACT:
-            authored_headings = tuple(
-                chunk.first_heading for chunk in span if chunk.first_heading
-            )
-            markdown = _frame_authored_semantic_step(
-                lesson_id=lesson_id,
-                position=position,
-                total=total,
-                source_markdown=source_markdown,
-                headings=authored_headings,
-            )
-        else:
-            if legacy_lesson_title is None:
-                raise GeneralContentCompileError(
-                    f"{lesson_id}: неизвестный learner render contract {render_contract!r}"
-                )
-            markdown = _frame_step_card(
-                lesson_title=legacy_lesson_title,
-                position=position,
-                total=total,
-                row=row,
-                block_name=block_name,
-                source_markdown=source_markdown,
-                headings=headings,
-            )
+        authored_headings = tuple(
+            chunk.first_heading for chunk in span if chunk.first_heading
+        )
+        markdown = _frame_authored_semantic_step(
+            lesson_id=lesson_id,
+            position=position,
+            total=total,
+            source_markdown=source_markdown,
+            headings=authored_headings,
+        )
         compiled.append(
             CompiledSourceStep(
                 position=position,
