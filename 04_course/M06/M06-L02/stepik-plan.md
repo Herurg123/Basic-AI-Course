@@ -10,8 +10,10 @@
 | 2 | supported choice | A01 inline целиком до action completion; learner сам выбирает существенное число/условие и последствия ошибки, без author key | `M06-L02-A01.md` | `M06-L02-E01` | GUIDED_ACTION |
 | 3 | supported numeric verification | Read source data in previous Stepik card → trace each needed input → compare AI inputs → independently calculate with ordinary calculator → status + decision. Calculator = computation only | A01 from previous step + calculator + optional local note | `M06-L02-E02` | GUIDED_ACTION |
 | 4 | small application / safe refusal | Real write of verified usable result + decision in local note. If unsupported/no data, record non-application rather than guess | local note | B12 PRACTICE | GUIDED_ACTION |
-| 5 | post-action free-answer | In Stepik: substantial value, input provenance, separate calculation, status, decision, real application/non-application. Working artifacts stay local | free-answer Stepik | `M06-L02-C01` | CHECK |
+| 5 | post-action check | In Stepik: substantial value, input provenance, separate calculation, status, decision, real application/non-application. Working artifacts stay local | free-answer Stepik | `M06-L02-C01` | CHECK |
 | 6 | conditional technical support + summary | Calculator UI help allowed; optional chat only for mechanics, not error/value/final decision. Alice / conditional GigaChat. No phantom return | calculator + conditional chat | — | NAVIGATION |
+| 7 | author-only evaluation | Контрольный расчёт и ключ проверяющего после learner action; никогда не входит в learner HTML | `M06-L02-A02.md` | авторский ключ | CHECK |
+
 
 ## Author-only key
 
