@@ -30,7 +30,7 @@
 - [x] Проверить текущий compiler/rendering путь материалов.
 - [x] Реализовать единый learner-facing контейнер «Материал» с выбранным оформлением.
 - [x] Добавить regression-тесты.
-- [ ] Проверить rendered HTML на типичном шаге M05-L01 через CI/author evidence.
+- [x] Проверить rendered HTML на типичном шаге M05-L01 через CI/author evidence.
 - [x] Не выполнять live Stepik write до прохождения branch/PR gates.
 
 ### P2 — human-review content repair
@@ -87,3 +87,14 @@
 - Renderer переведён на нативный `<blockquote>`: он поддерживается HTML-редактором Stepik, отделяет материал структурно и оставляет визуальную адаптацию самой платформе.
 - Смысл принятого владельцем решения сохранён: материал образует отдельный заметный блок; точный внешний вид подлежит HUMAN VISUAL на COMPUTER + PHONE после private release.
 - Внешняя запись в Stepik на этом checkpoint по-прежнему не выполнялась.
+
+
+### CP1c — P1 прошёл обязательные gates
+- Финальный проверенный head до checkpoint-коммита: `81ad97a5f99c774c31278596968da7eb7bc823e3`.
+- CI: оба workflow SUCCESS.
+- M05-L01 имеет отдельный regression-test на материал «Картинка для вечера настольных игр».
+- ORDINARY CRITIC: PASS.
+- ZERO-LEVEL AUDIT: PASS.
+- PEDAGOGUE AUDIT: PASS.
+- В PR явно зафиксировано, что P1 не закрывает P2-редактуру неудачных инструкций внутри материалов.
+- Следующее действие после merge: проверить scope PENDING и private Stepik rendering; HUMAN VISUAL COMPUTER+PHONE остаётся внешним gate.
