@@ -35,7 +35,7 @@
 2. Все 21 lessons завершили миграцию в exact `authored-semantic-v1`.
 3. Production compiler больше не имеет legacy fallback: отсутствие authored contract = compile error.
 4. Текущий канон: 150 structural rows, из них 2 author-only и **148 learner-facing steps**.
-5. `Semantic type` обязателен для всех production rows; learner block type определяется им, а не угадывается по словам в logical type.
+5. `Semantic type` обязателен для всех production rows; learner block type определяется semantic role и явным владением Check ID у `COMPOSITE`, а не угадывается по словам в logical type.
 6. Stepik write разрешается только после whole-course B7 integration/audits и merge в `main`.
 7. Автотесты ловят структуру, но не заменяют 100% semantic ZERO-LEVEL и PEDAGOGUE reading финального курса.
 8. M07-L02 остаётся единственным F1; M07-L01 rehearsal; M08 reflection.
