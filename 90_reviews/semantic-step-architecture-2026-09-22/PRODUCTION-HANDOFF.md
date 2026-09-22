@@ -242,12 +242,12 @@ Stop affected batch and report owner only if:
 Production stage не завершён, пока:
 - B0–B7 PASS;
 - 21/21 lessons authored-semantic-v1;
-- 148/148 plan rows имеют валидный `Semantic type`;
+- 100% final plan rows (N/N; исходный baseline = 148) имеют валидный `Semantic type`;
 - legacy universal frame removed;
 - final whole-course HTML compiled;
 - all relevant findings have disposition and acceptance evidence;
 - каждый learner-content PR прошёл critic + scoped ZERO-LEVEL + scoped PEDAGOGUE;
-- B7 отдельно прошёл ordinary critic + **full ZERO-LEVEL 148/148** + **full PEDAGOGUE 148/148** по final compiled HTML;
+- B7 отдельно прошёл ordinary critic + **full ZERO-LEVEL N/N final inventory** + **full PEDAGOGUE N/N final inventory** по final compiled HTML;
 - final guarded private release reconciled if production command includes deployment;
 - open HUMAN VISUAL/SERVICE/Human Pilot/Wave 0 states reported honestly.
 
