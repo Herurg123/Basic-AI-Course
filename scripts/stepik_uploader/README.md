@@ -23,6 +23,23 @@
 
 После педагогического PR #59 Issue #54 хранит machine backlog относительно текущего канона. Успешный batch должен закрыть ordinary initial-staging PENDING scope, но сам по себе не является all-course human/readiness verdict.
 
+## Финальный compiler contract после semantic migration
+
+Все 21 канонический урок завершили переход на `authored-semantic-v1`.
+
+Production-инварианты:
+
+- во всех 21 `stepik-plan.md` обязателен exact marker `<!-- learner-render-contract: authored-semantic-v1 -->`;
+- 150 structural rows включают 2 author-only rows и дают **148 learner-facing Stepik steps**;
+- каждый row имеет валидный `Semantic type`;
+- `CHECK` компилируется в `free-answer`, остальные semantic types — в `text`;
+- learner-visible title/body берутся только из authored H2/H3 + source body;
+- универсальная synthetic-обвязка `Зачем / Где и с чем / Готово / Что дальше` удалена;
+- отсутствующий authored contract блокирует compile fail-closed, legacy fallback отсутствует;
+- author-only rows никогда не входят в learner write-set.
+
+B7 whole-course regression рендерит все 148 learner steps, сверяет per-lesson step count и Stepik block/source shape с зафиксированным baseline, а semantic ZERO-LEVEL/PEDAGOGUE проходы проверяют финальный learner meaning отдельно.
+
 ## Guarded ordinary staging
 
 `staging-build-one` является базовым production-контрактом ordinary initial staging. Для конкретного lesson он требует:
@@ -181,6 +198,6 @@ Compiler обязан сохранять `author_only`, `independence_sensitive`
 
 Автоматическое склеивание temporal boundaries недопустимо. M07-L02 требует отдельного F1 integrity pass.
 
-Structural dry-run текущего канона показывает 9 modules / 21 lessons / 150 logical steps и `unresolved_assets=[]`, но это только offline source check. Guarded batch перед write выполняет свежий live preflight каждого target и current-main/golden guards.
+Structural dry-run текущего канона показывает 9 modules / 21 lessons / 150 structural rows; после исключения 2 author-only rows production learner route содержит 148 steps. `unresolved_assets=[]` остаётся обязательным offline source gate, но сам по себе не заменяет semantic и live-read-back проверки. Guarded batch перед write выполняет свежий live preflight каждого target и current-main/golden guards.
 
 API success и точный read-back подтверждают техническую запись. Они не заменяют PHONE/COMPUTER staging check, live-service acceptance, HUMAN VISUAL или Human Pilot и не делают `WAVE 0 READY`.
