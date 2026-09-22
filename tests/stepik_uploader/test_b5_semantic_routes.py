@@ -29,7 +29,7 @@ class B5SemanticRouteTests(unittest.TestCase):
 
         self.assertEqual(
             first.unresolved_repo_links,
-            ("../../../05_assets/M06/M06-L03/M06-L03-A01-part1.md",),
+            ("../../../05_assets/M06/M06-L03/M06-L03-A01.md",),
         )
         self.assertNotIn("школьной мастерской «Куб»", first.markdown)
         self.assertEqual(second.unresolved_repo_links, ())
