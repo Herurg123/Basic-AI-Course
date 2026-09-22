@@ -52,7 +52,7 @@ class B6SemanticRouteTests(unittest.TestCase):
             [step.block_name for step in steps],
             ["text", "text", "text", "text", "text", "free-answer", "text"],
         )
-        self.assertIn("M07-L01-E01", steps[2].exercise_ids)
+        self.assertIn("M07-L01-E01", self.compiled["M07-L01"][2].exercise_ids)
         self.assertIn("Учебная доска сообщений", steps[2].text)
         self.assertNotIn("начало переносится на 14:30", steps[2].text)
         self.assertIn("начало переносится на 14:30", steps[4].text)
