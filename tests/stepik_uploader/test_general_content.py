@@ -11,6 +11,8 @@ from scripts.stepik_uploader.canonical import (
 from scripts.stepik_uploader.general_content import (
     EXPECTED_FREE_ANSWER_SOURCE,
     GeneralContentCompileError,
+    SourceChunk,
+    _align_chunks,
     compile_all_lesson_sources,
     compile_lesson_source,
     split_source_chunks,
@@ -275,6 +277,54 @@ class GeneralContentCompilerTests(unittest.TestCase):
         self.assertTrue(links)
         self.assertTrue(any("05_assets" in link for _, link in links))
         self.assertTrue(any("stepik/" in link for _, link in links))
+
+    def test_authored_alignment_starts_every_step_on_authored_heading(self) -> None:
+        rows = [
+            {
+                "position": 1,
+                "logical_type": "объяснение",
+                "summary": "",
+                "material_or_action": "",
+                "check": "",
+                "exercise_ids": [],
+                "check_ids": [],
+            },
+            {
+                "position": 2,
+                "logical_type": "поддержка",
+                "summary": "",
+                "material_or_action": "",
+                "check": "",
+                "exercise_ids": [],
+                "check_ids": [],
+            },
+        ]
+        chunks = [
+            SourceChunk(
+                index=0,
+                markdown="**Первый заголовок**\n\nПервый абзац.",
+                heading="Первый заголовок",
+                marker_ids=(),
+                first_heading="Первый заголовок",
+            ),
+            SourceChunk(index=1, markdown="Хвост первого шага.", heading=None, marker_ids=()),
+            SourceChunk(
+                index=2,
+                markdown="**Второй заголовок**\n\nВторой абзац.",
+                heading="Второй заголовок",
+                marker_ids=(),
+                first_heading="Второй заголовок",
+            ),
+            SourceChunk(index=3, markdown="Хвост второго шага.", heading=None, marker_ids=()),
+        ]
+
+        spans = _align_chunks(rows, chunks, require_heading_starts=True)
+
+        self.assertEqual(
+            [[chunk.index for chunk in span] for span in spans],
+            [[0, 1], [2, 3]],
+        )
+        self.assertTrue(all(span[0].first_heading for span in spans))
 
     def test_authored_semantic_mode_keeps_only_authored_title_and_body(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
