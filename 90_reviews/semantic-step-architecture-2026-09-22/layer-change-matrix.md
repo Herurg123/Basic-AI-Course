@@ -44,13 +44,14 @@ Inline-source renderer contract сохраняется: repo-relative learner Ma
 ## Stepik plan must change
 
 Plan меняется, когда нужно:
-- включить lesson-level `authored-semantic-v1`;
+- включить exact lesson marker `<!-- learner-render-contract: authored-semantic-v1 -->`;
+- заполнить у каждого opt-in row отдельную колонку `Semantic type` одним из 10 enum Semantic Step Contract;
 - исправить semantic span/row boundaries;
 - согласовать block type/free-answer;
 - зафиксировать recovery/check route;
 - обновить material/action mapping.
 
-Plan не становится скрытым learner explanation.
+Plan не становится скрытым learner explanation. `Semantic type` используется для validation/audit и не генерирует learner sentences.
 
 ## Assets must change
 
