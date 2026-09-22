@@ -163,10 +163,15 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
                         f"{lesson_id} step {step.position}: legacy frame marker {marker}",
                     )
 
-    def test_semantic_type_is_the_only_block_type_contract(self) -> None:
+    def test_semantic_type_and_explicit_check_ownership_define_block_type(self) -> None:
         for lesson_id, steps in self.compiled.items():
             for step in steps:
-                expected = "free-answer" if step.semantic_type == "CHECK" else "text"
+                expected = (
+                    "free-answer"
+                    if step.semantic_type == "CHECK"
+                    or (step.semantic_type == "COMPOSITE" and step.check_ids)
+                    else "text"
+                )
                 self.assertEqual(
                     step.block_name,
                     expected,
