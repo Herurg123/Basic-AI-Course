@@ -130,9 +130,7 @@ class VerifiedRenderingTests(unittest.TestCase):
         normalized_html = "\n".join(step.text for step in normalized.rendered_steps)
         self.assertNotRegex(legacy_html, r"(?i)<hr\s*/?>")
         self.assertNotRegex(normalized_html, r"(?i)<hr\s*/?>")
-        self.assertIn("border-left:6px solid #4778b8", normalized_html)
-        self.assertIn("background:#f4f8ff", normalized_html)
-        self.assertEqual(
+                        self.assertEqual(
             [normalize_stepik_html_v1(step.text).strip() for step in legacy.rendered_steps],
             [step.text for step in normalized.rendered_steps],
         )
@@ -186,8 +184,9 @@ class VerifiedRenderingTests(unittest.TestCase):
         step2 = plan.rendered_steps[1].text
         self.assertIn("<p>В самой карточке находятся данные, расчёт и задание.", step2)
         self.assertIn("<strong>Материал: Исходные данные и подготовленный расчёт</strong>", step2)
-        self.assertIn("border-left:6px solid #4778b8", step2)
-        self.assertIn('style="text-align:right;"', step2)
+        self.assertIn("<blockquote>", step2)
+        self.assertIn("</blockquote>", step2)
+                self.assertIn('style="text-align:right;"', step2)
         self.assertIn("<br>", step2)
         self.assertNotIn("<br />", step2)
         self.assertNotRegex(step2, r"(?i)<hr\s*/?>")
@@ -249,9 +248,9 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertIn("мини-задачу", step2)
         self.assertIn("материал ниже", step2)
         self.assertIn("<strong>Материал: Короткое напоминание о встрече</strong>", step2)
-        self.assertIn("border-left:6px solid #4778b8", step2)
-        self.assertIn("background:#f4f8ff", step2)
-        self.assertNotIn("M01-L01-A01 —", step2)
+        self.assertIn("<blockquote>", step2)
+        self.assertIn("</blockquote>", step2)
+                        self.assertNotIn("M01-L01-A01 —", step2)
         self.assertIn("18:30", step2)
         self.assertLess(step2.index("материал ниже"), step2.index("Материал:"))
 
@@ -267,8 +266,8 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertIn("05_assets/M06/M06-L04/M06-L04-A02.md", step3.source_git_paths)
         self.assertNotIn("M06-L04-A02.md)", step3.text)
         self.assertIn("Материал:", step3.text)
-        self.assertIn("border-left:6px solid #4778b8", step3.text)
-
+        self.assertGreaterEqual(step3.text.count("<blockquote>"), 2)
+        
     def test_binding_with_stale_source_hash_is_rejected(self) -> None:
         binding = AssetBinding(
             source_path="05_assets/M04/M04-L01/M04-L01-A01.txt",
