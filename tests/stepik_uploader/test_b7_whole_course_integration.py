@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import re
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 
 from scripts.stepik_uploader.asset_inventory import build_asset_inventory
@@ -31,6 +33,18 @@ BASELINE_DIR = ROOT / "90_reviews" / "semantic-step-audit-2026-09-20"
 STATE_PATH = BASELINE_DIR / "evidence" / "machine-state-2026-09-20.json"
 POLICY_PATH = ROOT / "04_course" / "stepik" / "automation" / "asset-publication.v1.json"
 COURSE_ID = 299189
+
+
+class _VisibleTextParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+    def visible_text(self) -> str:
+        return " ".join(" ".join(self.parts).split())
 
 
 class B7WholeCourseIntegrationTests(unittest.TestCase):
@@ -176,6 +190,48 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
                         marker,
                         step.markdown,
                         f"{lesson_id} step {step.position}: legacy frame marker {marker}",
+                    )
+
+    def test_final_visible_html_has_no_internal_production_jargon(self) -> None:
+        forbidden_patterns = (
+            re.compile(r"\\bM\\d{2}-L\\d{2}(?:-[AEC]\\d{2})?\\b"),
+            re.compile(r"\\bM0[0-8]\\b"),
+            re.compile(r"(?<![-\\w])C\\d{2}(?!\\w)"),
+            re.compile(r"(?<![-\\w])E\\d{2}(?!\\w)"),
+            re.compile(r"(?<![-\\w])B(?:10|11|12|[1-9])(?!\\w)"),
+            re.compile(r"\\bF1\\b"),
+            re.compile(r"\\bPASS\\b", re.IGNORECASE),
+            re.compile(r"NOT\\s+PROVEN", re.IGNORECASE),
+            re.compile(r"post[- ]action", re.IGNORECASE),
+            re.compile(r"\\brecovery\\b", re.IGNORECASE),
+            re.compile(r"\\bmaterialization\\b", re.IGNORECASE),
+            re.compile(r"\\bproduction\\b", re.IGNORECASE),
+            re.compile(r"\\bauthored\\b", re.IGNORECASE),
+            re.compile(r"\\bsemantic\\b", re.IGNORECASE),
+            re.compile(r"\\brubric\\b", re.IGNORECASE),
+            re.compile(r"\\bindependent\\b", re.IGNORECASE),
+            re.compile(r"\\bevidence\\b", re.IGNORECASE),
+            re.compile(r"\\bcheck\\b", re.IGNORECASE),
+            re.compile(r"\\bverified\\b", re.IGNORECASE),
+            re.compile(r"Alice PNG|Опубликованную ветку|локальн.*восстанов", re.IGNORECASE),
+        )
+
+        for lesson_id, steps in self.compiled.items():
+            plan = build_rendering_plan(
+                repo_root=ROOT,
+                lesson_id=lesson_id,
+                source_steps=steps,
+                asset_report=self.asset_report,
+                bindings=self.bindings,
+            )
+            for rendered in plan.rendered_steps:
+                parser = _VisibleTextParser()
+                parser.feed(rendered.text)
+                visible = parser.visible_text()
+                for pattern in forbidden_patterns:
+                    self.assertIsNone(
+                        pattern.search(visible),
+                        f"{lesson_id} step {rendered.position}: visible internal marker {pattern.pattern!r}",
                     )
 
     def test_semantic_type_and_explicit_check_ownership_define_block_type(self) -> None:
