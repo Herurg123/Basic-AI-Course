@@ -148,8 +148,11 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(
             source_deltas,
-            [],
-            "Stepik source deltas требуют явной B7 reconciliation",
+            [
+                "M08-L01 S02: "
+                "{'is_attachments_enabled': False, 'is_html_enabled': True, 'manual_scoring': False} -> {}"
+            ],
+            "Source delta допустим только как вторая половина reconciled M08 S02 free-answer -> text",
         )
         self.assertEqual(
             materialization_requirements,
