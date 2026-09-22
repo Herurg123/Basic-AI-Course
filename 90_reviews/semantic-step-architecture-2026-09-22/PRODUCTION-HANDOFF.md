@@ -118,21 +118,20 @@ Whole-course integration, remove legacy, guarded private release from accepted m
 
 Production не заменяет его новым универсальным шаблоном.
 
-B0 вводит `authored-semantic-v1` opt-in:
-- exact marker: `<!-- learner-render-contract: authored-semantic-v1 -->` в `stepik-plan.md`;
-- каждый opt-in row получает non-visible колонку `Semantic type` с одним из 10 enum Semantic Step Contract;
-- unmigrated lesson сохраняет legacy output;
-- migrated lesson получает minimal deterministic framing;
-- title берётся только из первого authored H2/H3 semantic span; отсутствие heading = compile error;
-- purpose/place/action/completion/save/navigation не генерируются по regex;
-- semantic type используется для validation, но не становится visible heading и не генерирует learner sentences.
+B0 ввёл `authored-semantic-v1` как временный opt-in migration contract. После B6 migration завершена 21/21, а B7 делает этот contract обязательным production path:
 
-При миграции lesson:
-- source содержит нужный learner meaning;
-- plan содержит production mapping;
-- final HTML проверяется как фактический шаг.
+- exact marker: `<!-- learner-render-contract: authored-semantic-v1 -->` обязателен во всех 21 `stepik-plan.md`;
+- каждый structural row имеет валидный non-visible `Semantic type`;
+- 150 structural rows = 148 learner-facing + 2 author-only;
+- absence/unknown contract = fail-closed compile error;
+- learner title берётся только из первого authored H2/H3 semantic span; отсутствие heading = compile error;
+- purpose/place/action/completion/save/navigation больше не генерируются универсальным regex-frame;
+- learner block type определяется contract-ом: `CHECK` → `free-answer`, остальные semantic types → `text`;
+- `Semantic type` не становится learner-visible текстом.
 
-После 21/21 migration B7 удаляет legacy path.
+Для каждого lesson source содержит learner meaning, plan содержит production mapping, а final rendered HTML проверяется фактически.
+
+Legacy universal frame удалён из production compiler; возврата к нему для missing marker нет.
 
 ## 6. Layer rules
 
