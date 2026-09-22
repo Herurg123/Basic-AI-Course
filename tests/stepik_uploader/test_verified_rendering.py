@@ -182,7 +182,8 @@ class VerifiedRenderingTests(unittest.TestCase):
             asset_report=self.asset_report,
         )
         step2 = plan.rendered_steps[1].text
-        self.assertIn("<p>Там есть исходные данные и подготовленный расчёт ИИ.</p>", step2)
+        self.assertIn("<p>В самой карточке находятся данные, расчёт и задание.", step2)
+        self.assertIn("<strong>Материал: Исходные данные и подготовленный расчёт</strong>", step2)
         self.assertIn('style="text-align:right;"', step2)
         self.assertIn("<br>", step2)
         self.assertNotIn("<br />", step2)

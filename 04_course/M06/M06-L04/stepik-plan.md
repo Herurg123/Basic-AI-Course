@@ -1,87 +1,86 @@
 # Stepik plan — M06-L04
 
-> Производственный план переноса. Не является публичным ученическим текстом. Это наиболее строгая самостоятельная зона M06. Действуют D-2026-09-12-STEPIK-FLOW и D-2026-09-13-LEARNER-UX.
+> Производственный план переноса. Не является публичным ученическим текстом. Это наиболее строгая самостоятельная зона M06.
 
-| № | Тип шага | Содержание | Материал / действие | Проверка |
-|---:|---|---|---|---|
-| 1 | learner contract | Техническая помощь допустима, содержательная подсказка загрязняет попытку. Попросить сохранять естественный след решений без перечисления методов | — | — |
-| 2 | advisory | Попросить сначала выполнить три ситуации и лишь затем открывать C01; объяснить риск ранней подсказки. Не повторять обучающую классификацию M06-L01 как чек-лист действий | — | — |
-| 3 | independent practice | Три новые ситуации без подписи метода; ученик сам выбирает существенное, основание и действие. Для исходного ответа фиксируется только наблюдаемая опора: «не установлено / переданный материал / наблюдаемый поиск» | `M06-L04-A01.md`; `A02` доступен только из числовой ситуации | `M06-L04-E01` |
-| 4 | post-action rubric | Собрать три цепочки уже выполненной работы. Для A1 принимать только наблюдаемое evidence или честное «не установлено»; не требовать угадывания скрытого режима. Принимать natural trace + post-action explanation наблюдаемого trace | свободный текст Stepik + локальные артефакты | `M06-L04-C01` |
-| 5 | learner-facing recovery | Если конкретная ситуация загрязнена, после C01 ученик самостоятельно использует соответствующую новую ситуацию 1/2/3 из `lesson.md`. Author notes хранят ключ, но не единственную копию сценария | recovery из `lesson.md` | повтор C01 |
-| 6 | independent application | Ученик сам выбирает пригодный результат и реально завершает малую задачу вне чата | заметка/документ у ученика | `M06-L04-E02` |
-| 7 | post-action evidence | После применения открыть форму A03 и зафиксировать уже выполненное действие | `M06-L04-A03.md` | `M06-L04-C02` |
-| 8 | transfer | Новая техническая область; готовую ссылку на правильный источник не давать, потому что выбор основания является частью задания | внешний источник по выбору ученика | `M06-L04-C03` |
-| 9 | explanation | 2–3 причинных ответа только после работы | выполненный trace | `M06-L04-C03` |
-| 10 | текст | Компактный основной/резервный маршрут без внутренней маркировки в ученическом тексте | — | — |
+<!-- learner-render-contract: authored-semantic-v1 -->
 
-## Что уже должно быть изучено до самостоятельной попытки
+| № | Тип шага | Содержание | Материал / действие | Проверка | Semantic type |
+|---:|---|---|---|---|---|
+| 1 | learner contract / safety | No method labels before attempt. Technical help allowed; content hint that selects substantial/method/ground/status/next action contaminates affected attempt. Safe educational cases only | — | — | EXPLANATION |
+| 2 | neutral trace + advisory | Inline generic save-practice help only. Ask natural trace and recommend completing all 3 before C01; do not enumerate hidden rubric/methods | `04_course/stepik/how-to-save-practice.md` | — | EXPLANATION |
+| 3 | independent practice E01 | A01 inline including nested A02. Three new situations, no method labels; learner independently chooses substantial, ground/action/status and saves natural trace | `M06-L04-A01.md` + nested `M06-L04-A02.md` | `M06-L04-E01` | INDEPENDENT_PRACTICE |
+| 4 | post-action check C01 | Only after E01: in Stepik describe substantial, observable support of original answer (or `не установлено`), chosen ground, actual evidence/calculation/missing data, comparison, status, next action. No hidden-process guessing | free-answer Stepik + local trace | `M06-L04-C01` | CHECK |
+| 5 | conditional recovery | Only affected situations. Three new learner-facing cases. Complete new attempt, then exact return to step4. Unavailable source is not replaced by second AI. Successful learners skip | authored cases in `lesson.md` | repeat `M06-L04-C01` | RECOVERY |
+| 6 | independent real application | Choose one usable checked result from main/recovery and actually finish a small external artifact. Safe refusal/non-application is correct decision but B12 requires completed output that does not state unsupported claim as fact | learner note/document/plan | `M06-L04-E02` | INDEPENDENT_PRACTICE |
+| 7 | post-action application evidence | A03 inline only after action. In Stepik short evidence of completed small task and how checked/non-confirmed result was handled. Files stay local | `M06-L04-A03.md` + free-answer | `M06-L04-C02` | CHECK |
+| 8 | independent transfer | New LibreOffice claim; no method/source/status given. Learner independently decides whether/how phrase may be used and creates final technical note | learner-selected ground/tools | transfer action | INDEPENDENT_PRACTICE |
+| 9 | post-action transfer/explanation | In Stepik: key decision+why, what actual ground/absence determined status/action, what principle transferred. No rote rule credit | free-answer Stepik + local trace | `M06-L04-C03` | CHECK |
+| 10 | conditional transfer recovery + final boundary | If content hint/technical failure compromised transfer, new Windows 11 clipboard-history claim is solved independently, then return to step9. Optional chat is only support; it never substitutes ground | authored alternative claim + conditional chat | repeat `M06-L04-C03` | RECOVERY |
 
-PED-04 закрывается не подсказкой внутри экзамена, а ранней подготовкой в `M06-L01`.
+## Independence boundary
 
-До M06-L04 ученик уже видел и сравнивал:
+Before step 3 do **not** show:
+- method or category of each situation;
+- substantial element;
+- source/ground;
+- correct number/result;
+- status;
+- next action;
+- C01 questions.
 
-- **внешнее основание ответа не установлено**;
-- ответ по **переданному материалу**;
-- **наблюдаемое использование поиска**.
+Previously learned categories from M06-L01–L03 remain prerequisites, not a new pre-attempt checklist.
 
-Он также уже знает, что ссылка, уверенный тон и слова модели не доказывают поисковый режим или правильность содержания. Если поисковое действие не наблюдается, нельзя заставлять ученика выбирать «поиск» только потому, что ответ касается внешнего факта.
+Technical help can cover interface mechanics only. It may not pick the substantive route.
 
-Эта рамка в M06-L04 **не повторяется перед E01 как алгоритм**, иначе самостоятельная попытка получит содержательную подсказку. Она используется только как ранее изученная prerequisite и как корректная post-action рубрика.
+## Natural temporal evidence
 
-## Что нельзя показывать до самостоятельной попытки
+The generic save-practice guide is safe before E01 because it names only storage mechanics and natural trace. No special pre-attempt evidence form is required.
 
-Нельзя заранее сообщать:
+Post-action explanation may interpret earlier trace. It cannot manufacture a missing independent action or hidden search mode.
 
-- метод;
-- критерий;
-- какой элемент ситуации считать существенным;
-- правильный источник;
-- правильное число или итог;
-- ошибку;
-- статус;
-- правильное решение.
+Absence of a dedicated pre-labelled field is not automatically `NOT PROVEN` when actual trace + explanation support the choice.
 
-Интерфейсная помощь допустима: открыть вкладку, воспользоваться поиском по странице, ввести выражение в калькулятор, сохранить заметку.
+## Recovery
 
-Также нельзя требовать от ученика ненаблюдаемого знания. Если условие не показывает, использовался ли встроенный поиск при подготовке ответа, допустимый и ожидаемый ответ A1 — «не установлено».
+Step 5 is conditional and skipped by successful learners.
 
-## Neutral temporal evidence
+- recovery 1: Firefox private-window downloaded-file claim;
+- recovery 2: “Пульс” with separate shared instruction-card set;
+- recovery 3: fictional “Орбита-X17” 48-hour claim.
 
-Памятка `04_course/stepik/how-to-save-practice.md` физически встраивается в Stepik **только здесь, в шаге 2 M06-L04**. Более поздние уроки ссылаются на этот Stepik-шаг обычной HTTPS-ссылкой и не встраивают памятку повторно.
+Use only the replacement(s) for affected main situation(s), then return to **step 4 C01**. Old work remains practice; do not rewrite history.
 
-Перед попыткой не используется специальная форма, перечисляющая содержательные действия рубрики. Ученик получает только нейтральную просьбу сохранять реальные решения по мере работы.
+If external source is technically inaccessible and substantive verification cannot be completed, use a new situation rather than another model’s agreement.
 
-Для самостоятельного зачёта принимается естественный ранний trace: сообщения, открытые страницы, расчёты, заметки, версии результата и другие реально появившиеся артефакты.
+## Application
 
-Post-action объяснение может пояснить уже существующий trace. Оно не может создать отсутствующее действие или скрытый поисковый режим задним числом.
+B12 is not satisfied by:
+- “I would use it”;
+- keeping result only in chat;
+- applying a substantial `данных недостаточно` claim as fact;
+- safe refusal with no completed external task.
 
-Отсутствие отдельного заранее названного поля само по себе не означает `NOT PROVEN`, если ранняя работа и post-action объяснение достаточно показывают, что содержательный выбор был сделан учеником до раскрытия рубрики.
+A safe non-application decision can inform the completed artifact: the final note/plan must omit, qualify or otherwise avoid presenting unsupported content as established fact, according to learner’s own checked result.
 
-## Learner-facing recovery
+## Transfer / C03 recovery
 
-Три re-check scenario больше не существуют только в author notes. Их ученические формулировки размещены после C01 в `lesson.md`:
+Main transfer claim: LibreOffice Writer `Ctrl+Shift+S` “always” opens Save As identically on every system.
 
-1. правило Firefox о скачанном файле в приватном окне;
-2. учебная заявка «Пульс» с отдельным обязательным набором карточек;
-3. вымышленное устройство «Орбита-X17» и утверждение о 48 часах работы.
+If content hint or technical inability compromises that attempt, step 10 offers a different technical claim: Windows 11 `Win+V` “always” immediately shows clipboard history without prior enablement.
 
-Ученик повторяет только ту ситуацию, которая была загрязнена. Новый Exercise/Check/Asset ID не создаётся.
+No ready URL or method is supplied. After the new attempt learner returns to step 9.
 
-Author notes сохраняют контрольный ключ, novelty contract и false-PASS red-team.
+## Machine fixtures expected
 
-## Бесплатный Stepik
+- 10 authored learner steps;
+- A01 and nested A02 only in step3;
+- C01 categories absent from steps1–3;
+- A03 only post-action in step7;
+- step5 return target = 4;
+- step10 return target = 9;
+- no author-only answer key in learner HTML;
+- no mandatory second service/account;
+- no Stepik write.
 
-- Артефакты работы ученик хранит у себя.
-- В Stepik используются свободные текстовые ответы после действий.
-- Обязательная загрузка файлов в решение и обязательная ручная проверка преподавателем не используются.
-- Во время Human Pilot наблюдатель проверяет фактические локальные артефакты и natural trace.
-- Публичный маршрут не заявляется как технически защищённая сертификация.
-
-## Ссылки
-
-На Алису AI, GigaChat и заранее заданные материалы learner-facing шаги дают прямые ссылки.
-
-Готовая ссылка на правильный внешний источник **не даётся**, когда самостоятельный поиск/выбор источника является проверяемым действием.
-
-**Quiz не заменяет:** ни одну из трёх самостоятельных проверок, реальное применение или перенос в новую область.
+**Quiz:** cannot replace E01/C01, application, or transfer.  
+**HUMAN/SERVICE:** remain later gates.

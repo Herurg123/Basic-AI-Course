@@ -1,18 +1,34 @@
 # Stepik plan — M06-L02
 
-> Производственный план переноса. Не является публичным ученическим текстом. `M06-L02-A02` — author-only и не публикуется ученику до завершения его действия.
+> Производственный план переноса. Не является публичным ученическим текстом. `M06-L02-A02` остаётся author-only и не входит в learner HTML.
 
-| № | Тип шага | Содержание | Внешнее действие / asset | Проверка |
-|---:|---|---|---|---|
-| 1 | текст | Принцип: арифметика и происхождение входов — разные проверки | — | — |
-| 2 | практика | Самому определить значимое число/условие и последствия ошибки | `M06-L02-A01.md` | `M06-L02-E01` |
-| 3 | практика | Открыть исходные данные, сверить входы, отдельно пересчитать калькулятором | `M06-L02-A01.md` + обычный калькулятор | `M06-L02-E02` |
-| 4 | малое применение | Записать проверенный итог и решение в отдельную учебную заметку | внешняя заметка | B12 PRACTICE |
-| 5 | рубрика | Входы + происхождение + расчёт + статус + решение + след применения | evidence ученика | `M06-L02-C01` |
-| 6 | author-only | Сверка проверяющего с контрольным расчётом после действия ученика | `M06-L02-A02.md` | не показывать до попытки |
-| 7 | текст | BACKUP и допустимая техническая помощь по калькулятору | — | — |
+<!-- learner-render-contract: authored-semantic-v1 -->
 
-**Критически не раскрывать до E02:** ошибочное входное значение, правильный итог, бюджетный вывод.  
-**Quiz допустим:** как дополнительный вопрос о том, почему правильная арифметика не спасает неверные входы.  
-**Quiz не заменяет:** открытие исходных данных, перенос чисел, фактический пересчёт и применение.  
-**PRIMARY/BACKUP:** чат может быть Алиса AI / GigaChat; вход в GigaChat используется только если нужное действие его требует. Основание = исходные данные + отдельный калькулятор, не ответ модели.
+| № | Тип шага | Содержание | Материал / действие | Проверка | Semantic type |
+|---:|---|---|---|---|---|
+| 1 | объяснение | Развести provenance входных значений и арифметику; правильное вычисление не спасает неверные inputs | — | — | EXPLANATION |
+| 2 | supported choice | A01 inline целиком до action completion; learner сам выбирает существенное число/условие и последствия ошибки, без author key | `M06-L02-A01.md` | `M06-L02-E01` | GUIDED_ACTION |
+| 3 | supported numeric verification | Read source data in previous Stepik card → trace each needed input → compare AI inputs → independently calculate with ordinary calculator → status + decision. Calculator = computation only | A01 from previous step + calculator + optional local note | `M06-L02-E02` | GUIDED_ACTION |
+| 4 | small application / safe refusal | Real write of verified usable result + decision in local note. If unsupported/no data, record non-application rather than guess | local note | B12 PRACTICE | GUIDED_ACTION |
+| 5 | post-action check | In Stepik: substantial value, input provenance, separate calculation, status, decision, real application/non-application. Working artifacts stay local | free-answer Stepik | `M06-L02-C01` | CHECK |
+| 6 | author-only evaluation | Контрольный расчёт и ключ проверяющего после learner action; никогда не входит в learner HTML | `M06-L02-A02.md` | авторский ключ | CHECK |
+| 7 | conditional technical support + summary | Calculator UI help allowed; optional chat only for mechanics, not error/value/final decision. Alice / conditional GigaChat. No phantom return | calculator + conditional chat | — | NAVIGATION |
+
+
+## Author-only key
+
+`M06-L02-A02.md` is used only by reviewer/tests after learner action. It must not be in pre-action learner HTML or dependencies that materialize to learner.
+
+## Independence guard
+
+Before E02 do **not** disclose:
+- which input differs;
+- correct numerical total;
+- budget conclusion;
+- ready-made status/decision.
+
+This is supported level-2 practice, so naming the calculator and the two-layer method is allowed. What remains learner-owned is the significant value, actual tracing, calculation, status and decision.
+
+**Quiz:** supplemental only.  
+**Screenshots/files in Stepik:** not required.  
+**PRIMARY/BACKUP:** chat is optional; the ground is source data + independent calculator, not another model response.
