@@ -26,6 +26,13 @@ STEPIC_BLOCK_TAG_RE = re.compile(
 STEPIC_HTML_NORMALIZATION_V1 = "stepik-plain-horizontal-rule-strip-v1"
 STEPIC_HTML_NORMALIZATION_V2 = "stepik-observed-html-canonicalization-v2"
 STEPIC_HTML_NORMALIZATION_V2_LESSONS = frozenset({"M06-L02"})
+PRACTICE_MATERIAL_STYLE = (
+    "border:1px solid #c9d9f3;"
+    "border-left:6px solid #4778b8;"
+    "background:#f4f8ff;"
+    "padding:16px 18px;"
+    "margin:16px 0;"
+)
 
 
 class VerifiedRenderingError(RuntimeError):
@@ -131,6 +138,25 @@ def _drop_h1(markdown_text: str, *, source_path: str) -> tuple[str, str]:
     if not body:
         raise VerifiedRenderingError(f"{source_path}: inline Markdown source пуст после H1")
     return title, body
+
+
+def _practice_material_block(title: str, body: str) -> str:
+    """Формирует единый визуальный контейнер для learner-facing материала практики.
+
+    Материал должен визуально отличаться от инструкции ученику даже после удаления
+    Stepik обычных <hr>. Поэтому граница кодируется самим контейнером: спокойный фон
+    и заметная вертикальная полоса слева. Внутренний Markdown остаётся каноническим
+    и преобразуется общим renderer вместе с остальным шагом.
+    """
+    content = body.strip()
+    if not content:
+        raise VerifiedRenderingError("Inline material body пуст")
+    return (
+        f'<div style="{PRACTICE_MATERIAL_STYLE}">\n\n'
+        f"**Материал для практики: {title}**\n\n"
+        f"{content}\n\n"
+        "</div>"
+    )
 
 
 def _humanize_inline_title(title: str, *, source_path: str) -> str:
@@ -245,8 +271,8 @@ def _render_local_markdown(
                     requirements=requirements,
                     recursion_stack=(*recursion_stack, source_path),
                 )
-                append_blocks.append(f"**Материал: {title}**\n\n{nested}")
-            return f"**{label} (материал ниже)**"
+                append_blocks.append(_practice_material_block(title, nested))
+            return f"**{label} — материал ниже**"
 
         if mode == "confirmed-url":
             url = str(row.get("url") or "")
@@ -279,7 +305,7 @@ def _render_local_markdown(
 
     rewritten = LOCAL_LINK_RE.sub(replace, markdown_text)
     if append_blocks:
-        rewritten = rewritten.rstrip() + "\n\n---\n\n" + "\n\n---\n\n".join(append_blocks)
+        rewritten = rewritten.rstrip() + "\n\n" + "\n\n".join(append_blocks)
     return rewritten
 
 
