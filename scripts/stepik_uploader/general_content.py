@@ -62,6 +62,7 @@ class SourceChunk:
     heading: str | None
     marker_ids: tuple[str, ...]
     atomic_check_group: str | None = None
+    first_heading: str | None = None
 
 
 @dataclass(frozen=True)
@@ -129,6 +130,7 @@ def _flush_chunk(
             heading=pending_headings[-1] if pending_headings else None,
             marker_ids=tuple(dict.fromkeys(marker_ids)),
             atomic_check_group=atomic_check_group,
+            first_heading=pending_headings[0] if pending_headings else None,
         )
     )
 
@@ -209,6 +211,7 @@ def split_source_chunks(markdown_text: str) -> list[SourceChunk]:
             heading=chunk.heading,
             marker_ids=chunk.marker_ids,
             atomic_check_group=chunk.atomic_check_group,
+            first_heading=chunk.first_heading,
         )
         for index, chunk in enumerate(chunks)
     ]
@@ -620,12 +623,15 @@ def compile_lesson_source(
         source = dict(free_answer_source) if block_name == "free-answer" else {}
         headings = tuple(chunk.heading for chunk in span if chunk.heading)
         if render_contract == AUTHORED_SEMANTIC_RENDER_CONTRACT:
+            authored_headings = tuple(
+                chunk.first_heading for chunk in span if chunk.first_heading
+            )
             markdown = _frame_authored_semantic_step(
                 lesson_id=lesson_id,
                 position=position,
                 total=total,
                 source_markdown=source_markdown,
-                headings=headings,
+                headings=authored_headings,
             )
         else:
             if legacy_lesson_title is None:
