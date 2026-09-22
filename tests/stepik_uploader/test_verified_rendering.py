@@ -130,7 +130,7 @@ class VerifiedRenderingTests(unittest.TestCase):
         normalized_html = "\n".join(step.text for step in normalized.rendered_steps)
         self.assertNotRegex(legacy_html, r"(?i)<hr\s*/?>")
         self.assertNotRegex(normalized_html, r"(?i)<hr\s*/?>")
-                        self.assertEqual(
+        self.assertEqual(
             [normalize_stepik_html_v1(step.text).strip() for step in legacy.rendered_steps],
             [step.text for step in normalized.rendered_steps],
         )
