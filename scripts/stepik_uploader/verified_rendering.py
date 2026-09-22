@@ -26,13 +26,6 @@ STEPIC_BLOCK_TAG_RE = re.compile(
 STEPIC_HTML_NORMALIZATION_V1 = "stepik-plain-horizontal-rule-strip-v1"
 STEPIC_HTML_NORMALIZATION_V2 = "stepik-observed-html-canonicalization-v2"
 STEPIC_HTML_NORMALIZATION_V2_LESSONS = frozenset({"M06-L02"})
-PRACTICE_MATERIAL_STYLE = (
-    "border:1px solid #c9d9f3;"
-    "border-left:6px solid #4778b8;"
-    "background:#f4f8ff;"
-    "padding:16px 18px;"
-    "margin:16px 0;"
-)
 
 
 class VerifiedRenderingError(RuntimeError):
@@ -144,18 +137,18 @@ def _practice_material_block(title: str, body: str) -> str:
     """Формирует единый визуальный контейнер для learner-facing материала практики.
 
     Материал должен визуально отличаться от инструкции ученику даже после удаления
-    Stepik обычных <hr>. Поэтому граница кодируется самим контейнером: спокойный фон
-    и заметная вертикальная полоса слева. Внутренний Markdown остаётся каноническим
-    и преобразуется общим renderer вместе с остальным шагом.
+    Stepik обычных <hr>. Для этого используется нативный blockquote, который Stepik
+    поддерживает как разрешённый HTML-блок и может адаптировать под тему интерфейса.
+    Внутренний Markdown остаётся каноническим и преобразуется общим renderer.
     """
     content = body.strip()
     if not content:
         raise VerifiedRenderingError("Inline material body пуст")
     return (
-        f'<div style="{PRACTICE_MATERIAL_STYLE}">\n\n'
+        "<blockquote>\n\n"
         f"**Материал: {title}**\n\n"
         f"{content}\n\n"
-        "</div>"
+        "</blockquote>"
     )
 
 
