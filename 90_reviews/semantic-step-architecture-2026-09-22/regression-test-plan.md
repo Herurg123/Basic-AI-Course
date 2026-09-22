@@ -131,7 +131,7 @@ Batch-level report должен явно подтвердить:
 - M08 = reflection.
 
 ## R21a — final whole-course dual gate
-B7 regression report обязан содержать отдельные coverage records ZERO-LEVEL 148/148 и PEDAGOGUE 148/148 по одному final compiled set. Batch-level PASS не засчитывается вместо final coverage.
+B7 regression report обязан содержать отдельные coverage records ZERO-LEVEL N/N final inventory и PEDAGOGUE N/N final inventory по одному final compiled set. Batch-level PASS не засчитывается вместо final coverage.
 
 ## R22 — release gates remain open
 Никакой unit/integration/model test не может автоматически записать PASS для HUMAN VISUAL, SERVICE, Human Pilot/HUMAN VALIDATION или Wave 0.
