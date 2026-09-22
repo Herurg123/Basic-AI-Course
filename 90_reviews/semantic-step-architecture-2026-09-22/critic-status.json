@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "pr_number": 117,
+  "round": 2,
+  "reviewed_head_sha": "48788afaa2fe8fbdca4ff921c035326ffa8a74cf",
+  "last_report": "critic-round2.md",
+  "open_blockers": 0,
+  "merge_allowed": true,
+  "issues": [],
+  "previous_report": "critic-round1.md",
+  "response": "critic-response.md"
+}
