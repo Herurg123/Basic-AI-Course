@@ -1,0 +1,10 @@
+{
+  "status": "REQUEST_CHANGES",
+  "pr_number": 117,
+  "round": 1,
+  "reviewed_head_sha": "c54562a2b2d45308354544c38f151ef4a5749ef1",
+  "last_report": "critic-round1.md",
+  "open_blockers": 3,
+  "merge_allowed": false,
+  "issues": ["CR2-01", "CR2-02", "CR2-03"]
+}
