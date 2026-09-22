@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from .canonical import ASSET_RE, parse_stepik_plan
+from .canonical import (
+    ASSET_RE,
+    AUTHORED_SEMANTIC_RENDER_CONTRACT,
+    parse_learner_render_contract,
+    parse_stepik_plan,
+)
 
 # Этот compiler формирует learner-facing body каждого Stepik-шага во всех 21 уроках.
 # Любое содержательное изменение файла является глобальным Stepik-impact и должно
@@ -40,6 +45,10 @@ STOPWORDS = {
     "the", "a", "an", "to", "of", "in", "on", "and", "or", "is", "are",
 }
 SCORE_EPS = 1e-12
+PRODUCTION_ID_ONLY_HEADING_RE = re.compile(
+    r"^(?:M\d{2}-L\d{2}(?:-[AECS]\d{2})?|[AECS]\d{2})$",
+    re.IGNORECASE,
+)
 
 
 class GeneralContentCompileError(RuntimeError):
@@ -531,6 +540,31 @@ def _frame_step_card(
 
 
 
+def _frame_authored_semantic_step(
+    *,
+    lesson_id: str,
+    position: int,
+    total: int,
+    source_markdown: str,
+    headings: tuple[str, ...],
+) -> str:
+    if not headings:
+        raise GeneralContentCompileError(
+            f"{lesson_id}: authored-semantic-v1 step {position} не имеет authored H2/H3 heading"
+        )
+    title = headings[0].strip()
+    if not title or PRODUCTION_ID_ONLY_HEADING_RE.fullmatch(title):
+        raise GeneralContentCompileError(
+            f"{lesson_id}: authored-semantic-v1 step {position} имеет недопустимый authored title {title!r}"
+        )
+
+    body = _strip_leading_source_heading(source_markdown, title)
+    parts = [f"## Шаг {position} из {total}. {title}"]
+    if body:
+        parts.append(body)
+    return "\n\n".join(parts).strip()
+
+
 def _block_name(row: dict[str, Any]) -> str:
     logical = str(row.get("logical_type") or "").lower()
     if any(hint in logical for hint in FREE_ANSWER_HINTS):
@@ -558,6 +592,7 @@ def compile_lesson_source(
     lesson_path, plan_path = _lesson_paths(repo_root, lesson_id)
     lesson_text = _read(lesson_path)
     plan_text = _read(plan_path)
+    render_contract = parse_learner_render_contract(plan_text, path=plan_path)
     rows = [
         row
         for row in parse_stepik_plan(plan_text, lesson_id=lesson_id, path=plan_path)
@@ -574,7 +609,7 @@ def compile_lesson_source(
     )
 
     compiled: list[CompiledSourceStep] = []
-    title = _lesson_title(lesson_text)
+    legacy_lesson_title = _lesson_title(lesson_text) if render_contract is None else None
     total = len(rows)
     for position, (row, span) in enumerate(zip(rows, spans, strict=True), start=1):
         source_markdown = "\n\n".join(chunk.markdown for chunk in span).strip()
@@ -583,15 +618,28 @@ def compile_lesson_source(
         block_name = _block_name(row)
         source = dict(free_answer_source) if block_name == "free-answer" else {}
         headings = tuple(chunk.heading for chunk in span if chunk.heading)
-        markdown = _frame_step_card(
-            lesson_title=title,
-            position=position,
-            total=total,
-            row=row,
-            block_name=block_name,
-            source_markdown=source_markdown,
-            headings=headings,
-        )
+        if render_contract == AUTHORED_SEMANTIC_RENDER_CONTRACT:
+            markdown = _frame_authored_semantic_step(
+                lesson_id=lesson_id,
+                position=position,
+                total=total,
+                source_markdown=source_markdown,
+                headings=headings,
+            )
+        else:
+            if legacy_lesson_title is None:
+                raise GeneralContentCompileError(
+                    f"{lesson_id}: неизвестный learner render contract {render_contract!r}"
+                )
+            markdown = _frame_step_card(
+                lesson_title=legacy_lesson_title,
+                position=position,
+                total=total,
+                row=row,
+                block_name=block_name,
+                source_markdown=source_markdown,
+                headings=headings,
+            )
         compiled.append(
             CompiledSourceStep(
                 position=position,
