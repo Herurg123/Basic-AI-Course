@@ -23,6 +23,7 @@
 - [implementation-backlog.md](implementation-backlog.md) — 22 production tasks.
 - [production-batches.md](production-batches.md) — 8 безопасных batches B0–B7.
 - [regression-test-plan.md](regression-test-plan.md) — machine + semantic regression contract.
+- [layer-change-matrix.md](layer-change-matrix.md) — где нужны renderer/source/plan/assets/local/systemic changes.
 - [risk-calibrations.md](risk-calibrations.md) — спорные зоны, которые нельзя механически «исправлять».
 - [PRODUCTION-HANDOFF.md](PRODUCTION-HANDOFF.md) — полный handoff следующему этапу.
 - [production-prompt-sol-high.md](production-prompt-sol-high.md) — самодостаточный prompt SOL/HIGH.
