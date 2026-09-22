@@ -32,14 +32,14 @@
 ## Главные решения
 
 1. Старый universal frame не переписывается другим universal frame.
-2. Новый compiler contract вводится opt-in как `authored-semantic-v1`.
-3. Legacy output сохраняется для ещё не мигрированных уроков.
-4. Уроки мигрируются batches, каждый с final HTML + critic + ZERO-LEVEL + PEDAGOGUE audit.
-5. Stepik write откладывается до whole-course integration B7.
-6. Все 21 lessons должны закончить миграцию в authored mode; затем legacy code удаляется.
-7. Автотесты ловят структуру, но не заменяют semantic zero-level reading.
+2. Все 21 lessons завершили миграцию в exact `authored-semantic-v1`.
+3. Production compiler больше не имеет legacy fallback: отсутствие authored contract = compile error.
+4. Текущий канон: 150 structural rows, из них 2 author-only и **148 learner-facing steps**.
+5. `Semantic type` обязателен для всех production rows; learner block type определяется им, а не угадывается по словам в logical type.
+6. Stepik write разрешается только после whole-course B7 integration/audits и merge в `main`.
+7. Автотесты ловят структуру, но не заменяют 100% semantic ZERO-LEVEL и PEDAGOGUE reading финального курса.
 8. M07-L02 остаётся единственным F1; M07-L01 rehearsal; M08 reflection.
-9. HUMAN VISUAL, SERVICE, Human Pilot и Wave 0 не закрываются Шагом 2.
+9. HUMAN VISUAL, SERVICE, Human Pilot и Wave 0 не закрываются compiler migration или B7 source PASS.
 
 ## Step 2 gate
 
