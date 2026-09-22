@@ -7,7 +7,7 @@
 | № | Тип шага | Содержание | Материал / действие | Проверка | Semantic type |
 |---:|---|---|---|---|---|
 | 1 | объяснение / safety | Надёжность основания соотносится с последствиями ошибки; `данных недостаточно` допустим; реальные high-stakes cases исключены | — | — | EXPLANATION |
-| 2 | supported practice 1 | Inline only card1. Learner сам выбирает substantial claim, known/missing ground, status and next action. No card2 spill | `M06-L03-A01-part1.md` | `M06-L03-E01` | GUIDED_ACTION |
+| 2 | supported practice 1 | Inline only card1. Learner сам выбирает substantial claim, known/missing ground, status and next action. No card2 spill | `M06-L03-A01.md` | `M06-L03-E01` | GUIDED_ACTION |
 | 3 | объяснение | `not disproven` ≠ `confirmed`; insufficient data is a distinct honest status | — | — | EXPLANATION |
 | 4 | supported practice 2 | Second scenario is authored directly in this step so step2 does not spill it; learner evaluates stronger consequences and chooses safe next step without technical diagnosis | authored scenario in `lesson.md` | `M06-L03-E02` | GUIDED_ACTION |
 | 5 | post-action check | In Stepik for both cards: claim, known/missing, status, next action, causal explanation. Cards/notes remain local | free-answer Stepik | `M06-L03-C01` | CHECK |
