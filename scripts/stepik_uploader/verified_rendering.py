@@ -265,7 +265,7 @@ def _render_local_markdown(
                     recursion_stack=(*recursion_stack, source_path),
                 )
                 append_blocks.append(_practice_material_block(title, nested))
-            return f"**{label} — материал ниже**"
+            return f"**{label} (материал ниже)**"
 
         if mode == "confirmed-url":
             url = str(row.get("url") or "")
