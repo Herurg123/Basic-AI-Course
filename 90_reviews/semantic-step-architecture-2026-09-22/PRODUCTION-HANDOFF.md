@@ -119,10 +119,13 @@ Whole-course integration, remove legacy, guarded private release from accepted m
 Production не заменяет его новым универсальным шаблоном.
 
 B0 вводит `authored-semantic-v1` opt-in:
+- exact marker: `<!-- learner-render-contract: authored-semantic-v1 -->` в `stepik-plan.md`;
+- каждый opt-in row получает non-visible колонку `Semantic type` с одним из 10 enum Semantic Step Contract;
 - unmigrated lesson сохраняет legacy output;
 - migrated lesson получает minimal deterministic framing;
+- title берётся только из первого authored H2/H3 semantic span; отсутствие heading = compile error;
 - purpose/place/action/completion/save/navigation не генерируются по regex;
-- semantic type не становится обязательным visible heading.
+- semantic type используется для validation, но не становится visible heading и не генерирует learner sentences.
 
 При миграции lesson:
 - source содержит нужный learner meaning;
@@ -239,10 +242,12 @@ Stop affected batch and report owner only if:
 Production stage не завершён, пока:
 - B0–B7 PASS;
 - 21/21 lessons authored-semantic-v1;
+- 148/148 plan rows имеют валидный `Semantic type`;
 - legacy universal frame removed;
 - final whole-course HTML compiled;
 - all relevant findings have disposition and acceptance evidence;
-- final learner-content PRs passed critic + ZERO-LEVEL + PEDAGOGUE;
+- каждый learner-content PR прошёл critic + scoped ZERO-LEVEL + scoped PEDAGOGUE;
+- B7 отдельно прошёл ordinary critic + **full ZERO-LEVEL 148/148** + **full PEDAGOGUE 148/148** по final compiled HTML;
 - final guarded private release reconciled if production command includes deployment;
 - open HUMAN VISUAL/SERVICE/Human Pilot/Wave 0 states reported honestly.
 
