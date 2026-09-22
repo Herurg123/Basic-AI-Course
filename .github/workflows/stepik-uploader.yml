@@ -69,7 +69,6 @@ jobs:
           --repo-root .
           --report-dir artifacts/stepik-uploader-ci
 
-
       - name: Сформировать русскую сводку проверки
         if: always()
         env:

@@ -286,8 +286,8 @@ def build_structural_manifest(repo_root: Path, *, source_sha: str = "unknown", s
                     "f1_sensitive": lesson_id == "M07-L02",
                     "write_ready": False,
                     "write_blocker": "requires-live-write-gates",
-                    # Structural manifest v1.1 остаётся совместимым; semantic role
-                    # используется production compiler/tests и не меняет legacy manifest schema.
+                    # Structural manifest v1.1 остаётся generic structural view.
+                    # Production authored-only contract валидируется compiler/integration gates.
                     "steps": [
                         {key: value for key, value in row.items() if key != "semantic_type"}
                         for row in rows
