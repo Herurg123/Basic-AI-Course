@@ -98,3 +98,11 @@
 - PEDAGOGUE AUDIT: PASS.
 - В PR явно зафиксировано, что P1 не закрывает P2-редактуру неудачных инструкций внутри материалов.
 - Следующее действие после merge: проверить scope PENDING и private Stepik rendering; HUMAN VISUAL COMPUTER+PHONE остаётся внешним gate.
+
+
+### CP2-0 — старт P2 content repair
+- P1 merged в `main`: `4bdef604fda7b5014377419afd475a284faa552f`.
+- После merge глобальный renderer корректно пометил все 21 урока как PENDING с причиной `global-learner-renderer`.
+- Private release ещё не выполнен: текущий GitHub connector не предоставляет `workflow_dispatch`; визуальный HUMAN CHECK в реальном Stepik остаётся перед merge P2.
+- Ветка P2: `production/human-review-content-repair-2026-09-23`.
+- Цель P2: исправить human-review формулировки и общекурсовые семейства UX-дефектов без перестройки recovery-навигации (она остаётся P3).
