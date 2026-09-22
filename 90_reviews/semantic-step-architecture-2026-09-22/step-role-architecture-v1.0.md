@@ -62,7 +62,11 @@
 1. **legacy-frame** — существующий результат для ещё не мигрированного урока;
 2. **authored-semantic-v1** — новый режим, включаемый явно на уровне урока после исправления его source/plan.
 
-Режим не должен определяться эвристикой текста. В `stepik-plan.md` используется одна не learner-facing директива уровня урока, например `learner-render-contract: authored-semantic-v1`. Точное машинное представление исполнитель может выбрать в существующем parser style, но оно должно быть единым, валидируемым и не появляться в HTML.
+Режим не должен определяться эвристикой текста. Канонический opt-in синтаксис фиксирован:
+
+`<!-- learner-render-contract: authored-semantic-v1 -->`
+
+Комментарий размещается в `stepik-plan.md` после H1/вводного production note и до таблицы шагов. Допускается ровно одно значение `authored-semantic-v1`. Отсутствие директивы означает временный `legacy-frame` только на период миграции. Директива не попадает в learner HTML. Другой параллельный файл/manifest для render mode не создаётся.
 
 ### 4.2. Что делает authored-semantic-v1
 
@@ -83,13 +87,32 @@ Compiler в новом режиме:
 
 ### 4.3. Title contract
 
-Для каждого мигрированного шага title должен описывать текущую роль, а не обещать весь урок. Предпочтение:
+Для каждого мигрированного шага title должен описывать текущую роль, а не обещать весь урок.
 
-1. authored heading текущего semantic span;
-2. явный production title для шага, если source heading отсутствует;
-3. lesson title только если он действительно описывает первый шаг.
+В `authored-semantic-v1` title берётся **только из первого authored H2/H3 heading semantic span в `lesson.md`**. Compiler формирует `Шаг N из M. <heading>` и не использует lesson title или сгенерированный fallback. Если span не имеет authored heading, compile завершается ошибкой и lesson не может быть opt-in до исправления source.
 
-Нельзя автоматически считать lesson title корректным title первого шага.
+Отдельное поле production title не вводится: это исключает второй канонический источник названия.
+
+## 4.4. Каноническая semantic-role metadata
+
+Для каждого row мигрированного `stepik-plan.md` добавляется отдельная non-visible колонка **`Semantic type`**.
+
+Допустимы только значения:
+
+- `EXPLANATION`;
+- `DEMONSTRATION`;
+- `GUIDED_ACTION`;
+- `INDEPENDENT_PRACTICE`;
+- `CHECK`;
+- `REFLECTION`;
+- `NAVIGATION`;
+- `TECHNICAL_SUPPORT`;
+- `RECOVERY`;
+- `COMPOSITE`.
+
+Существующая колонка `Тип шага` не используется как semantic-role enum и может сохранять production/block смысл до отдельного рефакторинга. Compiler parser обязан валидировать `Semantic type` для каждого row lesson с `authored-semantic-v1`; пропуск/неизвестное значение делает compile fail.
+
+Semantic type используется для validation, fixtures и audit reports. Он **не генерирует learner-facing предложения или обязательные секции**. COMPOSITE требует адресного обоснования в source/plan и не является fallback для неясной границы.
 
 ## 5. Границы шага
 
