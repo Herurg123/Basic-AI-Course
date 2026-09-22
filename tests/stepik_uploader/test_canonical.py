@@ -109,6 +109,7 @@ class CanonicalTests(unittest.TestCase):
         rows = parse_stepik_plan(plan, lesson_id="M00-L01", path=Path("plan.md"))
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["logical_type"], "текст")
+        self.assertIsNone(rows[0]["semantic_type"])
 
     def test_authored_semantic_plan_accepts_exact_marker_and_valid_types(self) -> None:
         plan = (
@@ -125,6 +126,10 @@ class CanonicalTests(unittest.TestCase):
         )
         rows = parse_stepik_plan(plan, lesson_id="M00-L01", path=Path("plan.md"))
         self.assertEqual([row["position"] for row in rows], [1, 2])
+        self.assertEqual(
+            [row["semantic_type"] for row in rows],
+            ["EXPLANATION", "GUIDED_ACTION"],
+        )
 
     def test_authored_semantic_marker_must_be_exact(self) -> None:
         malformed = (
