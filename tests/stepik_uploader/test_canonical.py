@@ -9,6 +9,7 @@ import jsonschema
 
 from scripts.stepik_uploader.canonical import (
     AUTHORED_SEMANTIC_RENDER_CONTRACT,
+    SEMANTIC_TYPES,
     CanonicalBuildError,
     build_structural_manifest,
     parse_learner_render_contract,
@@ -110,6 +111,23 @@ class CanonicalTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["logical_type"], "текст")
         self.assertIsNone(rows[0]["semantic_type"])
+
+    def test_semantic_type_enum_is_exact_architecture_contract(self) -> None:
+        self.assertEqual(
+            SEMANTIC_TYPES,
+            {
+                "EXPLANATION",
+                "DEMONSTRATION",
+                "GUIDED_ACTION",
+                "INDEPENDENT_PRACTICE",
+                "CHECK",
+                "REFLECTION",
+                "NAVIGATION",
+                "TECHNICAL_SUPPORT",
+                "RECOVERY",
+                "COMPOSITE",
+            },
+        )
 
     def test_authored_semantic_plan_accepts_exact_marker_and_valid_types(self) -> None:
         plan = (
