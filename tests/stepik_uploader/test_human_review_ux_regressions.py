@@ -169,7 +169,7 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
         m06_explain = _section(m06, "Сначала поймите, на что на самом деле опирается ответ ИИ")
         m06_practice = _section(m06, "Определите, на что можно опереться в трёх примерах")
         self.assertIn("слово **«основание»** означает", m06_explain)
-        self.assertIn("ничего отправлять ИИ не нужно", m06_explain.lower())
+        self.assertIn("ничего отправлять ии не нужно", m06_explain.lower())
         self.assertIn("ИИ открывать не нужно", m06_practice)
         self.assertIn("не проверяете сами факты", m06_practice)
 
