@@ -18,6 +18,10 @@ NEW_STEPS = [
     RenderedStep(1, "text", "<p>new-1</p>", {}, ("lesson.md",)),
     RenderedStep(2, "text", "<p>new-2</p>", {}, ("lesson.md",)),
 ]
+GROWN_STEPS = [
+    *NEW_STEPS,
+    RenderedStep(3, "free-answer", "<p>new-3</p>", {"manual_scoring": False}, ("lesson.md",)),
+]
 
 
 def lesson_from(steps: list[RenderedStep]) -> dict:
@@ -66,8 +70,12 @@ def baseline(steps: list[RenderedStep]) -> dict:
     }
 
 
-def recorder_for(store: MemoryHistoryStore) -> DeploymentRecorder:
-    desired = compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=NEW_STEPS)
+def recorder_for(
+    store: MemoryHistoryStore,
+    *,
+    desired_steps: list[RenderedStep] = NEW_STEPS,
+) -> DeploymentRecorder:
+    desired = compiled_lesson_fingerprint(expected_title=TITLE, expected_steps=desired_steps)
     old = baseline(OLD_STEPS)["applied_fingerprint"]
     event_id = stable_event_id(
         course_id=299189,
@@ -109,6 +117,8 @@ class FakeClient:
         self.fail_update_number = fail_update_number
         self.fail_readback_id = fail_readback_id
         self.update_count = 0
+        self.create_count = 0
+        self.next_id = max((100 + step.position for step in steps), default=100) + 1
         self.trace: list[str] = []
 
     def _lesson(self) -> dict:
@@ -123,6 +133,20 @@ class FakeClient:
         item["step_source"]["position"] = position
         item["step_source"]["block"] = copy.deepcopy(block)
         return {"step-sources": [copy.deepcopy(item["step_source"])]}
+
+    def create_step_source(self, *, lesson_id: int, position: int, block: dict) -> dict:
+        self.create_count += 1
+        self.trace.append(f"create:{position}")
+        step_id = self.next_id
+        self.next_id += 1
+        source = {
+            "id": step_id,
+            "lesson": lesson_id,
+            "position": position,
+            "block": copy.deepcopy(block),
+        }
+        self._lesson()["steps"].append({"id": step_id, "step_source": source})
+        return {"step-sources": [copy.deepcopy(source)]}
 
     def fetch_one(self, resource: str, object_id: int) -> dict:
         self.trace.append(f"read:{object_id}")
@@ -181,6 +205,48 @@ class WriterHistoryTests(unittest.TestCase):
         self.assertEqual(summary["write_intents"], 2)
         self.assertEqual(summary["writes_started"], 2)
         self.assertTrue(summary["final_readback_confirmed"])
+
+    def test_topology_growth_post_is_wal_guarded_and_read_back(self) -> None:
+        store = MemoryHistoryStore()
+        client = FakeClient(OLD_STEPS)
+        recorder = TraceRecorder(
+            recorder_for(store, desired_steps=GROWN_STEPS),
+            client.trace,
+        )
+        result = execute_content_sync_one(
+            client,
+            client.inspect_course(299189),
+            canonical_id="M02-L01",
+            expected_steps=GROWN_STEPS,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+            baseline=baseline(OLD_STEPS),
+            source_sha=SHA,
+            recorder=recorder,
+        )
+
+        self.assertTrue(result.verified)
+        operation_id = "step-create-0003"
+        self.assertLess(
+            client.trace.index(f"intent:{operation_id}"),
+            client.trace.index(f"dispatch:{operation_id}"),
+        )
+        self.assertLess(
+            client.trace.index(f"dispatch:{operation_id}"),
+            client.trace.index("create:3"),
+        )
+        created_id = result.final_step_ids[-1]
+        self.assertLess(
+            client.trace.index("create:3"),
+            client.trace.index(f"read:{created_id}"),
+        )
+        summary = summarize_event(store.load(recorder.inner.identity.event_id))
+        self.assertEqual(summary["write_intents"], 3)
+        self.assertEqual(summary["writes_started"], 3)
+        self.assertEqual(summary["confirmed_operation_count"], 3)
+        self.assertTrue(summary["final_readback_confirmed"])
+        self.assertEqual(len(result.final_step_ids), 3)
 
     def test_partial_multi_step_failure_preserves_confirmed_prefix_without_final_confirmation(self) -> None:
         store = MemoryHistoryStore()
