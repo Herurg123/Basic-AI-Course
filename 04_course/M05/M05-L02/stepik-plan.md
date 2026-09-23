@@ -16,8 +16,8 @@
 | 8 | real edit existing image | Continue E02: use exact saved source, perform recorded correction, save source+edited result. New generation from scratch does not count; technical failure is not imaginary evidence | existing E01 source + live edit function | продолжение `M05-L02-E02` | INDEPENDENT_PRACTICE |
 | 9 | post-action C02 | Open both actual versions locally; in Stepik short text: mismatch, correction chosen before help, observed change, why edited version fits better. No mandatory image upload | local source+edited image + free-answer Stepik | `M05-L02-C02` | CHECK |
 | 10 | conditional recovery — source first | Only if contamination / no meaningful mismatch / technically unexecutable main attempt. Before future purpose is shown, learner independently generates and saves a new wide 16:9 book-exchange header source. No step11 purpose visible here | new safe live source authored in `lesson.md` | recovery for `M05-L02-C02` | RECOVERY |
-| 11 | conditional recovery — purpose/edit | Reveal different use only after recovery source exists: small square schedule icon. Learner records own correction, then may use technical help, really edits same recovery source, saves both, returns to step9. No named correct edit | recovery source + [return to C02](https://stepik.org/lesson/2591725/step/9) | repeat `M05-L02-C02` | RECOVERY |
-| 12 | optional consolidation + transition | A02 inline only after actions; optional local form, not a new exam and not a pre-action recipe. Summarize generation→edit cycle; SERVICE/live-account gate remains external | `M05-L02-A02.md` | — | REFLECTION |
+| 11 | conditional recovery — purpose/edit | Reveal different use only after recovery source exists: small square schedule icon. Learner records own correction, then may use technical help, really edits same recovery source, saves both. После работы идти только вперёд; старый C02 не редактировать | recovery source + natural trace | recovery evidence через следующий self-review | RECOVERY |
+| 12 | post-recovery reflection + consolidation | Если recovery использовалась, **после** неё локально разобрать mismatch, own correction before help, observed edit и fit to new purpose; successful learner этот фрагмент пропускает. Затем A02 inline optional local form и общий generation→edit итог | natural trace + `M05-L02-A02.md` | — | REFLECTION |
 
 ## Что именно показывает техническая проба
 
@@ -47,7 +47,7 @@ Recovery is split across steps 10–11 to preserve order:
 3. learner chooses correction;
 4. technical help allowed only after own choice;
 5. real edit;
-6. return to C02.
+6. move forward to a separate post-recovery self-review; the old C02 is never revisited.
 
 The recovery source is a wide multi-object book-exchange header; the later use is a small square schedule icon. This makes a substantive adaptation necessary without naming a single correct edit: crop/recomposition/simplification/scale/background handling can be reasonable depending on actual source and available service.
 
