@@ -110,6 +110,7 @@ class VerifiedRenderingTests(unittest.TestCase):
                 self.assertNotIn("../../../", step.text)
                 self.assertNotIn("../../stepik/", step.text)
                 self.assertNotRegex(step.text, r"(?i)<hr\s*/?>")
+                self.assertNotIn("STEPIK_INLINE_MATERIAL_", step.text)
         self.assertEqual(total_steps, 148)
 
     def test_m02_l01_material_card_does_not_depend_on_horizontal_rule(self) -> None:
