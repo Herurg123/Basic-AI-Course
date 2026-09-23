@@ -110,6 +110,7 @@ class VerifiedRenderingTests(unittest.TestCase):
                 self.assertNotIn("../../../", step.text)
                 self.assertNotIn("../../stepik/", step.text)
                 self.assertNotRegex(step.text, r"(?i)<hr\s*/?>")
+                self.assertNotIn("STEPIK_INLINE_MATERIAL_", step.text)
         self.assertEqual(total_steps, 148)
 
     def test_m02_l01_material_card_does_not_depend_on_horizontal_rule(self) -> None:
@@ -182,7 +183,8 @@ class VerifiedRenderingTests(unittest.TestCase):
             asset_report=self.asset_report,
         )
         step2 = plan.rendered_steps[1].text
-        self.assertIn("<p>В самой карточке находятся данные, расчёт и задание.", step2)
+        self.assertIn("<p>В самой карточке находятся <strong>исходные данные и подготовленный расчёт ИИ</strong>.", step2)
+        self.assertLess(step2.index("</blockquote>"), step2.index("После чтения самостоятельно выберите"))
         self.assertIn("<strong>Материал: Исходные данные и подготовленный расчёт</strong>", step2)
         self.assertIn("<blockquote>", step2)
         self.assertIn("</blockquote>", step2)
@@ -248,17 +250,16 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertIn("<strong>Материал: Картинка для вечера настольных игр</strong>", step2)
         self.assertIn("<blockquote>", step2)
         self.assertIn("</blockquote>", step2)
-        self.assertIn("Перед просмотром готовых вариантов", step2)
+        self.assertIn("до просмотра готовых вариантов", step2.lower())
         self.assertLess(
             step2.index("<blockquote>"),
-            step2.index("Перед просмотром готовых вариантов"),
+            step2.lower().index("после чтения"),
         )
-        self.assertLess(
-            step2.index("Перед просмотром готовых вариантов"),
-            step2.index("</blockquote>"),
-        )
+        material_html = step2[step2.index("<blockquote>"):step2.index("</blockquote>")]
+        self.assertNotIn("учебной заметке", material_html)
+        self.assertNotIn("признака", material_html)
 
-    def test_inline_markdown_keeps_instruction_then_appends_material_block(self) -> None:
+    def test_inline_markdown_is_placed_immediately_after_reference_paragraph(self) -> None:
         plan = build_rendering_plan(
             repo_root=self.repo_root,
             lesson_id="M01-L01",
@@ -267,13 +268,13 @@ class VerifiedRenderingTests(unittest.TestCase):
         )
         step2 = plan.rendered_steps[1].text
         self.assertIn("мини-задачу", step2)
-        self.assertIn("материал ниже", step2)
         self.assertIn("<strong>Материал: Короткое напоминание о встрече</strong>", step2)
         self.assertIn("<blockquote>", step2)
         self.assertIn("</blockquote>", step2)
         self.assertNotIn("M01-L01-A01 —", step2)
         self.assertIn("18:30", step2)
-        self.assertLess(step2.index("материал ниже"), step2.index("Материал:"))
+        self.assertLess(step2.index("Материал:"), step2.index("После чтения"))
+        self.assertNotIn("STEPIK_INLINE_MATERIAL_", step2)
 
     def test_nested_m06_dependency_is_recursively_inlined_without_repo_link(self) -> None:
         plan = build_rendering_plan(
