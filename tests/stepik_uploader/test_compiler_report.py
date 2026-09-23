@@ -15,9 +15,9 @@ class CompilerReportTests(unittest.TestCase):
     def test_real_course_report_matches_closed_source_compiler_gate(self) -> None:
         summary = self.report["summary"]
         self.assertEqual(summary["lessons"], 21)
-        self.assertEqual(summary["structural_plan_rows"], 150)
+        self.assertEqual(summary["structural_plan_rows"], 152)
         self.assertEqual(summary["author_only_rows_excluded"], 2)
-        self.assertEqual(summary["compiled_learner_steps"], 148)
+        self.assertEqual(summary["compiled_learner_steps"], 150)
         self.assertEqual(len(self.report["lessons"]), 21)
         self.assertEqual(
             {item["canonical_id"] for item in self.report["lessons"]},
