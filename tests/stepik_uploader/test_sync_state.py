@@ -87,7 +87,7 @@ class SyncStateTests(unittest.TestCase):
         self.assertEqual(result.status, "DRIFT_BLOCKED")
         self.assertFalse(result.write_allowed)
 
-    def test_step_count_change_is_structural_and_blocked(self) -> None:
+    def test_append_only_step_count_growth_is_update_required(self) -> None:
         old = [compiled("<p>old</p>")]
         new = [compiled("<p>old</p>"), compiled("<p>second</p>", position=2)]
         result = assess_sync(
@@ -97,7 +97,27 @@ class SyncStateTests(unittest.TestCase):
             expected_steps=new,
             baseline=baseline(old),
         )
+        self.assertEqual(result.status, "UPDATE_REQUIRED")
+        self.assertTrue(result.write_allowed)
+        self.assertEqual(result.changed_step_positions, (2,))
+        self.assertIn("append-only", result.reasons[0])
+
+    def test_step_count_shrink_remains_structural_and_blocked(self) -> None:
+        old = [
+            compiled("<p>old</p>"),
+            compiled("<p>second</p>", position=2),
+        ]
+        new = [compiled("<p>old</p>")]
+        result = assess_sync(
+            canonical_id="M02-L01",
+            live_lesson=live_lesson(old),
+            expected_title="M02-L01 — Lesson",
+            expected_steps=new,
+            baseline=baseline(old),
+        )
         self.assertEqual(result.status, "STRUCTURAL_UPDATE_BLOCKED")
+        self.assertFalse(result.write_allowed)
+        self.assertIn("DELETE/reorder", result.reasons[0])
 
     def test_baseline_proven_title_change_is_update_required(self) -> None:
         old = [compiled("<p>old</p>")]
