@@ -51,6 +51,17 @@ class LinearRecoveryRouteTests(unittest.TestCase):
                     ),
                 )
 
+    def test_recovery_attempts_do_not_restate_the_content_route_before_action(self) -> None:
+        m04_l02 = self._steps("M04-L02")[5].markdown
+        self.assertNotIn("До любой передачи внешнему ИИ самостоятельно решите", m04_l02)
+        self.assertNotIn("Передавайте только уже подготовленный допустимый вариант", m04_l02)
+        self.assertIn("Курс не подсказывает, что именно передавать", m04_l02)
+
+        m04_l03 = self._steps("M04-L03")[5].markdown
+        self.assertNotIn("Снова пройдите весь самостоятельный цикл", m04_l03)
+        self.assertNotIn("сами выберите существенное утверждение и основание для проверки", m04_l03)
+        self.assertIn("Курс не задаёт вам порядок действий", m04_l03)
+
     def test_only_two_lessons_grow_to_add_physical_post_recovery_steps(self) -> None:
         self.assertEqual(len(self._steps("M04-L03")), 7)
         self.assertEqual(len(self._steps("M06-L04")), 11)
