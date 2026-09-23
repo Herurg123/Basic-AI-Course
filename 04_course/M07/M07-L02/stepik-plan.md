@@ -13,8 +13,8 @@
 | 5 | actual completion/application | Learner actually finishes own safe task and applies usable result. Intent/chat-only/refusal alone does not finish F1 | final artifact / natural trace | обязательная часть F1 | INDEPENDENT_PRACTICE |
 | 6 | post-action check/evidence | A03 inline **only after work**. Stepik response covers completed task/application, pre-evaluation fit image supported by earlier trace, own evaluation of first/intermediate version, other key decisions, verification/privacy if applicable, help received | `M07-L02-A03.md` + free-answer Stepik | `M07-L02-C01` | CHECK |
 | 7 | author-only evaluation | A02 applies to natural trace + A03 only after attempt; public learner HTML never receives author rubric | `M07-L02-A02.md` | PASS / NOT PROVEN / PRACTICE | CHECK |
-| 8 | conditional recovery | Only contamination or genuinely NOT PROVEN key action. Learner chooses another own new real task; no ready alternate case. Complete+apply, then return to learner step6 C01. Successful attempt skips | own new task | repeat `M07-L02-C01` | RECOVERY |
-| 9 | completion | After PASS state that F1 is complete; M08 reflection only, no second exam/evidence | — | — | NAVIGATION |
+| 8 | conditional recovery | Only contamination or genuinely NOT PROVEN key action. Learner chooses another own new real task; no ready alternate case. Complete+apply and move only forward; old learner C01 is never revisited. Successful attempt skips | own new task + natural trace | recovery evidence through next self-review | RECOVERY |
+| 9 | post-recovery reflection + completion | If recovery was used, **after** it locally analyze completed task/application, earlier fit image, own evaluation/decision, other key choices and relevant verification/privacy/help. Successful learner skips this fragment. Then state F1 complete; M08 reflection only, no second exam/evidence | natural trace / ordinary study note | — | REFLECTION |
 
 ## Temporal evidence / SEM-117
 
@@ -35,7 +35,7 @@ Distinguish:
 
 Missing a special pre-labelled field is **not** automatically NOT PROVEN.
 
-Recovery never gives a ready exam case, method, source or next step. Learner completes and applies the new task, then returns to learner step 6. Successful learners never repeat.
+Recovery never gives a ready exam case, method, source or next step. Learner completes and applies the new task, then moves forward to learner step 8, whose first fragment is a post-recovery self-review. The old free-answer is never revisited. Successful learners never repeat.
 
 ## Free Stepik / author rubric
 
