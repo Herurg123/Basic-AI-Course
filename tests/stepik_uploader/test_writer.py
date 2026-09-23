@@ -314,7 +314,7 @@ class WriterTests(unittest.TestCase):
         }
         before_updates = client.update_calls
         before_creates = client.create_calls
-        with self.assertRaisesRegex(ContentWriteError, "не удаляет steps"):
+        with self.assertRaisesRegex(ContentWriteError, "STRUCTURAL_UPDATE_BLOCKED"):
             execute_content_sync_one(
                 client,
                 client.inspect_course(299189),
