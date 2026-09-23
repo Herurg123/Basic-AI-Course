@@ -26,6 +26,7 @@ STEPIC_BLOCK_TAG_RE = re.compile(
 STEPIC_HTML_NORMALIZATION_V1 = "stepik-plain-horizontal-rule-strip-v1"
 STEPIC_HTML_NORMALIZATION_V2 = "stepik-observed-html-canonicalization-v2"
 STEPIC_HTML_NORMALIZATION_V2_LESSONS = frozenset({"M06-L02"})
+INLINE_MATERIAL_TOKEN_PREFIX = "STEPIK_INLINE_MATERIAL_"
 
 
 class VerifiedRenderingError(RuntimeError):
@@ -152,6 +153,39 @@ def _practice_material_block(title: str, body: str) -> str:
     )
 
 
+def _inject_inline_material_blocks(html: str, placements: dict[str, str]) -> str:
+    """Insert rendered inline materials immediately after the paragraph/list item that names them."""
+    rendered = html
+    for token, block_markdown in reversed(list(placements.items())):
+        block_html = markdown_to_html(block_markdown).strip()
+        token_re = re.escape(token)
+        container_match = None
+        for tag in ("p", "li"):
+            pattern = re.compile(
+                rf"<{tag}>(?:(?!</{tag}>).)*{token_re}(?:(?!</{tag}>).)*</{tag}>",
+                re.IGNORECASE | re.DOTALL,
+            )
+            container_match = pattern.search(rendered)
+            if container_match is not None:
+                break
+        if container_match is None:
+            if token not in rendered:
+                raise VerifiedRenderingError(f"Inline material placement token потерян: {token}")
+            rendered = rendered.replace(token, block_html, 1)
+            continue
+        container = container_match.group(0).replace(token, "")
+        rendered = (
+            rendered[: container_match.start()]
+            + container
+            + "\n"
+            + block_html
+            + rendered[container_match.end() :]
+        )
+    if INLINE_MATERIAL_TOKEN_PREFIX in rendered:
+        raise VerifiedRenderingError("После material placement остался служебный token")
+    return rendered
+
+
 def _humanize_inline_title(title: str, *, source_path: str) -> str:
     """Убирает production ID только из learner-visible заголовка inline-материала.
 
@@ -222,8 +256,9 @@ def _render_local_markdown(
     dependency_sources: set[str],
     requirements: dict[str, dict[str, Any]],
     recursion_stack: tuple[str, ...],
+    inline_material_blocks: dict[str, str],
+    inline_material_counter: list[int],
 ) -> str:
-    append_blocks: list[str] = []
 
     def replace(match: re.Match[str]) -> str:
         label = match.group(1).strip()
@@ -263,9 +298,14 @@ def _render_local_markdown(
                     dependency_sources=dependency_sources,
                     requirements=requirements,
                     recursion_stack=(*recursion_stack, source_path),
+                    inline_material_blocks=inline_material_blocks,
+                    inline_material_counter=inline_material_counter,
                 )
-                append_blocks.append(_practice_material_block(title, nested))
-            return f"**{label} (материал ниже)**"
+                token = f"{INLINE_MATERIAL_TOKEN_PREFIX}{inline_material_counter[0]}"
+                inline_material_counter[0] += 1
+                inline_material_blocks[token] = _practice_material_block(title, nested)
+                return f"**{label}** {token}"
+            return f"**{label}**"
 
         if mode == "confirmed-url":
             url = str(row.get("url") or "")
@@ -296,10 +336,7 @@ def _render_local_markdown(
 
         raise VerifiedRenderingError(f"{source_path}: publication mode {mode!r} не поддерживается renderer")
 
-    rewritten = LOCAL_LINK_RE.sub(replace, markdown_text)
-    if append_blocks:
-        rewritten = rewritten.rstrip() + "\n\n" + "\n\n".join(append_blocks)
-    return rewritten
+    return LOCAL_LINK_RE.sub(replace, markdown_text)
 
 
 def build_rendering_plan(
@@ -321,6 +358,8 @@ def build_rendering_plan(
     for source_step in source_steps:
         appended_sources: set[str] = set()
         dependency_sources: set[str] = set()
+        inline_material_blocks: dict[str, str] = {}
+        inline_material_counter = [0]
         rewritten = _render_local_markdown(
             source_step.markdown,
             repo_root=repo_root,
@@ -332,12 +371,16 @@ def build_rendering_plan(
             dependency_sources=dependency_sources,
             requirements=requirements,
             recursion_stack=(source_step.source_git_paths[0],),
+            inline_material_blocks=inline_material_blocks,
+            inline_material_counter=inline_material_counter,
         )
         if REPO_RELATIVE_RE.search(rewritten):
             raise VerifiedRenderingError(
                 f"{lesson_id}: после local dependency adaptation осталась repo-relative ссылка"
             )
         html = markdown_to_html(rewritten).strip()
+        if inline_material_blocks:
+            html = _inject_inline_material_blocks(html, inline_material_blocks).strip()
         if apply_stepik_html_normalization:
             normalizer = (
                 normalize_stepik_html
