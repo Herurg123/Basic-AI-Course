@@ -87,6 +87,42 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
             "Technical-help wording has no explicit addressee:\n" + "\n".join(offenders),
         )
 
+    def test_source_only_material_cards_do_not_reabsorb_lesson_instructions(self) -> None:
+        forbidden_by_path = {
+            "05_assets/M01/M01-L01/M01-L01-A01.md": ("После ответа проверьте",),
+            "05_assets/M01/M01-L01/M01-L01-A02.md": ("Откройте эту карточку", "Сравните текст с требованиями"),
+            "05_assets/M01/M01-L02/M01-L02-A02.md": ("Сначала решите сами", "откройте предоставленный исходник"),
+            "05_assets/M01/M01-L02/M01-L02-A03.md": ("Перечитайте исходник", "присвойте статус"),
+            "05_assets/M02/M02-L01/M02-L01-A01.md": ("Сформулируйте своими словами",),
+            "05_assets/M02/M02-L02/M02-L02-A01.md": ("Сначала отправьте ИИ", "Получите новую версию"),
+            "05_assets/M03/M03-L01/M03-L01-A01.md": ("Сначала сами решите",),
+            "05_assets/M03/M03-L02/M03-L02-A01.md": ("Используйте ИИ, чтобы решить",),
+            "05_assets/M03/M03-L02/M03-L02-A02.md": ("Открывайте эту карточку", "Рассматривайте этот текст"),
+            "05_assets/M04/M04-L02/M04-L02-A01.md": ("До передачи ИИ самостоятельно решите",),
+            "05_assets/M05/M05-L02/M05-L02-A01-part1.md": ("Сформулируйте своё описание", "Сохраните свой запрос"),
+            "05_assets/M05/M05-L02/M05-L02-A01-part2.md": ("Сами сравните", "Не создавайте новую похожую"),
+            "05_assets/M06/M06-L01/M06-L01-A01.md": ("Сами решите, какое внешнее утверждение",),
+            "05_assets/M06/M06-L02/M06-L02-A01.md": ("## Ваша задача", "По заданию урока сами решите"),
+            "05_assets/M06/M06-L03/M06-L03-A01.md": ("Самостоятельно решите:",),
+        }
+        offenders: list[str] = []
+        for relative, forbidden in forbidden_by_path.items():
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            for phrase in forbidden:
+                if phrase.lower() in text.lower():
+                    offenders.append(f"{relative}: {phrase}")
+        self.assertEqual([], offenders, "Lesson instructions leaked back into source-only material cards:\n" + "\n".join(offenders))
+
+    def test_early_ai_work_names_the_expected_result(self) -> None:
+        m01 = (ROOT / "04_course/M01/M01-L01/lesson.md").read_text(encoding="utf-8")
+        m02 = (ROOT / "04_course/M02/M02-L02/lesson.md").read_text(encoding="utf-8")
+        m03 = (ROOT / "04_course/M03/M03-L02/lesson.md").read_text(encoding="utf-8")
+        self.assertIn("короткий текст-напоминание", m01)
+        self.assertIn("короткий текст приглашения", m02)
+        self.assertIn("пригодный порядок действий", m03)
+        self.assertIn("Ничего отправлять во второй ИИ-сервис", m03)
+
+
 
 if __name__ == "__main__":
     unittest.main()
