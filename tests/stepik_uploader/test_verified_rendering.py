@@ -183,7 +183,8 @@ class VerifiedRenderingTests(unittest.TestCase):
             asset_report=self.asset_report,
         )
         step2 = plan.rendered_steps[1].text
-        self.assertIn("<p>В самой карточке находятся данные, расчёт и задание.", step2)
+        self.assertIn("<p>В самой карточке находятся <strong>исходные данные и подготовленный расчёт ИИ</strong>.", step2)
+        self.assertLess(step2.index("</blockquote>"), step2.index("После чтения самостоятельно выберите"))
         self.assertIn("<strong>Материал: Исходные данные и подготовленный расчёт</strong>", step2)
         self.assertIn("<blockquote>", step2)
         self.assertIn("</blockquote>", step2)
