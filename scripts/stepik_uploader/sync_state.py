@@ -409,8 +409,26 @@ def assess_sync(*, canonical_id: str, live_lesson: dict[str, Any], expected_titl
         )
     desired_positions = _positions(desired_payload)
     live_positions = _positions(live_payload)
-    if desired_positions != live_positions:
-        return SyncAssessment(canonical_id, "STRUCTURAL_UPDATE_BLOCKED", desired, live, baseline_fp, tuple(changed_positions), (f"изменилась структура steps: desired positions={desired_positions}, live positions={live_positions}; DELETE/reorder автоматически запрещены",))
+    append_only_growth = (
+        len(desired_positions) > len(live_positions)
+        and live_positions == list(range(1, len(live_positions) + 1))
+        and desired_positions == list(range(1, len(desired_positions) + 1))
+        and desired_positions[: len(live_positions)] == live_positions
+    )
+    if desired_positions != live_positions and not append_only_growth:
+        return SyncAssessment(
+            canonical_id,
+            "STRUCTURAL_UPDATE_BLOCKED",
+            desired,
+            live,
+            baseline_fp,
+            tuple(changed_positions),
+            (
+                f"изменилась структура steps: desired positions={desired_positions}, "
+                f"live positions={live_positions}; разрешён только append-only рост, "
+                "DELETE/reorder автоматически запрещены",
+            ),
+        )
     if metadata_diffs == ["title"]:
         return SyncAssessment(
             canonical_id,
@@ -421,7 +439,21 @@ def assess_sync(*, canonical_id: str, live_lesson: dict[str, Any], expected_titl
             tuple(changed_positions),
             ("канонический title изменился, а live полностью совпадает с подтверждённым baseline; guarded title PUT разрешён внутри того же deployment event",),
         )
-    return SyncAssessment(canonical_id, "UPDATE_REQUIRED", desired, live, baseline_fp, tuple(changed_positions), ("канон изменился, а Stepik всё ещё совпадает с последним подтверждённым live baseline",))
+    reason = (
+        "канон расширяет topology только хвостовыми steps, а Stepik совпадает "
+        "с последним подтверждённым live baseline; guarded append-only sync разрешён"
+        if append_only_growth
+        else "канон изменился, а Stepik всё ещё совпадает с последним подтверждённым live baseline"
+    )
+    return SyncAssessment(
+        canonical_id,
+        "UPDATE_REQUIRED",
+        desired,
+        live,
+        baseline_fp,
+        tuple(changed_positions),
+        (reason,),
+    )
 
 
 def build_record(*, canonical_id: str, stepik_lesson_id: int, expected_title: str, expected_steps: Iterable[Any], source_sha: str, step_ids: Iterable[int], source_git_paths: Iterable[str], applied_at: str | None = None, confirmed_live_fingerprint: str | None = None) -> dict[str, Any]:
