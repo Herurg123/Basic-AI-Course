@@ -128,7 +128,9 @@ class LearnerIdHygieneTests(unittest.TestCase):
                         f"{lesson_id} step {step.position}: {', '.join(ids)} :: "
                         + " ".join(visible.split())[:280]
                     )
-        self.assertEqual(total_steps, 148)
+        # P3 deliberately adds exactly two learner-facing steps after the immutable B7 baseline:
+        # M04-L03 +1 and M06-L04 +1. The whole-course integration test reconciles those deltas explicitly.
+        self.assertEqual(total_steps, 150)
         self.assertEqual([], offenders, "Internal IDs leaked into verified rendering:\n" + "\n".join(offenders))
 
     def test_canonical_lesson_titles_are_human_facing(self) -> None:
