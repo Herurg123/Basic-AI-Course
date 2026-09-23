@@ -17,6 +17,13 @@ def _visible_markdown(text: str) -> str:
     return MARKDOWN_LINK_RE.sub(lambda match: match.group(1), without_comments)
 
 
+def _section(text: str, heading: str) -> str:
+    marker = f"## {heading}"
+    start = text.index(marker)
+    next_heading = text.find("\n## ", start + len(marker))
+    return text[start:] if next_heading == -1 else text[start:next_heading]
+
+
 class HumanReviewUxRegressionTests(unittest.TestCase):
     def test_all_21_lessons_are_present(self) -> None:
         self.assertEqual(len(LESSON_PATHS), 21)
@@ -125,6 +132,57 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
         self.assertIn("[снимок Алисы AI](../../../05_assets/M03/M03-L02/M03-L02-A03-alice.png)", m03)
         self.assertIn("[снимок GigaChat](../../../05_assets/M03/M03-L02/M03-L02-A03.png)", m03)
         self.assertNotIn("откройте **только один**", m03.lower())
+
+
+
+    def test_beginner_copyedit_makes_action_location_and_finish_explicit(self) -> None:
+        m02 = (ROOT / "04_course/M02/M02-L02/lesson.md").read_text(encoding="utf-8")
+        m03 = (ROOT / "04_course/M03/M03-L02/lesson.md").read_text(encoding="utf-8")
+        m04 = (ROOT / "04_course/M04/M04-L03/lesson.md").read_text(encoding="utf-8")
+        m05 = (ROOT / "04_course/M05/M05-L02/lesson.md").read_text(encoding="utf-8")
+        m06 = (ROOT / "04_course/M06/M06-L01/lesson.md").read_text(encoding="utf-8")
+        m07 = (ROOT / "04_course/M07/M07-L02/lesson.md").read_text(encoding="utf-8")
+        form = (ROOT / "05_assets/M07/M07-L02/M07-L02-A03.md").read_text(encoding="utf-8")
+
+        m02_step = _section(m02, "Получите первый вариант и сами решите, что уточнить")
+        self.assertIn("Что делать:", m02_step)
+        self.assertIn("Шаг завершён", m02_step)
+        self.assertIn("одно осмысленное следующее сообщение", m02_step)
+
+        m03_step = _section(m03, "Разберите уже выполненную попытку")
+        self.assertIn("Ничего нового отправлять ИИ здесь не нужно", m03_step)
+        self.assertIn("ИИ-чат", m03_step)
+        self.assertIn("в поле Stepik", m03_step)
+        self.assertNotIn("Артефакты", m03_step)
+        self.assertNotIn("естественный след", m03_step.lower())
+
+        m04_step = _section(m04, "Найдите в ответе один важный факт и проверьте его")
+        self.assertIn("не нужно выбирать из готового списка", m04_step)
+        self.assertIn("ИИ **не должен проверять сам себя вместо вас**", m04_step)
+        self.assertIn("Шаг завершён", m04_step)
+
+        m05_step = _section(m05, "Узнайте новое назначение и сами решите, что изменить")
+        self.assertIn("пока ничего не редактируйте в ИИ-сервисе", m05_step)
+        self.assertIn("в следующем шаге", m05_step)
+        self.assertNotIn("Сама карточка останавливается", m05_step)
+
+        m06_explain = _section(m06, "Сначала поймите, на что на самом деле опирается ответ ИИ")
+        m06_practice = _section(m06, "Определите, на что можно опереться в трёх примерах")
+        self.assertIn("слово **«основание»** означает", m06_explain)
+        self.assertIn("ничего отправлять ИИ не нужно", m06_explain.lower())
+        self.assertIn("ИИ открывать не нужно", m06_practice)
+        self.assertIn("не проверяете сами факты", m06_practice)
+
+        m07_step = _section(m07, "Разберите уже выполненную финальную работу")
+        self.assertIn("не нужно снова работать с ИИ", m07_step)
+        self.assertIn("не новый пример, не тренировка", m07_step)
+        self.assertIn("ответьте в поле Stepik", m07_step)
+        self.assertIn("Файлы, изображения и скриншоты в Stepik загружать не нужно", m07_step)
+
+        self.assertTrue(form.startswith("# Вопросы для разбора финальной работы"))
+        self.assertIn("не новый пример, не отдельное упражнение и не файл для заполнения", form)
+        self.assertIn("Ничего отправлять ИИ здесь не нужно", form)
+        self.assertNotIn("естественный след", form.lower())
 
 
 
