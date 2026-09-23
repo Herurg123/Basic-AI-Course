@@ -127,6 +127,35 @@ def _lesson_after_readback_step(lesson: dict[str, Any], *, step_id: int, readbac
     return updated
 
 
+def _lesson_after_appended_expected_step(lesson: dict[str, Any], expected: RenderedStep) -> dict[str, Any]:
+    """Вычисляет intermediate state для безопасного append-only роста topology.
+
+    Sync никогда не вставляет/удаляет live Stepik object напрямую. Существующие
+    позиции обновляются на месте, а новый physical object разрешено создавать
+    только как следующий хвостовой step. Семантическая вставка внутрь урока
+    достигается обновлением downstream content на существующих позициях и
+    добавлением нового canonical tail.
+    """
+    updated = deepcopy(lesson)
+    steps = updated.setdefault("steps", [])
+    expected_position = len(steps) + 1
+    if int(expected.position) != expected_position:
+        raise ContentWriteError(
+            "Topology growth разрешён только append-only: "
+            f"ожидалась хвостовая position={expected_position}, получена {expected.position}"
+        )
+    steps.append(
+        {
+            "step_source": {
+                "id": -int(expected.position),
+                "position": int(expected.position),
+                "block": expected.block(),
+            }
+        }
+    )
+    return updated
+
+
 @dataclass
 class WriteResult:
     lesson_id: int
@@ -309,10 +338,13 @@ def execute_content_sync_one(
         result.operations.append(title_operation)
 
     existing = sorted(working_lesson.get("steps", []), key=lambda item: _step_source(item).get("position", 10**9))
-    if len(existing) != len(expected_steps):
-        raise ContentWriteError("Update route не меняет количество steps")
+    if len(existing) > len(expected_steps):
+        raise ContentWriteError(
+            "Update route не удаляет steps: "
+            f"live={len(existing)}, canonical={len(expected_steps)}"
+        )
 
-    for current, expected in zip(existing, expected_steps, strict=True):
+    for current, expected in zip(existing, expected_steps[: len(existing)], strict=True):
         if _equivalent(current, expected):
             continue
         step_id = int(_step_source(current)["id"])
@@ -379,6 +411,80 @@ def execute_content_sync_one(
             )
         working_lesson = observed_lesson
         result.operations.append({"action": "UPDATE_STEP", "step_id": step_id, "position": expected.position})
+
+    # Existing tracked lessons may grow, but never shrink. We update all current
+    # physical objects to the canonical prefix first, then append only the
+    # missing canonical tail. This avoids DELETE/reorder semantics entirely.
+    for expected in expected_steps[len(existing) :]:
+        operation_id = f"step-create-{expected.position:04d}"
+        before_fp = live_lesson_fingerprint(working_lesson)
+        expected_lesson = _lesson_after_appended_expected_step(working_lesson, expected)
+        expected_after_fp = live_lesson_fingerprint(expected_lesson)
+        if recorder is not None:
+            recorder.write_intent(
+                operation_id=operation_id,
+                method="POST",
+                target="step-sources",
+                fingerprint_before=before_fp,
+                expected_fingerprint_after=expected_after_fp,
+            )
+            recorder.write_dispatch_started(operation_id=operation_id)
+        try:
+            payload = client.create_step_source(
+                lesson_id=lesson_id,
+                position=expected.position,
+                block=expected.block(),
+            )
+        except StepikWriteAmbiguousError:
+            if recorder is not None:
+                recorder.write_result(
+                    operation_id=operation_id,
+                    status="AMBIGUOUS",
+                    reason_code="sync-create-step-ambiguous",
+                )
+            raise
+        except StepikAPIError:
+            if recorder is not None:
+                recorder.write_result(
+                    operation_id=operation_id,
+                    status="FAILED_KNOWN",
+                    reason_code="sync-create-step-failed-known",
+                )
+            raise
+        except Exception:
+            if recorder is not None:
+                recorder.write_result(
+                    operation_id=operation_id,
+                    status="AMBIGUOUS",
+                    reason_code="sync-create-step-exception-unclassified-after-dispatch",
+                )
+            raise
+        if recorder is not None:
+            recorder.write_result(operation_id=operation_id, status="COMPLETED")
+        step_id = _created_id(payload)
+        try:
+            readback = client.fetch_one("step-sources", step_id)
+            _assert_readback(readback, expected)
+        except Exception:
+            if recorder is not None:
+                recorder.readback_failed(
+                    operation_id=operation_id,
+                    reason_code="sync-create-step-readback-unavailable-or-mismatch",
+                )
+            raise
+        observed_lesson = deepcopy(expected_lesson)
+        observed_lesson["steps"][-1]["step_source"] = deepcopy(readback)
+        observed_after_fp = live_lesson_fingerprint(observed_lesson)
+        if recorder is not None:
+            recorder.operation_readback(
+                operation_id=operation_id,
+                expected_fingerprint_after=expected_after_fp,
+                observed_live_fingerprint=observed_after_fp,
+            )
+        working_lesson = observed_lesson
+        result.operations.append(
+            {"action": "CREATE_STEP", "step_id": step_id, "position": expected.position}
+        )
 
     try:
         after = client.inspect_course(int(snapshot["course"]["id"]))
