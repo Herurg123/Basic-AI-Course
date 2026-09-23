@@ -40,22 +40,25 @@
 - [ ] Согласовать lesson.md и stepik-plan.md там, где меняется learner behavior.
 
 ### P3 — linear recovery restructuring
-- [ ] M03-L02: убрать возврат из recovery к прежнему CHECK.
-- [ ] M04-L02: убрать возврат из recovery к прежнему CHECK.
-- [ ] M05-L02: убрать возврат из recovery к прежнему CHECK.
-- [ ] M06-L04: убрать возвраты из recovery к прежним CHECK.
-- [ ] Глобально проверить остальные learner-facing возвраты назад.
-- [ ] Сохранить independence boundary: вопросы разбора не раскрываются до самостоятельной попытки.
+- [x] M03-L02: убрать возврат из recovery к прежнему CHECK.
+- [x] M04-L02: убрать возврат из recovery к прежнему CHECK.
+- [x] M04-L03: вынести recovery в отдельный следующий шаг и вести только вперёд.
+- [x] M05-L02: убрать возврат из recovery к прежнему CHECK.
+- [x] M06-L04: убрать оба возврата из recovery к прежним CHECK.
+- [x] M07-L02: убрать возврат recovery F1 к прежнему C01.
+- [x] Глобально проверить остальные learner-facing возвраты назад.
+- [x] Сохранить independence boundary: вопросы разбора не раскрываются до самостоятельной попытки.
 
 ### P4 — проверки и merge
-- [ ] Полный test suite.
-- [ ] Ручная reconciliation затронутых rendered шагов.
-- [ ] ORDINARY CRITIC.
-- [ ] ZERO-LEVEL AUDIT.
-- [ ] PEDAGOGUE AUDIT.
-- [ ] Исправить неблокирующие замечания и повторить нужные gates.
-- [ ] При PASS всех gates — merge в main.
-- [ ] После merge запускать Stepik release только для реально возникших PENDING уроков.
+- [x] Полный test suite.
+- [x] Ручная reconciliation затронутых recovery-маршрутов.
+- [x] ORDINARY CRITIC.
+- [x] ZERO-LEVEL AUDIT.
+- [x] PEDAGOGUE AUDIT.
+- [x] Исправить найденные замечания и повторить нужные gates.
+- [x] Отдельный release/topology critic append-only route.
+- [ ] При PASS всех gates — merge в main. **Удерживается внешним P1 gate и stacked-зависимостью P2.**
+- [ ] После merge запускать Stepik release только для реально возникших PENDING уроков и только после отдельного guarded pre-release review.
 - [ ] После release — HUMAN VISUAL regression на изменённых маршрутах.
 
 ## Checkpoints
@@ -145,3 +148,19 @@
 - Принятое безопасное решение: расширить sync **только на topology growth**. Existing live steps могут быть обновлены на тех же позициях; недостающие canonical steps создаются только в хвост через уже доказанный WAL/read-back POST-паттерн initial upload. Удаление steps остаётся запрещено.
 - Это позволит семантически вставлять recovery-check внутрь урока: downstream content сдвигается по существующим позициям, а физически создаётся только новый последний Stepik step.
 - До learner-facing P3 сначала должны пройти отдельные unit/history tests нового append-only sync route.
+
+
+### CP3-1 — P3 линейный recovery прошёл внутренние gates
+- Функциональный audited head после методического repair: `4fd2ce22cee6a6a64ad8d3abc35b2f2ea9153619`.
+- Первый полный CI на предыдущем head выявил ровно один устаревший технический expectation: `test_learner_id_hygiene` всё ещё ожидал исторические 148 learner steps. Контракт исправлен на текущие 150 без изменения исторического B7 baseline; commit `4aebf84da6459983a40556564070588257593bbd`.
+- Whole-course invariant P3: **152 structural / 2 author-only / 150 learner-facing**. Исторический B7 baseline остаётся неизменным; разрешены ровно две post-baseline topology delta: `M04-L03 +1`, `M06-L04 +1`.
+- Глобальный поиск по всем 21 `lesson.md` и `stepik-plan.md` не нашёл остаточных recovery-backlinks к старым free-answer полям. Оставшиеся возвраты относятся к завершению той же незаконченной работы, обычной навигации или технической памятке.
+- PEDAGOGUE audit обнаружил два pre-action leakage правильного маршрута в recovery M04-L02 и M04-L03. Они удалены: новая попытка получает задачу/цель и техническую опору, но не готовую содержательную последовательность. Добавлен regression-test; commit `4fd2ce22cee6a6a64ad8d3abc35b2f2ea9153619`.
+- CI на `4fd2ce22...`: оба workflow SUCCESS — run `35828950882` и run `35828950897`.
+- ORDINARY CRITIC: **PASS**. Production sync разрешает только append-only growth; shrink/DELETE/reorder блокируются. Existing physical steps обновляются на прежних позициях, новые создаются только как canonical tail. PUT/POST проходят WAL → dispatch → write → read-back → intermediate fingerprint → final read-back.
+- ZERO-LEVEL AUDIT: **PASS** для M03-L02, M04-L02, M04-L03, M05-L02, M06-L04, M07-L02. Условие recovery и возможность её пропустить понятны; новая попытка идёт только вперёд; прежний Stepik-ответ не редактируется; локальная учебная заметка не выдаётся за обязательную загрузку.
+- PEDAGOGUE AUDIT после repair: **PASS**. Post-recovery вопросы появляются только после новой попытки; recovery не выдаёт содержательный правильный маршрут; M07-L02 остаётся единственной F1 level 3; M08 остаётся reflection-only; успешному learner дополнительная recovery не навязывается.
+- RELEASE/TOPOLOGY CRITIC: **PASS для реализации**, но это не разрешение на live release. Текущий tracking-state хранит 6 Stepik step IDs для M04-L03 и 10 для M06-L04; будущий P3 release должен сохранить эти ID и добавить ровно по одному хвостовому ID, после чего новый полный список фиксируется в machine state только после final read-back.
+- Live Stepik write в P3 не выполнялся.
+- P3 остаётся DRAFT stacked PR #131 поверх P2. Merge запрещён текущей цепочкой внешних prerequisites: сначала P1 private Stepik release + HUMAN VISUAL блока «Материал» на COMPUTER и PHONE; затем может быть освобождён P2; только после этого — P3.
+- Перед фактическим первым live release с topology growth повторить короткий guarded pre-release review актуального live state и текущего machine-state, даже несмотря на PASS реализации выше.
