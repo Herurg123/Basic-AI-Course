@@ -248,15 +248,14 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertIn("<strong>Материал: Картинка для вечера настольных игр</strong>", step2)
         self.assertIn("<blockquote>", step2)
         self.assertIn("</blockquote>", step2)
-        self.assertIn("Перед просмотром готовых вариантов", step2)
+        self.assertIn("до просмотра готовых вариантов", step2.lower())
         self.assertLess(
+            step2.index("до просмотра готовых вариантов"),
             step2.index("<blockquote>"),
-            step2.index("Перед просмотром готовых вариантов"),
         )
-        self.assertLess(
-            step2.index("Перед просмотром готовых вариантов"),
-            step2.index("</blockquote>"),
-        )
+        material_html = step2[step2.index("<blockquote>"):step2.index("</blockquote>")]
+        self.assertNotIn("учебной заметке", material_html)
+        self.assertNotIn("признака", material_html)
 
     def test_inline_markdown_keeps_instruction_then_appends_material_block(self) -> None:
         plan = build_rendering_plan(
