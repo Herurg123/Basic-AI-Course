@@ -89,9 +89,12 @@ class B6SemanticRouteTests(unittest.TestCase):
         self.assertIn("содержательная подсказка", recovery)
         self.assertIn("не подтверждается", recovery)
         self.assertIn("другую собственную новую посильную реальную задачу", recovery)
-        self.assertIn("/lesson/2591731/step/6", recovery)
+        self.assertNotIn("/lesson/2591731/step/6", recovery)
         self.assertNotIn("### Новая задача", recovery)
         self.assertIn("Успешную самостоятельную попытку повторять не нужно", recovery)
+        completion = steps[7].text
+        self.assertIn("Прежний ответ в Stepik не редактируйте", completion)
+        self.assertIn("финальная самостоятельная задача курса завершена", completion)
 
     def test_m08_is_reflection_only_and_requires_no_new_ai_work(self) -> None:
         steps = self._rendered("M08-L01")

@@ -33,6 +33,10 @@ BASELINE_DIR = ROOT / "90_reviews" / "semantic-step-audit-2026-09-20"
 STATE_PATH = BASELINE_DIR / "evidence" / "machine-state-2026-09-20.json"
 POLICY_PATH = ROOT / "04_course" / "stepik" / "automation" / "asset-publication.v1.json"
 COURSE_ID = 299189
+POST_BASELINE_LEARNER_STEP_DELTA = {
+    "M04-L03": 1,
+    "M06-L04": 1,
+}
 
 
 class _VisibleTextParser(HTMLParser):
@@ -110,11 +114,11 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
             for row in rows:
                 self.assertIn(row["semantic_type"], SEMANTIC_TYPES, lesson_id)
 
-        self.assertEqual(structural_rows, 150)
+        self.assertEqual(structural_rows, 152)
         self.assertEqual(author_only_rows, 2)
-        self.assertEqual(learner_rows, 148)
+        self.assertEqual(learner_rows, 150)
 
-    def test_all_148_learner_steps_render_and_reconcile_baseline_structure(self) -> None:
+    def test_all_150_learner_steps_render_and_reconcile_baseline_structure(self) -> None:
         rendered_total = 0
         materialization_requirements: set[str] = set()
         block_deltas: list[str] = []
@@ -138,10 +142,15 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
             )
             expected_steps = baseline["steps"]
 
-            self.assertEqual(len(rendered), len(expected_steps), lesson_id)
+            expected_delta = POST_BASELINE_LEARNER_STEP_DELTA.get(lesson_id, 0)
+            self.assertEqual(
+                len(rendered),
+                len(expected_steps) + expected_delta,
+                f"{lesson_id}: unexpected post-baseline learner-step delta",
+            )
             rendered_total += len(rendered)
 
-            for actual, expected in zip(rendered, expected_steps, strict=True):
+            for actual, expected in zip(rendered[: len(expected_steps)], expected_steps, strict=True):
                 self.assertEqual(actual.position, expected["position"], lesson_id)
                 if actual.block_name != expected["platform_block_type"]:
                     block_deltas.append(
@@ -154,7 +163,7 @@ class B7WholeCourseIntegrationTests(unittest.TestCase):
                         f"{expected['platform_source']} -> {actual.source}"
                     )
 
-        self.assertEqual(rendered_total, 148)
+        self.assertEqual(rendered_total, 150)
         self.assertEqual(
             block_deltas,
             ["M08-L01 S02: free-answer -> text"],
