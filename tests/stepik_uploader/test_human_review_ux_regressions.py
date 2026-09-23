@@ -120,7 +120,11 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
         self.assertIn("короткий текст-напоминание", m01)
         self.assertIn("короткий текст приглашения", m02)
         self.assertIn("пригодный порядок действий", m03)
-        self.assertIn("Ничего отправлять во второй ИИ-сервис", m03)
+        self.assertIn("Ничего делать с ИИ на этом шаге не нужно", m03)
+        self.assertIn("Найдите общий принцип в интерфейсах различных ИИ-сервисов", m03)
+        self.assertIn("[снимок Алисы AI](../../../05_assets/M03/M03-L02/M03-L02-A03-alice.png)", m03)
+        self.assertIn("[снимок GigaChat](../../../05_assets/M03/M03-L02/M03-L02-A03.png)", m03)
+        self.assertNotIn("откройте **только один**", m03.lower())
 
 
 
