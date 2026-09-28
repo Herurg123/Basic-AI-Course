@@ -66,17 +66,19 @@ class B5SemanticRouteTests(unittest.TestCase):
         post_check = steps[3].markdown
 
         for leaked in (
-            "наблюдаемо",
             "не установлено",
-            "какое основание для проверки",
-            "что именно сопоставили",
-            "какой статус выбрали",
+            "что в исходном ответе, переданном материале или видимых действиях сервиса",
+            "что именно вы сравнили",
+            "к какому выводу пришли",
         ):
             self.assertNotIn(leaked, pre_action, leaked)
 
         self.assertIn("не установлено", post_check)
-        self.assertIn("какое основание для проверки", post_check)
-        self.assertIn("какой статус выбрали", post_check)
+        self.assertIn(
+            "что в исходном ответе, переданном материале или видимых действиях сервиса",
+            post_check,
+        )
+        self.assertIn("к какому выводу пришли", post_check)
 
     def test_m06_l04_application_form_and_recovery_targets_are_post_action(self) -> None:
         steps = self._steps("M06-L04")
