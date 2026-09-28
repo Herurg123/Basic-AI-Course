@@ -17,7 +17,7 @@
 | 9 | post-action C02 | Open both actual versions locally; in Stepik short text: mismatch, correction chosen before help, observed change, why edited version fits better. No mandatory image upload | local source+edited image + free-answer Stepik | `M05-L02-C02` | CHECK |
 | 10 | conditional recovery — source first | Learner входит в recovery по конкретным наблюдаемым причинам: correction подсказали до собственного выбора; new purpose открылось до завершения source и могло повлиять на него; source уже подходит и честной полезной correction нет; либо own reasonable correction технически нельзя выполнить как edit existing image. Если main attempt уже реально отредактирован и разобран в step9 — recovery не нужен. До future purpose learner independently generates/saves new wide 16:9 book-exchange source; прежние Stepik-ответы не переписываются | new safe live source authored in `lesson.md` | отдельная recovery-попытка для `M05-L02-C02` | RECOVERY |
 | 11 | conditional recovery — purpose/edit | Reveal different use only after recovery source exists: small square schedule icon. Learner records one own change, may use interface help only after that choice, really edits the same recovery source, saves both versions, then goes only forward. Old step9 answer remains about the first attempt and is not edited | recovery source + saved edited version | отдельная завершённая recovery-попытка; без возврата к `M05-L02-C02` | RECOVERY |
-| 12 | optional consolidation + transition | A02 inline only after actions; optional local form, not a new exam and not a pre-action recipe. Summarize generation→edit cycle; SERVICE/live-account gate remains external | `M05-L02-A02.md` | — | REFLECTION |
+| 12 | conditional post-recovery reflection + итог | Если recovery в steps10–11 не выполнялся — сразу к итогу. Если выполнялся — без новых действий в ИИ и без нового ответа Stepik локально разобрать recovery source/edit: что мешало новой цели, какое изменение learner выбрал сам, что реально изменилось и почему новая версия подходит лучше; старый step9 answer не редактировать. Затем optional A02 form только после работы и общий принцип generation→edit без author-only service-release wording | recovery source+edited version при наличии; `M05-L02-A02.md` optional | локальный разбор без ответа Stepik | REFLECTION |
 
 ## Что именно показывает техническая проба
 
@@ -47,7 +47,8 @@ Recovery is split across steps 10–11 to preserve order:
 3. learner chooses correction;
 4. technical help allowed only after own choice;
 5. real edit;
-6. save both versions and move only forward; the old C02 answer remains attached to the first attempt.
+6. save both versions and move only forward; the old C02 answer remains attached to the first attempt;
+7. in step12, if recovery was used, complete a local post-action reflection without changing Stepik answers.
 
 The recovery source is a wide multi-object book-exchange header; the later use is a small square schedule icon. This makes a substantive adaptation necessary without naming a single correct edit: crop/recomposition/simplification/scale/background handling can be reasonable depending on actual source and available service.
 
