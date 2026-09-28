@@ -84,12 +84,20 @@ class B5SemanticRouteTests(unittest.TestCase):
         self.assertTrue(all(a03 not in step.unresolved_repo_links for step in steps[:6]))
         self.assertIn(a03, steps[6].unresolved_repo_links)
 
+        self.assertEqual(len(steps), 11)
         self.assertNotIn("/lesson/2591729/step/4", steps[4].markdown)
         self.assertIn("не возвращайтесь к ответам в шаге 4", steps[4].markdown)
         self.assertIn("Переходите к следующему шагу", steps[4].markdown)
-        self.assertIn("/lesson/2591729/step/9", steps[9].markdown)
+
         self.assertNotIn("Win + V", "\n".join(step.markdown for step in steps[:9]))
         self.assertIn("Win + V", steps[9].markdown)
+        self.assertNotIn("/lesson/2591729/step/9", steps[9].markdown)
+        self.assertIn("не возвращайтесь к ответу в шаге 9", steps[9].markdown)
+        self.assertIn("переходите к следующему шагу", steps[9].markdown)
+
+        self.assertIn("Ничего заново делать с ИИ и писать в Stepik не нужно", steps[10].markdown)
+        self.assertIn("К прежнему ответу в шаге 9 не возвращайтесь", steps[10].markdown)
+        self.assertIn("Что взять с собой дальше", steps[10].markdown)
 
 
 if __name__ == "__main__":
