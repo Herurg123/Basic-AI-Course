@@ -80,7 +80,7 @@ class VerifiedRenderingTests(unittest.TestCase):
             for item in plan.materialization_requirements:
                 requirements[str(item["source_path"])] = item
 
-        self.assertEqual(rendered_count, 148)
+        self.assertEqual(rendered_count, 149)
         self.assertEqual(
             set(requirements),
             {
@@ -111,7 +111,7 @@ class VerifiedRenderingTests(unittest.TestCase):
                 self.assertNotIn("../../stepik/", step.text)
                 self.assertNotRegex(step.text, r"(?i)<hr\s*/?>")
                 self.assertNotIn("STEPIK_INLINE_MATERIAL_", step.text)
-        self.assertEqual(total_steps, 148)
+        self.assertEqual(total_steps, 149)
 
     def test_m02_l01_material_card_does_not_depend_on_horizontal_rule(self) -> None:
         normalized = build_rendering_plan(
