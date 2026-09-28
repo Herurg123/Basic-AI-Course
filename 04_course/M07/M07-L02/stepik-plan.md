@@ -14,7 +14,7 @@
 | 6 | post-action check/evidence | A03 inline **only after work**. Stepik response covers completed task/application, pre-evaluation fit image supported by earlier trace, own evaluation of first/intermediate version, other key decisions, verification/privacy if applicable, help received | `M07-L02-A03.md` + free-answer Stepik | `M07-L02-C01` | CHECK |
 | 7 | author-only evaluation | A02 applies to natural trace + A03 only after attempt; public learner HTML never receives author rubric | `M07-L02-A02.md` | PASS / NOT PROVEN / PRACTICE | CHECK |
 | 8 | conditional recovery | Только если до/во время main attempt learner получил содержательную подсказку по собственному решению либо после разбора важное действие существует только в позднем рассказе и не поддерживается сохранёнными материалами. Missing pre-labelled field alone не требует recovery. Learner выбирает другую own small safe real task, реально завершает и применяет её; old learner step6 C01 answer не редактируется; после recovery только forward | own new task + saved natural materials | отдельная recovery-попытка без возврата к `M07-L02-C01` | RECOVERY |
-| 9 | completion | After PASS state that F1 is complete; M08 reflection only, no second exam/evidence | — | — | NAVIGATION |
+| 9 | conditional post-recovery review + completion | Если recovery не выполнялся — сразу к completion. Если выполнялся — без новых действий в ИИ и без нового ответа Stepik локально разобрать новую finished/applied task: task/application, desired fit, evaluation of first/intermediate version, other key decisions, verification/ground if needed, help received, privacy if own material was sent; old learner step6 C01 answer unchanged. Затем state F1 complete; M08 reflection only, no second exam/evidence | saved recovery materials + local note | локальный разбор без Stepik | NAVIGATION |
 
 ## Temporal evidence / SEM-117
 
@@ -51,4 +51,5 @@ Recovery never gives a ready exam case, method, source or next step. Learner com
 - Actual application is mandatory.
 - File/search/image/calculation/second service are adaptive and only used when needed.
 - Correct refusal from a bad intermediate version is valid judgment but does not complete F1 without a finished safe task.
+- Recovery review in learner completion step is local-only and cannot become a second F1/C01.
 - M08 cannot add a second F1 or require new evidence.
