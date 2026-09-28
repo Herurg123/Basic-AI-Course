@@ -10,7 +10,7 @@
 | 2 | neutral trace + advisory | Inline generic save-practice help only. Ask natural trace and recommend completing all 3 before C01; do not enumerate hidden rubric/methods | `04_course/stepik/how-to-save-practice.md` | — | EXPLANATION |
 | 3 | independent practice E01 | A01 inline including nested A02. Three new situations, no method labels; learner independently chooses substantial, ground/action/status and saves natural trace | `M06-L04-A01.md` + nested `M06-L04-A02.md` | `M06-L04-E01` | INDEPENDENT_PRACTICE |
 | 4 | post-action check C01 | Only after E01: in Stepik describe substantial, observable support of original answer (or `не установлено`), chosen ground, actual evidence/calculation/missing data, comparison, status, next action. No hidden-process guessing | free-answer Stepik + local trace | `M06-L04-C01` | CHECK |
-| 5 | conditional recovery | Only affected situations. Three new learner-facing cases. Complete new attempt, then exact return to step4. Unavailable source is not replaced by second AI. Successful learners skip | authored cases in `lesson.md` | repeat `M06-L04-C01` | RECOVERY |
+| 5 | conditional recovery | Только для конкретной ситуации, где learner получил содержательную подсказку, ранние C01-вопросы повлияли на решение, важное действие не подтверждается сохранённой фактической работой или внешний источник технически недоступен. Использовать только соответствующий новый case; сохранять естественные результаты; после recovery старый step4 answer не менять и идти только вперёд | authored cases in `lesson.md` + natural local trace | отдельная recovery-попытка без возврата к `M06-L04-C01` | RECOVERY |
 | 6 | independent real application | Choose one usable checked result from main/recovery and actually finish a small external artifact. Safe refusal/non-application is correct decision but B12 requires completed output that does not state unsupported claim as fact | learner note/document/plan | `M06-L04-E02` | INDEPENDENT_PRACTICE |
 | 7 | post-action application evidence | A03 inline only after action. In Stepik short evidence of completed small task and how checked/non-confirmed result was handled. Files stay local | `M06-L04-A03.md` + free-answer | `M06-L04-C02` | CHECK |
 | 8 | independent transfer | New LibreOffice claim; no method/source/status given. Learner independently decides whether/how phrase may be used and creates final technical note | learner-selected ground/tools | transfer action | INDEPENDENT_PRACTICE |
@@ -48,7 +48,7 @@ Step 5 is conditional and skipped by successful learners.
 - recovery 2: “Пульс” with separate shared instruction-card set;
 - recovery 3: fictional “Орбита-X17” 48-hour claim.
 
-Use only the replacement(s) for affected main situation(s), then return to **step 4 C01**. Old work remains practice; do not rewrite history.
+Use only the replacement(s) for the main situation(s) that actually need a new attempt. After recovery, keep the old step 4 C01 answer attached to the first work and move only forward; do not rewrite history.
 
 If external source is technically inaccessible and substantive verification cannot be completed, use a new situation rather than another model’s agreement.
 
@@ -76,7 +76,7 @@ No ready URL or method is supplied. After the new attempt learner returns to ste
 - A01 and nested A02 only in step3;
 - C01 categories absent from steps1–3;
 - A03 only post-action in step7;
-- step5 return target = 4;
+- step5 has no return target; recovery moves only forward and old step4 answer remains unchanged;
 - step10 return target = 9;
 - no author-only answer key in learner HTML;
 - no mandatory second service/account;
