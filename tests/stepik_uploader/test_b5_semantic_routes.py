@@ -35,9 +35,9 @@ class B5SemanticRouteTests(unittest.TestCase):
         self.assertEqual(second.unresolved_repo_links, ())
         self.assertIn("школьной мастерской «Куб»", second.markdown)
 
-    def test_m06_l04_keeps_proven_ten_step_route_shape(self) -> None:
+    def test_m06_l04_keeps_proven_forward_route_shape(self) -> None:
         steps = self._steps("M06-L04")
-        self.assertEqual(len(steps), 10)
+        self.assertEqual(len(steps), 11)
         self.assertEqual(
             [step.block_name for step in steps],
             [
@@ -50,6 +50,7 @@ class B5SemanticRouteTests(unittest.TestCase):
                 "free-answer",
                 "text",
                 "free-answer",
+                "text",
                 "text",
             ],
         )
