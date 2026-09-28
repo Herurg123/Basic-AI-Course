@@ -11,7 +11,7 @@
 | 3 | guided integrated practice | A01-part1 inline. Learner solves as a whole and **really applies** final version to `Учебная доска сообщений`. PRIMARY Alice; conditional GigaChat at point of failure | `M07-L01-A01-part1.md` + live chat + learner note | `M07-L01-E01` | GUIDED_ACTION |
 | 4 | completion boundary | Check only that part1 application actually exists outside chat before revealing part2; no second application and no new method | learner note | часть C01 evidence | NAVIGATION |
 | 5 | guided change handling | A01-part2 inline only after part1 completion. Learner independently decides what changed and what action is appropriate; technical backup only if needed | `M07-L01-A01-part2.md` + prior result/note | `M07-L01-E02` | GUIDED_ACTION |
-| 6 | post-action check | In Stepik: original task/application, two key decisions+why, change after new info, actual verification if needed, consciously omitted unnecessary action. Natural trace stays local | free-answer Stepik | `M07-L01-C01` | CHECK |
+| 6 | post-action check | Перед ответом learner открывает конкретные существующие материалы: `Учебная доска сообщений`, рабочий AI-chat и только те дополнительные материалы, которые реально использовал/сохранял (note/calculation/opened page if any). Новый evidence-report не создаётся. In Stepik: original task/application, two key decisions+why, change after new info, actual verification if needed, consciously omitted unnecessary action | existing local work materials + free-answer Stepik | `M07-L01-C01` | CHECK |
 | 7 | transition | Rehearsal boundary: no F1 PASS here; next lesson is the single final independent task. No late backup ritual | — | — | NAVIGATION |
 
 ## Staging / independence
