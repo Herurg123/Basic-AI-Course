@@ -6,7 +6,7 @@
 
 | № | Тип шага | Содержание | Материал / действие | Проверка | Semantic type |
 |---:|---|---|---|---|---|
-| 1 | learner contract / safety | No method labels before attempt. Technical help allowed; content hint that selects substantial/method/ground/status/next action contaminates affected attempt. Safe educational cases only | — | — | EXPLANATION |
+| 1 | learner contract / safety | No method labels before attempt. Technical help allowed only after learner has decided what to do; if someone tells learner what to do/check/choose/conclude before or during work and it affects the work, the affected attempt needs recovery. Safe educational cases only | — | — | EXPLANATION |
 | 2 | neutral trace + advisory | Inline generic save-practice help only. Ask natural trace and recommend completing all 3 before C01; do not enumerate hidden rubric/methods | `04_course/stepik/how-to-save-practice.md` | — | EXPLANATION |
 | 3 | independent practice E01 | A01 inline including nested A02. Three new situations, no method labels; learner independently chooses substantial, ground/action/status and saves natural trace | `M06-L04-A01.md` + nested `M06-L04-A02.md` | `M06-L04-E01` | INDEPENDENT_PRACTICE |
 | 4 | post-action check C01 | Only after E01: learner opens saved work and in Stepik explains in plain language what was important, what in the original answer/material/visible service actions showed where information came from (or `не установлено`), what they chose to verify, what they actually opened/found/obtained/calculated, what they compared, conclusion, next action. No hidden-process guessing; late explanation may clarify saved work but cannot create a missing action | free-answer Stepik + saved local work | `M06-L04-C01` | CHECK |
@@ -31,7 +31,7 @@ Before step 3 do **not** show:
 
 Previously learned categories from M06-L01–L03 remain prerequisites, not a new pre-attempt checklist.
 
-Technical help can cover interface mechanics only. It may not pick the substantive route.
+Technical help can cover interface mechanics only after learner has chosen the action. It may not tell learner what to do, check, choose, or conclude.
 
 ## Natural temporal evidence
 
