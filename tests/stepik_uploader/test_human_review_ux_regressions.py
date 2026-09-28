@@ -164,7 +164,10 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
 
         m05_step = _section(m05, "Узнайте новое назначение и сами решите, что изменить")
         self.assertIn("пока ничего не редактируйте в ИИ-сервисе", m05_step)
-        self.assertIn("в следующем шаге", m05_step)
+        self.assertIn("помощь только с кнопками или другими действиями в интерфейсе", m05_step)
+        self.assertIn("она будет в следующем шаге", m05_step)
+        self.assertIn("Само редактирование начнётся после этого", m05_step)
+        self.assertNotIn("само редактирование будут **в следующем шаге**", m05_step)
         self.assertNotIn("Сама карточка останавливается", m05_step)
 
         m06_explain = _section(m06, "Сначала поймите, на что на самом деле опирается ответ ИИ")
