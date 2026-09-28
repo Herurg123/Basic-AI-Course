@@ -95,6 +95,15 @@ class B6SemanticRouteTests(unittest.TestCase):
         self.assertIn("переходите к следующему шагу", recovery)
         self.assertNotIn("### Новая задача", recovery)
 
+    def test_m07_l02_completion_locally_reviews_recovery_without_second_exam(self) -> None:
+        steps = self._rendered("M07-L02")
+        completion = steps[7].text
+        self.assertIn("Если вы выполняли новую попытку", completion)
+        self.assertIn("Ничего заново делать с ИИ и писать в Stepik не нужно", completion)
+        self.assertIn("К прежнему ответу в шаге 6 не возвращайтесь", completion)
+        self.assertIn("Это не второй экзамен и не новая задача", completion)
+        self.assertIn("Завершение финальной самостоятельной работы", completion)
+
     def test_m08_is_reflection_only_and_requires_no_new_ai_work(self) -> None:
         steps = self._rendered("M08-L01")
         self.assertEqual(len(steps), 6)
