@@ -15,7 +15,8 @@
 | 7 | post-action application evidence | A03 inline only after action. In Stepik short evidence of completed small task and how checked/non-confirmed result was handled. Files stay local | `M06-L04-A03.md` + free-answer | `M06-L04-C02` | CHECK |
 | 8 | independent transfer | New LibreOffice claim; no method/source/status given. Learner independently decides whether/how phrase may be used and creates final technical note | learner-selected ground/tools | transfer action | INDEPENDENT_PRACTICE |
 | 9 | post-action transfer/explanation | In Stepik: key decision+why, what actual ground/absence determined status/action, what principle transferred. No rote rule credit | free-answer Stepik + local trace | `M06-L04-C03` | CHECK |
-| 10 | conditional transfer recovery + final boundary | If content hint/technical failure compromised transfer, new Windows 11 clipboard-history claim is solved independently, then return to step9. Optional chat is only support; it never substitutes ground | authored alternative claim + conditional chat | repeat `M06-L04-C03` | RECOVERY |
+| 10 | conditional transfer recovery | Только если в main transfer learner получил содержательную подсказку по проверке/выводу/итоговой формулировке либо не смог закончить проверку из-за технической недоступности. New Windows 11 clipboard-history claim решается independently; optional chat допускается только для mechanics и не заменяет ground. После recovery старый step9 answer не менять, сохранить результаты и идти только вперёд | authored alternative claim + conditional technical chat | отдельная recovery-попытка без возврата к `M06-L04-C03` | RECOVERY |
+| 11 | conditional post-recovery transfer review + final boundary | Если recovery не выполнялся — сразу к финальной границе. Если выполнялся — без новых действий в ИИ и без нового ответа Stepik локально разобрать новую transfer-попытку: key decision, actual ground/data/calculation or absence, transferred familiar approach; old step9 answer unchanged. Затем сохранить прежний переход к следующему модулю | local recovery trace + final technical note | локальный разбор без Stepik | REFLECTION |
 
 ## Independence boundary
 
@@ -70,16 +71,16 @@ Main transfer claim: LibreOffice Writer `Ctrl+Shift+S` “always” opens Save A
 
 If content hint or technical inability compromises that attempt, step 10 offers a different technical claim: Windows 11 `Win+V` “always” immediately shows clipboard history without prior enablement.
 
-No ready URL or method is supplied. After the new attempt learner returns to step 9.
+No ready URL or method is supplied. After the new attempt learner keeps the old step 9 answer unchanged and moves only forward to step 11 for local post-action review.
 
 ## Machine fixtures expected
 
-- 10 authored learner steps;
+- 11 authored learner steps;
 - A01 and nested A02 only in step3;
 - C01 categories absent from steps1–3;
 - A03 only post-action in step7;
 - step5 has no return target; recovery moves only forward and old step4 answer remains unchanged;
-- step10 return target = 9;
+- step10 has no return target; recovery moves only forward to step11 and old step9 answer remains unchanged;
 - no author-only answer key in learner HTML;
 - no mandatory second service/account;
 - no Stepik write.
