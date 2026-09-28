@@ -13,7 +13,7 @@
 | 5 | supported source verification | Learner сам выбирает source, реально открывает, finds relevant content, compares conditions, chooses status + decision. `данных недостаточно` допустим | browser + real primary/official source | `M06-L01-E02` | GUIDED_ACTION |
 | 6 | small application / safe refusal | Apply only genuinely supported useful part in local note. If not supported/no data, do not use as confirmed; record what is missing. Refusal is safe decision but does not certify claim | local note | B12 PRACTICE | GUIDED_ACTION |
 | 7 | post-action check | In Stepik: claim+importance, source+why suitable, relevant content, status+why, decision, real application or non-application. Evidence pages/chats stay local | free-answer Stepik | `M06-L01-C01` | CHECK |
-| 8 | conditional technical recovery + summary | Chat PRIMARY/BACKUP only for dialogue; source opens in browser. Unavailable page → another official section/fact, repeat verification, return to step7. No late ready link | browser + conditional chat | — | NAVIGATION |
+| 8 | conditional technical recovery + summary | Если main verification реально завершена — сразу к итогу. Если только после C01 выяснилось, что page не открылась/verification не завершилась, old step7 answer не менять: попробовать другой official section или другой safe fact, заново открыть source в browser, compare, choose result and apply only supported part / record missing data. Chat PRIMARY/BACKUP only for dialogue; AI never replaces source. После recovery сохранить local results и идти только вперёд, без нового Stepik answer | browser + conditional chat + local note | отдельная recovery-попытка без возврата к C01 | NAVIGATION |
 
 ## Guardrails
 
