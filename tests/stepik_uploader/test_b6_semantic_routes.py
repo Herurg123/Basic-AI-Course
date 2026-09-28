@@ -83,15 +83,17 @@ class B6SemanticRouteTests(unittest.TestCase):
         self.assertIn("Как вы оценили первую или промежуточную версию", check.text)
         self.assertIn("Отдельная заранее заполненная форма не требовалась", check.text)
 
-    def test_m07_l02_recovery_covers_contamination_and_not_proven_without_ready_case(self) -> None:
+    def test_m07_l02_recovery_is_observable_and_forward_only_without_ready_case(self) -> None:
         steps = self._rendered("M07-L02")
         recovery = steps[6].text
-        self.assertIn("содержательная подсказка", recovery)
-        self.assertIn("не подтверждается", recovery)
-        self.assertIn("другую собственную новую посильную реальную задачу", recovery)
-        self.assertIn("/lesson/2591731/step/6", recovery)
+        self.assertIn("до или во время работы", recovery)
+        self.assertIn("можете рассказать только сейчас", recovery)
+        self.assertIn("Отсутствие специально подготовленной заранее записи", recovery)
+        self.assertIn("другую собственную небольшую реальную задачу", recovery)
+        self.assertNotIn("/lesson/2591731/step/6", recovery)
+        self.assertIn("не возвращайтесь к ответу в шаге 6", recovery)
+        self.assertIn("переходите к следующему шагу", recovery)
         self.assertNotIn("### Новая задача", recovery)
-        self.assertIn("Успешную самостоятельную попытку повторять не нужно", recovery)
 
     def test_m08_is_reflection_only_and_requires_no_new_ai_work(self) -> None:
         steps = self._rendered("M08-L01")
