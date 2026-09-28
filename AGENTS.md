@@ -63,7 +63,9 @@
 - Если GitHub сообщает default branch, отличный от `main`, janitor обязан аварийно завершиться без удалений: по проектной инструкции канонической веткой остаётся именно `main`.
 - `main`, current default branch, protected-ветки и точные имена из `KEEP_BRANCHES` всегда сохраняются.
 - Автоудаление применяется только к явно разрешённым рабочим префиксам, перечисленным в самом workflow. Новые или неизвестные пространства имён по умолчанию сохраняются.
-- Текущий allowlist префиксов: `architecture/`, `audit/`, `bootstrap/`, `governance/`, `housekeeping/`, `production/`, `setup/`, `testing/`.
+- Текущий allowlist префиксов: `architecture/`, `audit/`, `automation/`, `bootstrap/`, `chore/`, `content/`, `fix/`, `governance/`, `housekeeping/`, `production/`, `refactor/`, `rewrite/`, `setup/`, `testing/`.
+- `diagnostic/` и `snapshot/` намеренно не входят в allowlist и по умолчанию сохраняются до отдельного решения об их жизненном цикле.
+- Служебная ветка `stepik-deployment-history-v1` должна быть явно указана в `KEEP_BRANCHES` и никогда не становится кандидатом на автоматическое удаление.
 - Ветка с открытым PR или ветка, используемая как base открытого PR, всегда сохраняется.
 - Ветка со смёрженным PR в `main` может удаляться только если её текущий SHA точно равен head SHA этого PR, после merge не было новых коммитов и прошёл заданный карантин.
 - Ветка без подходящего merged PR может удаляться только если `ahead_by = 0` относительно `main` и прошёл отдельный более длинный карантин.
