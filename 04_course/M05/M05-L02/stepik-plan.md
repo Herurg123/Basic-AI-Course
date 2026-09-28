@@ -40,7 +40,7 @@ Learner-facing A03 опирается на официальные пользов
 
 ## Recovery / independence
 
-Recovery is split across steps 10–11 to preserve order:
+Сама повторная попытка разделена между шагами 10–11, чтобы сохранить правильный порядок действий; в шаге 12 выполняется отдельный разбор уже завершённой повторной попытки.
 
 1. generate and save new source **without knowing future reuse**;
 2. only then reveal new use;
