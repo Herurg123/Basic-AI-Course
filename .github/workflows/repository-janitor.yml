@@ -40,10 +40,12 @@ jobs:
           MAX_DELETIONS_PER_RUN: '5'
 
           # Только эти рабочие пространства имён вообще могут стать кандидатами на автоудаление.
-          ALLOWED_PREFIXES: 'architecture/,audit/,bootstrap/,governance/,housekeeping/,production/,setup/,testing/'
+          ALLOWED_PREFIXES: 'architecture/,audit/,automation/,bootstrap/,chore/,content/,fix/,governance/,housekeeping/,production/,refactor/,rewrite/,setup/,testing/'
 
+          # diagnostic/ и snapshot/ намеренно не входят в allowlist: их жизненный цикл требует отдельного решения.
           # Дополнительные точные имена вечных веток через запятую. main защищается отдельно всегда.
-          KEEP_BRANCHES: ''
+          # Служебная ветка истории Stepik хранится явно и никогда не становится кандидатом на удаление.
+          KEEP_BRANCHES: 'stepik-deployment-history-v1'
 
           # Аварийный рубильник: Repository variable REPOSITORY_JANITOR_FORCE_DRY_RUN=true запрещает удаления.
           FORCE_DRY_RUN: ${{ vars.REPOSITORY_JANITOR_FORCE_DRY_RUN }}
