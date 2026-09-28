@@ -226,6 +226,109 @@ class WriterTests(unittest.TestCase):
         self.assertEqual(second.operations[0]["action"], "NOOP_ALREADY_IN_SYNC")
         self.assertEqual(client.update_calls, before_updates + 1)
 
+    def test_tracked_topology_growth_updates_prefix_and_appends_only_tail(self) -> None:
+        client = FakeClient()
+        initial = execute_content_test_one(
+            client,
+            client.inspect_course(299189),
+            expected_steps=EXPECTED,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+        )
+        baseline = {
+            "stepik_lesson_id": initial.lesson_id,
+            "applied_fingerprint": compiled_lesson_fingerprint(
+                expected_title=TITLE,
+                expected_steps=EXPECTED,
+            ),
+        }
+        grown = [
+            EXPECTED[0],
+            RenderedStep(
+                2,
+                "text",
+                "<p>Новый промежуточный шаг</p>",
+                {},
+                EXPECTED[0].source_git_paths,
+            ),
+            RenderedStep(
+                3,
+                EXPECTED[1].block_name,
+                EXPECTED[1].text,
+                EXPECTED[1].source,
+                EXPECTED[1].source_git_paths,
+            ),
+        ]
+
+        before_updates = client.update_calls
+        before_creates = client.create_calls
+        result = execute_content_sync_one(
+            client,
+            client.inspect_course(299189),
+            canonical_id="M02-L01",
+            expected_steps=grown,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+            baseline=baseline,
+            source_sha="growth-sha",
+        )
+
+        self.assertTrue(result.verified)
+        self.assertEqual(client.update_calls, before_updates + 1)
+        self.assertEqual(client.create_calls, before_creates + 1)
+        self.assertEqual(
+            [item["action"] for item in result.operations],
+            ["UPDATE_STEP", "CREATE_STEP"],
+        )
+        self.assertEqual(
+            [item["step_source"]["position"] for item in client._steps()],
+            [1, 2, 3],
+        )
+        self.assertEqual(
+            client._steps()[1]["step_source"]["block"]["text"],
+            "<p>Новый промежуточный шаг</p>",
+        )
+        self.assertEqual(
+            client._steps()[2]["step_source"]["block"]["text"],
+            EXPECTED[1].text,
+        )
+
+    def test_tracked_topology_shrink_is_blocked_without_writes(self) -> None:
+        client = FakeClient()
+        initial = execute_content_test_one(
+            client,
+            client.inspect_course(299189),
+            expected_steps=EXPECTED,
+            module_position=3,
+            lesson_position=1,
+            expected_title=TITLE,
+        )
+        baseline = {
+            "stepik_lesson_id": initial.lesson_id,
+            "applied_fingerprint": compiled_lesson_fingerprint(
+                expected_title=TITLE,
+                expected_steps=EXPECTED,
+            ),
+        }
+        before_updates = client.update_calls
+        before_creates = client.create_calls
+        with self.assertRaisesRegex(ContentWriteError, "STRUCTURAL_UPDATE_BLOCKED"):
+            execute_content_sync_one(
+                client,
+                client.inspect_course(299189),
+                canonical_id="M02-L01",
+                expected_steps=[EXPECTED[0]],
+                module_position=3,
+                lesson_position=1,
+                expected_title=TITLE,
+                baseline=baseline,
+                source_sha="shrink-sha",
+            )
+        self.assertEqual(client.update_calls, before_updates)
+        self.assertEqual(client.create_calls, before_creates)
+
     def test_exploitation_sync_allows_published_course_when_baseline_matches(self) -> None:
         client = FakeClient()
         initial = execute_content_test_one(
