@@ -156,11 +156,13 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
         self.assertNotIn("Артефакты", m03_step)
         self.assertNotIn("естественный след", m03_step.lower())
 
-        m04_step = _section(m04, "Найдите в ответе одну важную часть и сверьте её со своим материалом")
-        self.assertIn("Готового списка здесь нет", m04_step)
-        self.assertIn("Откройте свой исходный материал", m04_step)
+        m04_step = _section(m04, "Самостоятельно проверьте важную часть ответа")
+        self.assertIn("Что именно проверить, выбираете вы сами", m04_step)
+        self.assertIn("Самостоятельно проверьте выбранную часть ответа по своему исходному материалу", m04_step)
+        self.assertIn("Как именно проводить проверку, какие сведения в материале использовать", m04_step)
+        self.assertNotIn("Откройте свой исходный материал, найдите место", m04_step)
         self.assertIn("ИИ **не проверяет собственный ответ вместо вас**", m04_step)
-        self.assertIn("Шаг завершён", m04_step)
+        self.assertIn("Задание выполнено", m04_step)
 
         m05_step = _section(m05, "Узнайте новое назначение и сами решите, что изменить")
         self.assertIn("пока ничего не редактируйте в ИИ-сервисе", m05_step)
