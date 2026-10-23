@@ -42,6 +42,35 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
         self.assertNotIn("используйте обычное действие сервиса", preparation)
         self.assertEqual(6, sum(line.startswith("## ") for line in lesson.splitlines()))
 
+    def test_first_file_upload_uses_verified_plus_and_real_saved_docx(self) -> None:
+        lesson = (ROOT / "04_course/M00/M00-L02/lesson.md").read_text(encoding="utf-8")
+        aid = (ROOT / "05_assets/M00/M00-L03/M00-L03-A02.md").read_text(encoding="utf-8")
+        task = _section(lesson, "Передайте документ и поставьте задачу по нему")
+        self.assertIn('**«+» (плюс)**', task)
+        self.assertIn("папке **«Загрузки»**", task)
+        self.assertIn("прикреплённый документ в чате", task)
+        self.assertIn("недостаточно просто открыть документ", task)
+        self.assertIn("**в том же разговоре**", task)
+        self.assertIn("GigaChat", task)
+        self.assertIn("новый чат", task)
+        self.assertIn("скачанным учебным документом", lesson)
+        self.assertIn("сохранённый учебный файл", aid)
+        self.assertIn('**«+» (плюс)**', aid)
+        self.assertEqual(8, sum(x.startswith("## ") for x in lesson.splitlines()))
+
+    def test_stepik_chat_switching_uses_tabs_without_reloading_stepik(self) -> None:
+        lesson = (ROOT / "04_course/M00/M00-L03/lesson.md").read_text(encoding="utf-8")
+        practice = _section(lesson, "Найдите фрагмент в исходнике и вернитесь к чату")
+        self.assertIn("Не закрывайте страницу Stepik", practice)
+        self.assertIn("другой вкладке браузера", practice)
+        self.assertIn("**На компьютере:**", practice)
+        self.assertIn("**На телефоне:**", practice)
+        self.assertIn("переключайтесь между приложениями телефона", practice)
+        self.assertIn("ту же строку о ноутбуке", practice)
+        self.assertIn("**Ничего отправлять ИИ не нужно.**", practice)
+        self.assertIn("GigaChat", practice)
+        self.assertEqual(6, sum(x.startswith("## ") for x in lesson.splitlines()))
+
     def test_no_stale_inline_material_promises_or_visible_md_extension(self) -> None:
         stale_patterns = (
             re.compile(r"будет показан[аоы]?\s+ниже", re.IGNORECASE),
