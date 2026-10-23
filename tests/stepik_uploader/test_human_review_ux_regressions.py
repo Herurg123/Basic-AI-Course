@@ -181,7 +181,6 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
 
         m07_step = _section(m07, "Разберите уже выполненную финальную работу")
         self.assertIn("не нужно снова работать с ИИ", m07_step)
-        self.assertIn("не нужно снова работать с ИИ", m07_step)
         self.assertIn("**Ответьте в Stepik на семь вопросов:**", m07_step)
         self.assertIn("Если чужая подсказка повлияла на решение", m07_step)
         self.assertIn("Файлы и снимки экрана загружать в Stepik не нужно", m07_step)
