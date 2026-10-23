@@ -79,9 +79,12 @@ class B6SemanticRouteTests(unittest.TestCase):
         check = steps[5]
         self.assertEqual(check.block_name, "free-answer")
         self.assertEqual(self.compiled["M07-L02"][5].check_ids, ("M07-L02-C01",))
-        self.assertIn("Как вы понимали, что результат подходит", check.text)
-        self.assertIn("Как вы оценили первую или промежуточную версию", check.text)
-        self.assertIn("Отдельная заранее заполненная форма не требовалась", check.text)
+        self.assertIn("По каким 1–3 признакам ещё до проверки первой версии", check.text)
+        self.assertIn("Как вы оценили первую версию", check.text)
+        self.assertIn("Если вы заранее не записали признаки хорошего результата", check.text)
+        self.assertIn("если по ним видно, что вы определились с ними ещё тогда", check.text)
+        self.assertIn("как это повлияло на результат", check.text)
+        self.assertIn("один раз, в Stepik", check.text)
 
     def test_m07_l02_recovery_is_observable_and_forward_only_without_ready_case(self) -> None:
         steps = self._rendered("M07-L02")
