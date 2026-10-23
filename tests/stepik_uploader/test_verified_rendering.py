@@ -276,6 +276,34 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertLess(step2.index("Материал:"), step2.index("После чтения"))
         self.assertNotIn("STEPIK_INLINE_MATERIAL_", step2)
 
+    def test_ex001_m01_l01_step4_contains_full_inline_a02_material(self) -> None:
+        """EX-001: no broken 'Material below' exercise in verified Stepik HTML."""
+        plan = build_rendering_plan(
+            repo_root=self.repo_root,
+            lesson_id="M01-L01",
+            source_steps=self.compiled["M01-L01"],
+            asset_report=self.asset_report,
+        )
+        self.assertEqual(len(plan.rendered_steps), 7)
+        step4 = plan.rendered_steps[3]
+        html = step4.text
+        label = "<strong>Материал: Подготовленная первая версия для уточнения</strong>"
+        sample = "Напоминаю: учебная встреча «Практика» начнётся в 18:30."
+        self.assertEqual(html.count(label), 1)
+        self.assertEqual(html.count(sample), 1)
+        self.assertIn("Возьмите блокнот и ручку", html)
+        self.assertIn("<blockquote>", html)
+        self.assertIn("</blockquote>", html)
+        self.assertLess(html.index("Прочитайте"), html.index(label))
+        self.assertLess(html.index(label), html.index("Сами определите"))
+        self.assertIn(
+            "05_assets/M01/M01-L01/M01-L01-A02.md",
+            step4.source_git_paths,
+        )
+        self.assertNotIn("../../../05_assets/", html)
+        self.assertNotIn("STEPIK_INLINE_MATERIAL_", html)
+        self.assertNotIn("M01-L01-A02.md", plan.rendered_steps[2].text)
+
     def test_nested_m06_dependency_is_recursively_inlined_without_repo_link(self) -> None:
         plan = build_rendering_plan(
             repo_root=self.repo_root,
