@@ -18,9 +18,11 @@ class M04L03OwnMaterialVerificationTests(unittest.TestCase):
         )
         verification = steps[2].markdown
 
-        self.assertIn("сверьте её со своим материалом", verification)
-        self.assertIn("Откройте свой исходный материал", verification)
-        self.assertIn("недостаточно информации", verification)
+        self.assertIn("Самостоятельно проверьте выбранную часть ответа по своему исходному материалу", verification)
+        self.assertIn("Как именно проводить проверку, какие сведения в материале использовать", verification)
+        self.assertIn("Если исходный материал не позволяет подтвердить", verification)
+        self.assertNotIn("Откройте свой исходный материал, найдите место", verification)
+        self.assertNotIn("затем найдите", verification)
         self.assertIn("ИИ **не проверяет собственный ответ вместо вас**", verification)
         self.assertNotIn("официальный источник", verification)
         self.assertNotIn("другой способ, которому вы уже научились", verification)
