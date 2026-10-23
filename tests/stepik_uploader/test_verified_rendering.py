@@ -277,7 +277,7 @@ class VerifiedRenderingTests(unittest.TestCase):
         self.assertNotIn("STEPIK_INLINE_MATERIAL_", step2)
 
     def test_ex001_m01_l01_step4_contains_full_inline_a02_material(self) -> None:
-        """EX-001: no broken 'Material below' exercise in verified Stepik HTML."""
+        """EX-001: обязательный A02 присутствует в HTML шага 4 целиком и в нужном месте."""
         plan = build_rendering_plan(
             repo_root=self.repo_root,
             lesson_id="M01-L01",
