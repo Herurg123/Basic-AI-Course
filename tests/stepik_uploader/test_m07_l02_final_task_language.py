@@ -47,7 +47,7 @@ class M07L02FinalTaskLanguageTests(unittest.TestCase):
             self.assertIn(meaning, check)
         # A03 does not duplicate the questions: no second list of evaluation prompts.
         preamble = check.split("**Ответьте в Stepik на семь вопросов:**", 1)[0]
-        self.assertIn("Памятка перед ответом", preamble)
+        self.assertIn("короткую памятку перед ответом", preamble)
         self.assertNotIn("## Что вы сделали", preamble)
 
 
