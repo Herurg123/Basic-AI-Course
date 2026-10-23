@@ -181,13 +181,16 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
 
         m07_step = _section(m07, "Разберите уже выполненную финальную работу")
         self.assertIn("не нужно снова работать с ИИ", m07_step)
-        self.assertIn("не новый пример, не тренировка", m07_step)
-        self.assertIn("ответьте в поле Stepik", m07_step)
-        self.assertIn("Файлы, изображения и скриншоты в Stepik загружать не нужно", m07_step)
+        self.assertIn("не нужно снова работать с ИИ", m07_step)
+        self.assertIn("**Ответьте в Stepik на семь вопросов:**", m07_step)
+        self.assertIn("Если чужая подсказка повлияла на решение", m07_step)
+        self.assertIn("Файлы и снимки экрана загружать в Stepik не нужно", m07_step)
 
-        self.assertTrue(form.startswith("# Вопросы для разбора финальной работы"))
-        self.assertIn("не новый пример, не отдельное упражнение и не файл для заполнения", form)
-        self.assertIn("Ничего отправлять ИИ здесь не нужно", form)
+        self.assertTrue(form.startswith("# Памятка перед ответом"))
+        self.assertIn("семь вопросов", form)
+        self.assertIn("один раз, в Stepik", form)
+        self.assertIn("отправлять ИИ не нужно", form)
+        self.assertNotIn("## Что вы сделали", form)
         self.assertNotIn("естественный след", form.lower())
 
 
