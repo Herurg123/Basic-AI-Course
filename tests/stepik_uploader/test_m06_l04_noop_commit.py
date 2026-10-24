@@ -130,7 +130,7 @@ class M06L04NoopCommitGapTests(unittest.TestCase):
         old["pending"]["lessons"][OBJECT_ID] = {
             "object_id": OBJECT_ID, "kind": "lesson", "status": "PENDING",
         }
-        with self.assertRaises((DeploymentHistoryError, ValueError)):
+        with self.assertRaises(RuntimeError):
             planned_state(old, exact_final())
 
     def test_live_exact_hash_and_topology(self):
