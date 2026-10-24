@@ -409,6 +409,29 @@ def find_incomplete_object_events(store: Any, *, object_id: str) -> list[tuple[E
         if summary.get("machine_state_committed"):
             continue
 
+        # Narrow, owner-authorized terminal reconciliation of the single
+        # Stepik list-start transport incident, after a separately verified
+        # Issue #54 baseline PATCH. Never classify ordinary failed writes as safe.
+        terminal = [r for r in records if r.get("phase") == "RECONCILE_COMMITTED"]
+        if terminal:
+            if (
+                len(terminal) != 1
+                or _identity.event_id != "evt-676a1303134137527c4198fa433cbcee"
+                or _identity.object_id != "M05-L02"
+                or _identity.course_id != 299189
+                or terminal[0].get("reconciliation_mode") != "OWNER_APPROVED_M05L02_TRANSPORT_RECONCILIATION"
+                or terminal[0].get("owner_approved") is not True
+                or terminal[0].get("old_expected_intermediate") != "sha256:81b14454ea4488e149d69ee463f4848050cfa1402185ee2504545c14cc4526be"
+                or terminal[0].get("observed_live_fingerprint") != "sha256:d8b141cb27e579fee1051cf432fa7260ab458085ffc40e9d752b3d48d70b8e9d"
+                or terminal[0].get("baseline_before") != "sha256:7fc269552cd90cabbfec6ce3f735e74c0a0a43fde5dd69399ff0df6bf54a614b"
+                or not summary.get("readback_failed")
+                or not summary.get("external_write_started")
+                or summary.get("final_readback_confirmed")
+                or summary.get("machine_state_committed")
+            ):
+                raise DeploymentHistoryError("Некорректный terminal reconciliation WAL; автоматическая запись запрещена")
+            continue
+
         failed_before_write = [record for record in records if record.get("phase") == "FAILED_BEFORE_WRITE"]
         if (
             len(failed_before_write) == 1
