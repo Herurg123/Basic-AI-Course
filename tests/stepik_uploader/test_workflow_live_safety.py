@@ -11,14 +11,16 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.release_path = self.repo_root / ".github/workflows/stepik-private-release.yml"
         self.reconcile_path = self.repo_root / ".github/workflows/stepik-m05-l02-reconcile.yml"
         self.m06_reconcile_path = self.repo_root / ".github/workflows/stepik-m06-l04-reconcile.yml"
+        self.noop_finalize_path = self.repo_root / ".github/workflows/stepik-m06-l04-noop-finalize.yml"
         self.uploader = self.uploader_path.read_text(encoding="utf-8")
         self.release = self.release_path.read_text(encoding="utf-8")
         self.reconcile = self.reconcile_path.read_text(encoding="utf-8")
         self.m06_reconcile = self.m06_reconcile_path.read_text(encoding="utf-8")
+        self.noop_finalize = self.noop_finalize_path.read_text(encoding="utf-8")
 
     def test_only_current_stepik_workflows_remain(self) -> None:
         workflows = {path.name for path in (self.repo_root / ".github/workflows").glob("stepik-*.yml")}
-        self.assertEqual(workflows, {"stepik-uploader.yml", "stepik-private-release.yml", "stepik-m05-l02-reconcile.yml", "stepik-m06-l04-reconcile.yml"})
+        self.assertEqual(workflows, {"stepik-uploader.yml", "stepik-private-release.yml", "stepik-m05-l02-reconcile.yml", "stepik-m06-l04-reconcile.yml", "stepik-m06-l04-noop-finalize.yml"})
 
     def test_all_live_stepik_jobs_share_fixed_course_mutex(self) -> None:
         shared = "group: stepik-live-course-299189"
@@ -26,6 +28,7 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.assertEqual(self.release.count(shared), 1)
         self.assertEqual(self.reconcile.count(shared), 1)
         self.assertEqual(self.m06_reconcile.count(shared), 1)
+        self.assertEqual(self.noop_finalize.count(shared), 1)
         self.assertNotIn("group: stepik-live-course-${{ inputs.course_id }}", self.uploader)
         self.assertNotIn("group: stepik-live-course-${{ inputs.course_id }}", self.release)
         self.assertIn("cancel-in-progress: false", self.uploader)
@@ -90,6 +93,26 @@ class WorkflowLiveSafetyTests(unittest.TestCase):
         self.assertNotIn(".update_step_source(", source)
         self.assertNotIn(".update_lesson(", source)
         self.assertNotIn(".create_step_source(", source)
+
+    def test_noop_commit_gap_workflow_is_read_only_on_stepik(self) -> None:
+        self.assertIn("confirm_recovery", self.noop_finalize)
+        self.assertIn("default: false", self.noop_finalize)
+        self.assertIn("repair_m06_l04_noop_commit prepare", self.noop_finalize)
+        self.assertIn("repair_m06_l04_noop_commit finalize", self.noop_finalize)
+        self.assertIn("sync_issue_state.py compare", self.noop_finalize)
+        self.assertIn("live_guard.py", self.noop_finalize)
+        self.assertIn("cancel-in-progress: false", self.noop_finalize)
+        self.assertIn("compare/9e73258db9377e1e709cc9a711bf6e1c66380a07", self.noop_finalize)
+        for forbidden in (
+            "--confirm-write", "update_step_source", "create_step_source",
+            "staging_refresh_runtime.py                 --repo-root",
+            "staging_build_runtime.py                 --repo-root",
+            "course_page_sync.py",
+        ):
+            self.assertNotIn(forbidden, self.noop_finalize)
+        cli = (self.repo_root / "scripts/stepik_uploader/repair_m06_l04_noop_commit.py").read_text(encoding="utf-8")
+        for forbidden in (".update_step_source(", ".create_step_source(", ".update_lesson("):
+            self.assertNotIn(forbidden, cli)
 
     def test_private_release_is_only_stepik_write_entry_point(self) -> None:
         self.assertIn("confirm_write", self.release)

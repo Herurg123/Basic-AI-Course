@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 from scripts.stepik_uploader.staging_refresh_runtime import (
     _assessment_or_history_gate,
+    _commit_proven_lesson_baseline,
     _assert_refresh_target_live,
     _refresh_materialization_plan,
     _version_suffix,
@@ -46,6 +47,31 @@ class StagingRefreshRuntimeTests(unittest.TestCase):
                 desired_fp="sha256:" + "2" * 64,
                 sha="a" * 40,
             )
+
+    def test_verified_noop_with_new_canonical_baseline_is_persisted(self) -> None:
+        from tests.stepik_uploader.test_m06_l04_ambiguous_reconcile import example_state
+        state = example_state()
+        old = state["lessons"]["M06-L04"]
+        new = dict(old, applied_source_sha="9e73258db9377e1e709cc9a711bf6e1c66380a07",
+                   applied_at="2026-10-24T14:35:18Z",
+                   applied_fingerprint="sha256:dd64e0d54c237b5f3665297e405595f66af6da47e1161286a1f4f3e07bb57ec4")
+        result = _commit_proven_lesson_baseline(
+            state, canonical_id="M06-L04", baseline=old,
+            verified_record=new, status="NOOP_CONFIRMED",
+        )
+        self.assertEqual(result["lessons"]["M06-L04"], new)
+        self.assertEqual(state["lessons"]["M06-L04"], old)
+        self.assertEqual(result["pending"]["lessons"]["M06-L04"], state["pending"]["lessons"]["M06-L04"])
+
+    def test_identical_verified_noop_does_not_rewrite_baseline(self) -> None:
+        from tests.stepik_uploader.test_m06_l04_ambiguous_reconcile import example_state
+        state = example_state()
+        old = state["lessons"]["M06-L04"]
+        result = _commit_proven_lesson_baseline(
+            state, canonical_id="M06-L04", baseline=old,
+            verified_record=dict(old), status="NOOP_CONFIRMED",
+        )
+        self.assertIs(result, state)
 
     def test_refresh_metadata_guard_allows_title_difference_but_requires_private_ru(self) -> None:
         snapshot = {"course": {"is_public": False, "language": "ru"}}
