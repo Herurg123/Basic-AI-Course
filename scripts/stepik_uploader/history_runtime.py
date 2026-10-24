@@ -414,6 +414,32 @@ def find_incomplete_object_events(store: Any, *, object_id: str) -> list[tuple[E
         # Issue #54 baseline PATCH. Never classify ordinary failed writes as safe.
         terminal = [r for r in records if r.get("phase") == "RECONCILE_COMMITTED"]
         if terminal:
+            if _identity.event_id == "evt-1433d5dd0f02668e42a42590ef93abf0":
+                # A confirmed live read-back of an ambiguous PUT is not a blind
+                # retry. A separate owner-approved workflow has PATCHed the
+                # exact observed intermediate fingerprint to Issue #54 first.
+                from .reconcile_m06_l04 import (
+                    BASELINE_FP, EXPECTED_STEP9, OWNER_APPROVAL,
+                    verify_wal,
+                )
+                verify_wal(records)
+                record = terminal[0]
+                if (
+                    len(terminal) != 1
+                    or _identity.object_id != "M06-L04"
+                    or _identity.course_id != 299189
+                    or record.get("reconciliation_mode") != OWNER_APPROVAL
+                    or record.get("owner_approved") is not True
+                    or record.get("old_expected_intermediate") != EXPECTED_STEP9
+                    or record.get("observed_live_fingerprint") != EXPECTED_STEP9
+                    or record.get("baseline_before") != BASELINE_FP
+                    or not summary.get("ambiguous")
+                    or not summary.get("external_write_started")
+                    or summary.get("final_readback_confirmed")
+                    or summary.get("machine_state_committed")
+                ):
+                    raise DeploymentHistoryError("M06-L04: некорректный terminal reconcile")
+                continue
             if (
                 len(terminal) != 1
                 or _identity.event_id != "evt-676a1303134137527c4198fa433cbcee"
