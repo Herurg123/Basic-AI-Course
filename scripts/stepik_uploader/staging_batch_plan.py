@@ -104,13 +104,16 @@ def add_history_recovery_targets(
     recovery_targets: list[str] = []
 
     for canonical_id in canonical_order:
-        incomplete = find_incomplete_object_events(store, object_id=canonical_id)
-
         # Active initial/refresh targets are re-checked by their own strict runtime.
         # Those runtimes own partial-write recovery because they also know the exact
         # compiled desired content and current baseline for the target.
+        # Avoid scanning all historical events for targets this batch planner
+        # deliberately does not attempt to recover: on large history branches
+        # the unused GitHub blob reads can exhaust the installation API quota.
         if canonical_id in active_targets:
             continue
+
+        incomplete = find_incomplete_object_events(store, object_id=canonical_id)
 
         # For already-closed, non-target lessons only a commit gap for *this exact
         # source_main_sha* can belong to the current batch/retry. Historical incomplete
