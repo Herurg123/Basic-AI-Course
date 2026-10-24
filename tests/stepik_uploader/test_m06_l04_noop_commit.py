@@ -9,8 +9,9 @@ from scripts.stepik_uploader.deployment_history import (
     stable_event_id,
 )
 from scripts.stepik_uploader.history_runtime import mark_machine_state_committed
+from scripts.stepik_uploader.reconcile_m06_l04 import BASELINE_FP
 from scripts.stepik_uploader.repair_m06_l04_noop_commit import (
-    BASELINE_FP, COURSE_ID, DESIRED_FP, EVENT_ID, EXPECTED_SOURCE_PATHS,
+    COURSE_ID, DESIRED_FP, EVENT_ID, EXPECTED_SOURCE_PATHS,
     FIRST_PENDING_SHA, INTERMEDIATE_FP, LESSON_ID, OBJECT_ID, PREVIOUS_SHA,
     RECONCILED_EVENT_ID, STEP_IDS, planned_state, proven_final, verified_live,
 )
