@@ -26,7 +26,7 @@
 - [layer-change-matrix.md](layer-change-matrix.md) — где нужны renderer/source/plan/assets/local/systemic changes.
 - [risk-calibrations.md](risk-calibrations.md) — спорные зоны, которые нельзя механически «исправлять».
 - [PRODUCTION-HANDOFF.md](PRODUCTION-HANDOFF.md) — полный handoff следующему этапу.
-- [production-prompt-sol-high.md](production-prompt-sol-high.md) — самодостаточный prompt SOL/HIGH.
+- [production-prompt-sol-high.md](../_archive/execution-prompts/production-prompt-sol-high-2026-09-22.md) — самодостаточный prompt SOL/HIGH.
 - [critic-round1.md](critic-round1.md) — REQUEST_CHANGES; [critic-response.md](critic-response.md) — адресные исправления; [critic-round2.md](critic-round2.md) — PASS; [critic-status.json](critic-status.json) — formal state.
 
 ## Главные решения
