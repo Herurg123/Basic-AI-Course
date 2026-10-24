@@ -81,8 +81,8 @@ jobs:
           base='artifacts/stepik-m06-l04-noop-finalize'
           gh api "repos/$GITHUB_REPOSITORY/issues/54" --jq .body > "$base/issue-body.previous.md"
           python scripts/stepik_uploader/sync_issue_state.py extract --body-file "$base/issue-body.previous.md" --output "$base/sync-state.previous.json" --course-id "$COURSE_ID"
-          python -m scripts.stepik_uploader.repair_m06_l04_noop_commit prepare --repo-root . --sync-state "$base/sync-state.previous.json" --output "$base/sync-state.next.json" --approved
-      - name: Сверить повторно и записать промежуточный baseline в Issue №54
+          python -m scripts.stepik_uploader.repair_m06_l04_noop_commit prepare --sync-state "$base/sync-state.previous.json" --output "$base/sync-state.next.json" --approved
+      - name: Сверить повторно и зафиксировать только точный итоговый baseline в Issue №54
         shell: bash
         run: |
           set -euo pipefail
@@ -102,14 +102,14 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/issues/54" --jq .body > "$base/issue-body.applied.md"
           python scripts/stepik_uploader/sync_issue_state.py extract --body-file "$base/issue-body.applied.md" --output "$base/sync-state.applied.json" --course-id "$COURSE_ID"
           python scripts/stepik_uploader/sync_issue_state.py compare --expected-state "$base/sync-state.next.json" --current-state "$base/sync-state.applied.json" --course-id "$COURSE_ID"
-          python -m scripts.stepik_uploader.repair_m06_l04_noop_commit finalize --repo-root . --sync-state "$base/sync-state.applied.json" --output "$base/reconcile-final.json" --approved
+          python -m scripts.stepik_uploader.repair_m06_l04_noop_commit finalize --sync-state "$base/sync-state.applied.json" --output "$base/reconcile-final.json" --approved
       - name: Зафиксировать итог в журнале
         shell: bash
         run: |
           set -euo pipefail
           gh issue comment 54 --repo "$GITHUB_REPOSITORY" --body '### OWNER RECONCILIATION M06-L04
           
-          Восстановлена запись GitHub Issue #54 после NOOP_CONFIRMED M06-L04: exact final baseline скопирован из immutable WAL, подтверждён свежим read-only Stepik. PENDING M06-L04 уже закрыт предыдущим запуском; 3 других урока и страница курса остаются PENDING. Machine baseline обновлён, PENDING остался открытым, терминальный RECONCILE_COMMITTED записан. **Записей в Stepik не было.** Можно отдельно проверять оставшиеся PENDING и запускать защищённую публикацию.'
+          Восстановлена запись GitHub Issue #54 после NOOP_CONFIRMED M06-L04: exact final baseline скопирован из immutable WAL, подтверждён свежим read-only Stepik. PENDING M06-L04 уже закрыт предыдущим запуском; 3 других урока и страница курса остаются PENDING. Machine baseline обновлён для M06-L04, оставшиеся PENDING не тронуты, терминальный MACHINE_STATE_COMMITTED записан. **Записей в Stepik не было.** Можно отдельно проверять оставшиеся PENDING и запускать защищённую публикацию.'
       - name: Сохранить доказательства
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
