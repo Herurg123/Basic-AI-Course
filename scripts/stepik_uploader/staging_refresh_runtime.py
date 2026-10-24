@@ -884,7 +884,13 @@ def main() -> int:
 
             confirmed_at = _utc_now()
             next_state = state_after_assets
-            if lesson_status == "APPLIED":
+            # NOOP_CONFIRMED can still produce a new proven canonical baseline:
+            # Stepik content may already match the desired version after an
+            # owner-reconciled partial write. In that case the verified writer
+            # builds a newer record without issuing another Stepik PUT.
+            # The machine PATCH must commit that exact record before closing
+            # PENDING, otherwise it contradicts FINAL_READBACK_CONFIRMED.
+            if lesson_status == "APPLIED" or lesson_record != baseline:
                 next_state = with_record(next_state, canonical_id=target_id, record=lesson_record)
             next_state = close_lesson_pending(
                 next_state,
