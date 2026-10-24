@@ -124,10 +124,20 @@ def proposed_state(state: dict, *, live_fp: str) -> dict:
     existing = old.get("partial_reconciliation")
     if existing is not None and existing != EVENT_ID:
         raise DeploymentHistoryError("Отмечено другое reconciliation")
+    pending = state["pending"]["lessons"][OBJECT_ID]
+    ref = pending.get("confirmed_baseline_ref")
+    if not isinstance(ref, dict) or ref.get("stepik_lesson_id") != LESSON_ID:
+        raise DeploymentHistoryError("PENDING baseline reference отсутствует или изменён")
     if old["applied_fingerprint"] == OBSERVED_INTERMEDIATE:
-        if old.get("confirmed_live_fingerprint") != OBSERVED_INTERMEDIATE or existing != EVENT_ID:
+        if (
+            old.get("confirmed_live_fingerprint") != OBSERVED_INTERMEDIATE
+            or existing != EVENT_ID
+            or ref.get("applied_fingerprint") != OBSERVED_INTERMEDIATE
+        ):
             raise DeploymentHistoryError("Уже обновлённый baseline не подтверждён")
         return state
+    if ref.get("applied_fingerprint") != BASELINE_FP:
+        raise DeploymentHistoryError("PENDING baseline reference больше не соответствует исходному состоянию")
     if old.get("confirmed_live_fingerprint", BASELINE_FP) != BASELINE_FP:
         raise DeploymentHistoryError("Live подтверждённый baseline изменился")
     next_state = deepcopy(state)
@@ -137,7 +147,15 @@ def proposed_state(state: dict, *, live_fp: str) -> dict:
     record["applied_source_sha"] = ORIGIN_SHA
     record["applied_at"] = utc_now()
     record["partial_reconciliation"] = EVENT_ID
-    # Pending remains OPEN: this is not a complete canonical deployment.
+    ref = next_state["pending"]["lessons"][OBJECT_ID]["confirmed_baseline_ref"]
+    ref.update({
+        "applied_fingerprint": live_fp,
+        "confirmed_live_fingerprint": live_fp,
+        "applied_source_sha": ORIGIN_SHA,
+        "applied_at": record["applied_at"],
+    })
+    next_state["updated_at"] = record["applied_at"]
+    # Pending remains OPEN: this is NOT a complete canonical deployment.
     return validate_state(next_state, course_id=COURSE_ID)
 
 
@@ -186,8 +204,8 @@ def main() -> int:
         if args.phase == "prepare":
             if already:
                 raise DeploymentHistoryError("История уже reconciled; незапланированный повтор prepare запрещён")
-            if current != BASELINE_FP:
-                raise DeploymentHistoryError("Machine baseline уже обновлён; используйте finalize")
+            if current not in {BASELINE_FP, OBSERVED_INTERMEDIATE}:
+                raise DeploymentHistoryError("Machine baseline не относится к исходному или частично восстановленному состоянию")
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(next_state, ensure_ascii=False, sort_keys=True, indent=2)+"\n", encoding="utf-8")
             print(json.dumps({"verdict":"PREPARED", "live_fingerprint":live_fp, "original_event":EVENT_ID,"stepik_writes":0},ensure_ascii=False))
