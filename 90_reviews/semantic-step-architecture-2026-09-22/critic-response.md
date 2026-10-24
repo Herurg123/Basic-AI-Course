@@ -52,7 +52,7 @@ Scoped audits B1–B6 не заменяют final whole-course dual gate.
 - `regression-test-plan.md`;
 - `layer-change-matrix.md`;
 - `PRODUCTION-HANDOFF.md`;
-- `production-prompt-sol-high.md`.
+- [`production-prompt-sol-high.md`](../_archive/execution-prompts/production-prompt-sol-high-2026-09-22.md).
 
 Текущий head после исправлений: `85fe3ed7e3b43256eb5f2d5b77eb38d08c536e13`.
 
