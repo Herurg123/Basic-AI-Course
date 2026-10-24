@@ -141,6 +141,8 @@ def planned_state(state: dict, final_record: dict) -> dict:
         or existing.get("applied_fingerprint") != INTERMEDIATE_FP
         or existing.get("confirmed_live_fingerprint") != INTERMEDIATE_FP
         or existing.get("applied_source_sha") != "bcf20b6ce0c5ca921247cba209a7a375f1bb72a2"
+        or existing.get("applied_at") != "2026-10-24T14:12:31Z"
+        or existing.get("canonical_id") != OBJECT_ID
         or existing.get("source_git_paths") != EXPECTED_SOURCE_PATHS
     ):
         raise DeploymentHistoryError("Machine state M06-L04 уже изменено другим способом")
