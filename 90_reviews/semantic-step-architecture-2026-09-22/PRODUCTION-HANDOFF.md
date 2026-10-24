@@ -49,7 +49,7 @@
 6. `regression-test-plan.md`;
 7. `risk-calibrations.md`;
 8. этот handoff;
-9. `production-prompt-sol-high.md`.
+9. [`production-prompt-sol-high.md`](../_archive/execution-prompts/production-prompt-sol-high-2026-09-22.md).
 
 Из Шага 1 использовать адресно:
 - `90_reviews/semantic-step-audit-2026-09-20/findings.json`;
