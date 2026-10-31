@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from scripts.stepik_uploader.deployment_history import (
     DeploymentRecorder,
@@ -157,6 +158,63 @@ class StagingBatchPlanTests(unittest.TestCase):
         self.assertEqual(plan["refresh_target_ids"], ["M01-L01"])
         self.assertEqual(plan["recovery_target_ids"], [])
         self.assertEqual(plan["target_ids"], ["M01-L01", "M01-L02"])
+        self.assertTrue(plan["write_allowed"])
+
+    def test_active_targets_do_not_scan_unused_history(self):
+        store = MemoryHistoryStore()
+        state = {
+            "lessons": {"M00-L02": self.committed_baseline("M00-L02")},
+            "pending": self.pending("M00-L01", "M00-L02", "M00-L03", "M01-L01", "M01-L02"),
+        }
+        selected = select_targets(self.manifest(), state)
+        with patch(
+            "scripts.stepik_uploader.staging_batch_plan.find_incomplete_object_events",
+            side_effect=AssertionError("History must not be scanned for active PENDING targets"),
+        ) as scan:
+            plan = add_history_recovery_targets(
+                selection=selected,
+                manifest=self.manifest(),
+                state=state,
+                source_main_sha=self.SOURCE_SHA,
+                store=store,
+                course_id=299189,
+            )
+        scan.assert_not_called()
+        self.assertEqual(plan["refresh_target_ids"], ["M00-L02"])
+        self.assertEqual(plan["initial_target_ids"], ["M00-L01", "M00-L03", "M01-L01", "M01-L02"])
+        self.assertEqual(plan["recovery_target_ids"], [])
+        self.assertEqual(plan["target_count"], 5)
+        self.assertTrue(plan["write_allowed"])
+
+    def test_closed_targets_still_scan_history_for_recovery(self):
+        store = MemoryHistoryStore()
+        state = {
+            "lessons": {"M00-L01": self.committed_baseline("M00-L01")},
+            "pending": self.pending("M00-L02", "M01-L02"),
+        }
+        selected = select_targets(self.manifest(), state)
+        scanned = []
+
+        def scan_unused(store_arg, *, object_id):
+            self.assertIs(store_arg, store)
+            scanned.append(object_id)
+            return []
+
+        with patch(
+            "scripts.stepik_uploader.staging_batch_plan.find_incomplete_object_events",
+            side_effect=scan_unused,
+        ):
+            plan = add_history_recovery_targets(
+                selection=selected,
+                manifest=self.manifest(),
+                state=state,
+                source_main_sha=self.SOURCE_SHA,
+                store=store,
+                course_id=299189,
+            )
+        self.assertEqual(scanned, ["M00-L01", "M00-L03", "M01-L01"])
+        self.assertEqual(plan["target_ids"], ["M00-L02", "M01-L02"])
+        self.assertEqual(plan["recovery_target_ids"], [])
         self.assertTrue(plan["write_allowed"])
 
     def test_incomplete_current_source_history_with_closed_baseline_becomes_recovery_target(self):

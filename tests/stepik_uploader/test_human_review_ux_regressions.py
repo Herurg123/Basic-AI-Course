@@ -28,6 +28,51 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
     def test_all_21_lessons_are_present(self) -> None:
         self.assertEqual(len(LESSON_PATHS), 21)
 
+    def test_first_new_chat_instruction_is_actionable_without_screenshot(self) -> None:
+        lesson = (ROOT / "04_course/M00/M00-L01/lesson.md").read_text(encoding="utf-8")
+        preparation = _section(lesson, "Подготовьте отдельный диалог")
+        self.assertIn("**Новый диалог**", preparation)
+        self.assertIn('**«Новый чат»**', preparation)
+        self.assertIn("нет сообщений из старой беседы", preparation)
+        self.assertIn("уже пустой новый чат", preparation)
+        self.assertIn("просто закрыть окно браузера", preparation)
+        self.assertIn("Удалять старый разговор не нужно", preparation)
+        self.assertIn("Платная подписка для этого урока не требуется", preparation)
+        self.assertIn("GigaChat", preparation)
+        self.assertNotIn("используйте обычное действие сервиса", preparation)
+        self.assertEqual(6, sum(line.startswith("## ") for line in lesson.splitlines()))
+
+    def test_first_file_upload_uses_verified_plus_and_real_saved_docx(self) -> None:
+        lesson = (ROOT / "04_course/M00/M00-L02/lesson.md").read_text(encoding="utf-8")
+        aid = (ROOT / "05_assets/M00/M00-L03/M00-L03-A02.md").read_text(encoding="utf-8")
+        task = _section(lesson, "Передайте документ и поставьте задачу по нему")
+        self.assertIn('**«+» (плюс)**', task)
+        self.assertIn("папке **«Загрузки»**", task)
+        self.assertIn("прикреплённый документ в чате", task)
+        self.assertIn("недостаточно просто открыть документ", task)
+        self.assertIn("**в том же разговоре**", task)
+        self.assertIn("GigaChat", task)
+        self.assertIn("новый чат", task)
+        self.assertIn("скачанный учебный документ", task)
+        self.assertIn("M00-L02-A01.docx", lesson)
+        self.assertIn("используйте именно скачанный файл, а не текстовую копию", lesson)
+        self.assertIn("сохранённый учебный файл", aid)
+        self.assertIn('**«+» (плюс)**', aid)
+        self.assertEqual(8, sum(x.startswith("## ") for x in lesson.splitlines()))
+
+    def test_stepik_chat_switching_uses_tabs_without_reloading_stepik(self) -> None:
+        lesson = (ROOT / "04_course/M00/M00-L03/lesson.md").read_text(encoding="utf-8")
+        practice = _section(lesson, "Найдите фрагмент в исходнике и вернитесь к чату")
+        self.assertIn("Не закрывайте страницу Stepik", practice)
+        self.assertIn("другой вкладке браузера", practice)
+        self.assertIn("**На компьютере:**", practice)
+        self.assertIn("**На телефоне:**", practice)
+        self.assertIn("переключайтесь между приложениями телефона", practice)
+        self.assertIn("ту же строку о ноутбуке", practice)
+        self.assertIn("**Ничего отправлять ИИ не нужно.**", practice)
+        self.assertIn("GigaChat", practice)
+        self.assertEqual(6, sum(x.startswith("## ") for x in lesson.splitlines()))
+
     def test_no_stale_inline_material_promises_or_visible_md_extension(self) -> None:
         stale_patterns = (
             re.compile(r"будет показан[аоы]?\s+ниже", re.IGNORECASE),
@@ -181,13 +226,15 @@ class HumanReviewUxRegressionTests(unittest.TestCase):
 
         m07_step = _section(m07, "Разберите уже выполненную финальную работу")
         self.assertIn("не нужно снова работать с ИИ", m07_step)
-        self.assertIn("не новый пример, не тренировка", m07_step)
-        self.assertIn("ответьте в поле Stepik", m07_step)
-        self.assertIn("Файлы, изображения и скриншоты в Stepik загружать не нужно", m07_step)
+        self.assertIn("**Ответьте в Stepik на семь вопросов:**", m07_step)
+        self.assertIn("Если чужая подсказка повлияла на решение", m07_step)
+        self.assertIn("Файлы и снимки экрана загружать в Stepik не нужно", m07_step)
 
-        self.assertTrue(form.startswith("# Вопросы для разбора финальной работы"))
-        self.assertIn("не новый пример, не отдельное упражнение и не файл для заполнения", form)
-        self.assertIn("Ничего отправлять ИИ здесь не нужно", form)
+        self.assertTrue(form.startswith("# Памятка перед ответом"))
+        self.assertIn("семь вопросов", form)
+        self.assertIn("один раз, в Stepik", form)
+        self.assertIn("отправлять ИИ не нужно", form)
+        self.assertNotIn("## Что вы сделали", form)
         self.assertNotIn("естественный след", form.lower())
 
 

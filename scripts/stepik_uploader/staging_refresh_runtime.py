@@ -533,6 +533,27 @@ def _materialize_assets(
     return bindings, next_state, artifacts
 
 
+def _commit_proven_lesson_baseline(
+    state: dict[str, Any],
+    *,
+    canonical_id: str,
+    baseline: dict[str, Any],
+    verified_record: dict[str, Any],
+    status: str,
+) -> dict[str, Any]:
+    """Persist the exact proven FINAL_READBACK baseline, even after a zero-PUT noop.
+
+    The verified writer can generate a new canonical applied_fingerprint and
+    applied_source_sha after recovery while leaving live Stepik unchanged.
+    Only a genuinely identical NOOP retains the existing machine baseline.
+    """
+    if status not in {"APPLIED", "NOOP_CONFIRMED"}:
+        raise SyncStateError("Нельзя фиксировать baseline без подтверждённого read-back")
+    if status == "APPLIED" or verified_record != baseline:
+        return with_record(state, canonical_id=canonical_id, record=verified_record)
+    return state
+
+
 def _assessment_or_history_gate(
     *,
     target_id: str,
@@ -883,9 +904,13 @@ def main() -> int:
                     write_json(report_dir / "course-snapshot.after.json", result.after_snapshot)
 
             confirmed_at = _utc_now()
-            next_state = state_after_assets
-            if lesson_status == "APPLIED":
-                next_state = with_record(next_state, canonical_id=target_id, record=lesson_record)
+            next_state = _commit_proven_lesson_baseline(
+                state_after_assets,
+                canonical_id=target_id,
+                baseline=baseline,
+                verified_record=lesson_record,
+                status=lesson_status,
+            )
             next_state = close_lesson_pending(
                 next_state,
                 canonical_id=target_id,

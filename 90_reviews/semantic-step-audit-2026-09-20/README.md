@@ -8,7 +8,7 @@
 Основание — [полный запрос владельца](owner-request.md). Проверяемая версия курса: `d076dd06977ecc85db66abb1d3fc503eb7343d48`.
 
 - [Авторская общекурсовая сводка](audit-summary.md) и [проверка полноты](evidence/author-completeness.json).
-- [Передача Шагу 2](handoff-to-step2.md), [промпт Astra](step2-prompt.md), [промпт SOL](step2-prompt-sol.md).
+- [Передача Шагу 2](handoff-to-step2.md), [архивный промпт Astra](../_archive/execution-prompts/step2-prompt-astra-2026-09-20.md), [архивный промпт SOL](../_archive/execution-prompts/step2-prompt-sol-2026-09-20.md).
 
 - [Критик: раунд 1](critic-round1.md), [ответ автора](critic-response.md), [критик: раунд 2 — PASS](critic-round2.md), [текущий статус](critic-status.json).
 
